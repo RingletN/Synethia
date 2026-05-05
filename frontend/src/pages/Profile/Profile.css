@@ -1,0 +1,255 @@
+@import '../../index.css';
+
+/* .profile-content{
+    display:flex;
+    flex-direction: column;
+    width:100%;
+    margin: 100px 0;
+    gap: 32px;
+}
+.profile-header-text {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.profile-image-block{
+    display: flex;
+    gap:46px;
+}
+
+.profile-image-block{
+    flex-direction: column;
+} */
+
+.profile-page {
+    margin-top:100px;
+    /* margin-bottom:200px; */
+}
+
+.profile-container {
+    display: flex;
+    gap: 46px;
+    width: 100%;  
+    align-items: flex-start; 
+    position: relative;
+}
+
+.profile-data-block {
+    min-width: 783px;
+    display: flex;
+    flex-direction: column;
+    gap: 32px;
+    flex: 1;   
+    min-width: 0;  
+    padding: 32px 43px; 
+    
+}
+
+
+.profile-data-block,
+.photo-container {
+    background: rgba(var(--color-dark-rgb), 0.4);
+    border: none;
+    border-radius: 40px;  
+    display: flex;
+    position: relative;
+    overflow: hidden;
+}
+
+.profile-data-block::before,
+.loader-overlay::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 40px;
+    padding:3px;
+    background: linear-gradient(0deg, var(--color-cyan), var(--color-violet), var(--color-cyan));
+    mask: 
+        linear-gradient(#fff 0 0) content-box, 
+        linear-gradient(#fff 0 0);
+    mask-composite: exclude;
+    -webkit-mask: 
+        linear-gradient(#fff 0 0) content-box, 
+        linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    pointer-events: none;    
+    z-index: 1;
+    /* filter: blur(1px); */
+}
+
+.profile-photo-block {
+    max-width: 396px;
+    width: 70%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 43px;
+    flex: 0 0 auto;
+}
+
+.block-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    height:60px;
+}
+
+.block-header h3 {
+    font-family: 'Montserrat', sans-serif;
+    font-weight: bold;
+    font-size: 40px;
+    color: #ECECEC;
+    margin: 0;
+}
+
+.action-icons {
+    display: flex;
+    gap: 10px;
+}
+
+.icon {
+    cursor: pointer;
+    transition: transform 0.1s;
+}
+
+.icon:hover {
+    transform: scale(1.1);
+}
+
+.divider {
+    height: 1px;
+    background: rgba(255, 255, 255, 0.3);
+    margin-bottom: 32px;
+}
+
+.photo-container {
+    width: 100%;
+    aspect-ratio: 1 / 1.2;
+    /* height: 493px; */
+    border-radius: 40px;
+    overflow: hidden;
+    background: rgba(255, 255, 255, 0.1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.profile-photo {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.no-photo-placeholder {
+    font-family: 'Montserrat';
+    font-weight: bold;
+    color: #BEBEBE;
+    font-size: 32px;
+    text-align: center;
+    width: 90%;
+}
+
+.photo-actions {
+    display: flex;
+    gap: 20px;
+    flex-direction: column;
+    justify-content: center;
+     width: 100%;  
+}
+
+.profile-header {
+    margin-bottom: 32px;
+}
+.profile-header-text {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+.profile-header-text h2 {
+    font-family: 'Montserrat', sans-serif;
+    font-weight: bold;
+    font-size: 44px;
+    color: #ECECEC;
+    margin: 0;
+}
+.logout-btn img {
+    cursor: pointer;
+    transition: transform 0.1s;
+}
+.logout-btn img:hover {
+    transform: scale(1.1);
+}
+.divider {
+    height: 3px;
+    background: rgba(255, 255, 255, 0.3);
+    margin: 16px 0 32px;
+}
+
+
+.profile-bg-line {
+    position: absolute;
+    left: 50%;
+    top: 65px;
+    transform: translateX(-50%);
+    width: 100vw;
+    pointer-events: none;
+    z-index: 0;
+    opacity: 0;
+    animation: fadeInBg 1.2s ease-in-out forwards;
+}
+
+@keyframes fadeInBg {
+    0% {
+        opacity: 0;
+    }
+    100% {
+        opacity: 1;
+    }
+}
+
+.profile-bg-line img {
+    width: 100%;
+    height: auto;
+    max-height:150vh;
+    max-width: none;
+    display: block;
+}
+
+/* Оверлей загрузки внутри блока */
+.loader-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: inherit; /* чтобы углы совпадали с блоком */
+  z-index: 10;
+}
+
+
+@media (max-width: 1120px) {
+    .profile-container {
+        display: flex; 
+        flex-direction: column;
+        align-items: center; 
+    }
+    .profile-data-block {
+        width:85%;
+    }
+    .profile-photo-block {
+        width: 80%;
+         flex: 0 0 auto;
+          max-width: none;
+    }
+        .photo-container {
+        width: 100%;            /* контейнер фото растягивается внутри блока */
+        height: auto;          /* высота автоматическая */
+        aspect-ratio: 1 / 1.2; /* можно задать желаемое соотношение сторон */
+    }
+}

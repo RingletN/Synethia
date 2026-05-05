@@ -1,0 +1,49 @@
+name: synethia-app  # Имя проекта
+
+services:
+  # Бэкенд (Laravel)
+  backend:
+    build:
+      context: ./backend  # Путь к папке с бэкендом
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      - DB_CONNECTION=pgsql
+      - DB_HOST=database  # Имя сервиса базы данных
+      - DB_PORT=5432
+      - DB_DATABASE=synethia
+      - DB_USERNAME=postgres
+      - DB_PASSWORD=secret
+    depends_on:
+      - database
+
+  # Фронтенд (React)
+  frontend:
+    build:
+      context: ./frontend  # Путь к папке с фронтендом
+      dockerfile: Dockerfile
+    ports:
+      - "5173:5173"
+    command: npm run dev
+    volumes:
+    - ./frontend:/app    # чтобы видеть изменения кода без пересборки
+    - /app/node_modules  # не перезаписывать node_modules из контейнера
+    environment:
+      - PORT=3000
+
+  # База данных (PostgreSQL)
+  database:
+    image: postgres:16
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_DB=synethia
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=secret
+    volumes:
+      # Сохраняем данные БД на диск хоста, чтобы они не пропадали
+      - postgres-data:/var/lib/postgresql/data
+
+volumes:
+  postgres-data:

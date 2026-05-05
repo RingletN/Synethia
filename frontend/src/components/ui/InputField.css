@@ -1,0 +1,65 @@
+/* .input-field {
+    margin-bottom: 24px;
+} */
+
+.input-label {
+    display: block;
+    font-family: 'Montserrat', sans-serif;
+    font-weight: bold;
+    font-size: 32px;
+    color: #BEBEBE;
+    margin-bottom: 9px;
+}
+
+.input-wrapper {
+    position: relative;
+    width: 100%;
+}
+
+.input-control {
+    width: 100%;
+    background: rgba(255, 255, 255, 0.2);
+    border: none;
+    padding: 14px 40px;
+    font-family: 'Montserrat', sans-serif;
+    font-weight: bold;
+    font-size: 32px;
+    color: #ECECEC;
+    outline: none;
+    transition: all 0.2s;
+    border-radius: 40px;
+    box-sizing: border-box; 
+}
+
+.input-control:focus {
+    background: rgba(255, 255, 255, 0.3);
+}
+
+.input-control:disabled,
+.input-control[readonly] {
+    opacity: 0.7;
+    cursor: default;
+    color: #BEBEBE;
+}
+
+.input-error {
+    border: 3px solid #FF00FF;
+}
+
+.input-error-message {
+    font-family: 'Montserrat', sans-serif;
+    font-weight: 600;
+    font-size: 26px;
+    color: #FF00FF;
+    margin-top: 8px;
+}
+
+.password-eye {
+    position: absolute;
+    right: 20px;
+    top: 50%;
+    transform: translateY(-50%);
+    cursor: pointer;
+    width: 32px;
+    height: 32px;
+}

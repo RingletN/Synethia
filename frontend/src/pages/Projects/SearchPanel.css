@@ -1,0 +1,58 @@
+/* Можно импортировать глобальные переменные, если они в index.css или :root */
+@import '../../index.css';
+
+.search-block {
+  background: rgba(var(--color-dark-rgb), 0.4);
+  border: none;
+  border-radius: 40px;
+  padding: 14px 28px;
+  display: flex;
+  position: relative;
+  overflow: hidden;
+  justify-content: space-between;
+  align-items: center; 
+}
+
+.search-block::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 40px;
+  padding: 3px;
+  background: linear-gradient(95deg, var(--color-cyan), var(--color-violet), var(--color-pink));
+  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  mask-composite: exclude;
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.search-panel {
+  display: flex;
+  gap: 20px;
+  align-items: center;
+  flex: 1;
+}
+
+.search-panel input {
+  background: transparent;
+  border: none;
+  outline: none;
+  color: var(--color-bright);
+   font-family: var(--font-montserrat);
+  font-weight:var(--font-weight-semibold);
+  font-size: 32px;
+  width: 100%;
+  padding: 0;
+  margin: 0;
+}
+
+.search-panel input::placeholder {
+  color: var(--color-pale);
+}
+
+.search-clear {
+  cursor: pointer;
+  padding-left:10px;
+}

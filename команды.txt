@@ -1,0 +1,33 @@
+Создать проект npm create vite@latest my-frontend -- --template react
+
+Запуск npm run dev  
+
+Роутеры npm install react-router-dom
+
+
+
+Установить бэкенд ларавель composer create-project laravel/laravel backend
+
+Перенести сист таблицы из бд в бэк php artisan migrate
+
+Шаг 1.1: Установи Sanctum
+composer require laravel/sanctum
+php artisan vendor:publish --provider="Laravel\Sanctum\SanctumServiceProvider"
+php artisan migrate
+
+
+
+создание контроллеров php artisan make:controller Api/AuthController
+символическая ссылка для хранения файлов php artisan storage:link
+
+http://127.0.0.1:5173/
+http://127.0.0.1:8000/api/users
+
+
+npm run dev -- --host 127.0.0.1
+
+php artisan config:clear
+php artisan route:clear
+php artisan cache:clear
+php artisan optimize:clear
+php artisan serve --host=127.0.0.1 --port=8000                                                                                                                             
