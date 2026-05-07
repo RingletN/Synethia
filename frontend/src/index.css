@@ -16,6 +16,7 @@
 
   --font-size-h1: 48px;
   --font-size-h2: 44px;
+  --font-size-h3: 40px;
 }
 
 
@@ -62,6 +63,13 @@ h2 {
   margin:0;
 }
 
+h3 {
+  color: var(--color-bright);
+  font-weight: var(--font-weight-bold);
+  font-size:var(--font-size-h3);
+  margin:0;
+}
+
 p {
   color: var(--color-pale);
   margin: 0;
@@ -77,6 +85,7 @@ p {
   :root {
   --font-size-h1: 38px;
   --font-size-h2: 36px;
+  --font-size-h3: 32px;
 }
 
   #root {
@@ -88,6 +97,8 @@ p {
 @media (max-width: 600px) {
   :root {
     --font-size-h1: 28px;
+    --font-size-h2: 26px;
+    --font-size-h3: 24px;
   }
 
   #root {

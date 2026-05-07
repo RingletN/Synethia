@@ -3,7 +3,11 @@ import { useAuth } from '../../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import InputField from '../../components/ui/InputField';
 import Button from '../../components/ui/Button';
-import Loader from '../../components/ui/Loader'
+import Loader from '../../components/ui/Loader';
+import BgLoginLine from '../../assets/backgrounds/bg-login-line.png';
+import tabLoginTop from '../../assets/login/tab-login-top.svg';
+import tabRegisterTop from '../../assets/login/tab-register-top.svg';
+import frameBottom from '../../assets/login/frame-bottom.svg';
 import './Register.css';
 
 function Register() {
@@ -56,36 +60,25 @@ function Register() {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        // Валидация всех полей
         let hasError = false;
         const newErrors = {};
         if (!isLoginMode) {
             ['name', 'nickname', 'email', 'password'].forEach(field => {
                 const err = validateField(field, formData[field]);
-                if (err) {
-                    newErrors[field] = err;
-                    hasError = true;
-                }
+                if (err) { newErrors[field] = err; hasError = true; }
             });
         } else {
             ['email', 'password'].forEach(field => {
                 const err = validateField(field, formData[field]);
-                if (err) {
-                    newErrors[field] = err;
-                    hasError = true;
-                }
+                if (err) { newErrors[field] = err; hasError = true; }
             });
         }
-        if (hasError) {
-            setErrors(newErrors);
-            return;
-        }
+        if (hasError) { setErrors(newErrors); return; }
 
         setLoading(true);
         setGeneralError('');
-
-        let success = false;
         try {
+            let success = false;
             if (isLoginMode) {
                 success = await login(formData.email, formData.password);
             } else {
@@ -99,9 +92,11 @@ function Register() {
             if (success) {
                 navigate('/profile');
             } else {
-                setGeneralError(isLoginMode ? 'Неверный email или пароль' : 'Ошибка регистрации. Возможно, пользователь уже существует.');
+                setGeneralError(isLoginMode
+                    ? 'Неверный email или пароль'
+                    : 'Ошибка регистрации. Возможно, пользователь уже существует.');
             }
-        } catch (err) {
+        } catch {
             setGeneralError('Ошибка соединения с сервером');
         } finally {
             setLoading(false);
@@ -109,67 +104,120 @@ function Register() {
     };
 
     const toggleMode = () => {
-        setIsLoginMode(!isLoginMode);
+        setIsLoginMode(prev => !prev);
         setErrors({});
         setGeneralError('');
         setFormData({ name: '', nickname: '', email: '', password: '' });
     };
 
     return (
+        <div className="auth-page-container">
+                    <div className="login-bg-line">
+                <img src={BgLoginLine} alt="фоновая линия" />
+            </div>
         <div className="auth-page">
-            <div className="auth-container">
-                <h2>{isLoginMode ? 'Вход' : 'Регистрация'}</h2>
-                <form onSubmit={handleSubmit}>
-                    {!isLoginMode && (
-                        <>
-                            <InputField
-                                label="Имя"
-                                name="name"
-                                value={formData.name}
-                                onChange={handleChange}
-                                onBlur={handleBlur}
-                                error={errors.name}
-                            />
-                            <InputField
-                                label="Псевдоним"
-                                name="nickname"
-                                value={formData.nickname}
-                                onChange={handleChange}
-                                onBlur={handleBlur}
-                                error={errors.nickname}
-                            />
-                        </>
-                    )}
-                    <InputField
-                        label="Email"
-                        name="email"
-                        type="email"
-                        value={formData.email}
-                        onChange={handleChange}
-                        onBlur={handleBlur}
-                        error={errors.email}
+
+            <div className="auth-frame">
+
+                <div className="auth-frame__top">
+                    <img
+                        className="auth-frame__top-svg"
+                        src={isLoginMode ? tabLoginTop : tabRegisterTop}
+                        alt=""
+                        aria-hidden="true"
                     />
-                    <InputField
-                        label="Пароль"
-                        name="password"
-                        type="password"
-                        value={formData.password}
-                        onChange={handleChange}
-                        onBlur={handleBlur}
-                        error={errors.password}
-                        showPasswordToggle
-                    />
-                    {generalError && <div className="auth-error">{generalError}</div>}
-                    <Button type="submit" variant="primary" disabled={loading}>
-                        {loading ? 'Подождите...' : (isLoginMode ? 'Войти' : 'Зарегистрироваться')}
-                    </Button>
-                </form>
-                <div className="auth-switch">
-                    {isLoginMode ? 'Нет аккаунта?' : 'Уже есть аккаунт?'}{' '}
-                    <button type="button" className="link-btn" onClick={toggleMode}>
-                        {isLoginMode ? 'Зарегистрироваться' : 'Войти'}
-                    </button>
+
+                    <div className="auth-tabs">
+                        <button
+                            type="button"
+                            className={`auth-tab ${isLoginMode ? 'auth-tab--active' : ''}`}
+                            onClick={() => !isLoginMode && toggleMode()}
+                        > <h3>
+                            Вход
+                        </h3>
+                        </button>
+                        <button
+                            type="button"
+                            className={`auth-tab ${!isLoginMode ? 'auth-tab--active' : ''}`}
+                            onClick={() => isLoginMode && toggleMode()}
+                        >
+                            <h3>
+                                Регистрация
+                            </h3>
+                        </button>
+                    </div>
                 </div>
+
+                <div className="auth-frame__middle">
+                    <div className="auth-frame__line auth-frame__line--left" />
+                    <div className="auth-frame__line auth-frame__line--right" />
+
+                    {/* Контент формы */}
+                    <div className="auth-content">
+                        {loading && (
+                            <div className="loader-overlay">
+                                <Loader />
+                            </div>
+                        )}
+                        <form onSubmit={handleSubmit} noValidate>
+                            {!isLoginMode && (
+                                <>
+                                    <InputField
+                                        label="Имя"
+                                        name="name"
+                                        value={formData.name}
+                                        onChange={handleChange}
+                                        onBlur={handleBlur}
+                                        error={errors.name}
+                                    />
+                                    <InputField
+                                        label="Псевдоним"
+                                        name="nickname"
+                                        value={formData.nickname}
+                                        onChange={handleChange}
+                                        onBlur={handleBlur}
+                                        error={errors.nickname}
+                                    />
+                                </>
+                            )}
+                            <InputField
+                                label="Email"
+                                name="email"
+                                type="email"
+                                value={formData.email}
+                                onChange={handleChange}
+                                onBlur={handleBlur}
+                                error={errors.email}
+                            />
+                            <InputField
+                                label="Пароль"
+                                name="password"
+                                type="password"
+                                value={formData.password}
+                                onChange={handleChange}
+                                onBlur={handleBlur}
+                                error={errors.password}
+                                showPasswordToggle
+                            />
+                            {generalError && (
+                                <div className="auth-error">{generalError}</div>
+                            )}
+                            <Button type="submit" variant="primary" disabled={loading} className="auth-submit-button"> 
+                                {loading ? 'Подождите...' : (isLoginMode ? 'Войти' : 'Зарегистрироваться')}
+                            </Button>
+                        </form>
+                    </div>
+                </div>
+
+                <div className="auth-frame__bottom">
+                    <img
+                        className="auth-frame__bottom-svg"
+                        src={frameBottom}
+                        alt=""
+                        aria-hidden="true"
+                    />
+                </div>
+</div>
             </div>
         </div>
     );

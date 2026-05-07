@@ -1,4 +1,4 @@
-import { Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from './context/AuthContext';
 import Loader from './components/ui/Loader'
 import Header from './components/layout/Header'
@@ -20,8 +20,12 @@ function PrivateRoute({ children }) {
 
 function App() {
   const { loading } = useAuth();
+  const location = useLocation();
+  const isRegisterPage = location.pathname === '/register';
   if (loading) {
    return (
+    <>
+    <Header />
       <div style={{
         position: 'fixed',
         inset: 0,
@@ -33,6 +37,7 @@ function App() {
       }}>
         <Loader size={80} color="cyan" speed={1400} />
       </div>
+      </>
     );
   }
 
@@ -44,8 +49,6 @@ function App() {
         <Route path="/" element={<Home />} />
         <Route path="/projects" element={<Projects />}/>
        {/* <Route path="/canvas" element={<Canvas />} /> */}
-        {/* <Route path="/profile" element={<Profile />} />  */}
-        {/* <Route path="/register" element={<Register />} />  */}
         <Route path="/register" element={<Register />} />
         <Route 
           path="/profile" 
@@ -57,7 +60,7 @@ function App() {
         />
       </Routes>
 
-      <Footer />
+      {!isRegisterPage && <Footer />}
     </>
   )
 }
