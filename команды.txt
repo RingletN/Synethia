@@ -30,4 +30,12 @@ php artisan config:clear
 php artisan route:clear
 php artisan cache:clear
 php artisan optimize:clear
-php artisan serve --host=127.0.0.1 --port=8000                                                                                                                             
+php artisan serve --host=127.0.0.1 --port=8000           
+
+
+
+
+
+миграции.............
+
+php artisan make:migration update_users_table_constraints_and_lengths --table=users                                                                                                                  
