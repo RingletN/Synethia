@@ -38,7 +38,7 @@ const Header = () => {
                     </Link>
                 ) : (
                     <Link to="/auth" className="profile-link">
-                        <img src={ProfileIcon} alt="Profile" className="profile-icon" />
+                        <img src={ProfileGlow} alt="" className="profile-glow" />
                         <img src={ProfileIcon} alt="Profile" className="profile-icon" />
                     </Link>
                 )}
