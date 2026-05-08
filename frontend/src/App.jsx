@@ -1,4 +1,4 @@
-import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { Routes, Route, Navigate, useLocation} from 'react-router-dom';
 import { useAuth } from './context/AuthContext';
 import Loader from './components/ui/Loader'
 import Header from './components/layout/Header'
@@ -8,7 +8,6 @@ import Home from './pages/Home/Home'
 // import Canvas from './pages/Canvas'
 import Projects from './pages/Projects/Projects'
 import Profile from './pages/Profile/Profile'
-import Register from './pages/Autentification/Register'
 import AuthPage from './pages/Autentification/AuthPage'
 
 import './App.css'
@@ -16,13 +15,14 @@ import './App.css'
 function PrivateRoute({ children }) {
   const { user, loading } = useAuth();
   // if (loading) return <div>Загрузка...</div>;
-  return user ? children : <Navigate to="/register" />;
+  return user ? children : <Navigate to="/auth" />;
 }
 
 function App() {
+
   const { loading } = useAuth();
   const location = useLocation();
-  const isRegisterPage = location.pathname === '/register';
+  const isAuthPage = location.pathname === '/auth';
   if (loading) {
    return (
     <>
@@ -50,7 +50,6 @@ function App() {
         <Route path="/" element={<Home />} />
         <Route path="/projects" element={<Projects />}/>
        {/* <Route path="/canvas" element={<Canvas />} /> */}
-        <Route path="/register" element={<Register />} />
          <Route path="/auth" element={<AuthPage />} />
         <Route 
           path="/profile" 
@@ -62,7 +61,7 @@ function App() {
         />
       </Routes>
 
-      {!isRegisterPage && <Footer />}
+      {!isAuthPage && <Footer />}
     </>
   )
 }

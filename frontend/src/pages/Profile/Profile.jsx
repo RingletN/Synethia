@@ -4,6 +4,7 @@ import BgProfileLine from '../../assets/backgrounds/bg-profile-line.png';
 import InputField from '../../components/ui/InputField';
 import Button from '../../components/ui/Button';
 import Loader from '../../components/ui/Loader'
+import Modal from '../../components/ui/Modal'
 import ConfirmIcon from '../../assets/icons/icon-confirm.svg';
 import CloseIcon from '../../assets/icons/icon-close.svg';
 import LogoutIcon from '../../assets/icons/icon-logout.svg';
@@ -29,6 +30,8 @@ const Profile = () => {
     const [isSaving, setIsSaving] = useState(false);
     const [isPhotoUploading, setIsPhotoUploading] = useState(false);
     const [isPhotoLoading, setIsPhotoLoading] = useState(true);
+    const [showConfirmModal, setShowConfirmModal] = useState(false);
+    const [modalConfig, setModalConfig] = useState({});
 
     // Фото
     const [photoFile, setPhotoFile] = useState(null);
@@ -50,6 +53,29 @@ const Profile = () => {
             setIsPhotoLoading(false);
         }
     }, [user]);
+
+    const openConfirmModal = (config) => {
+        setModalConfig(config);
+        setShowConfirmModal(true);
+        };
+
+    // Пример для сброса фото
+    const resetPhoto = () => {
+        openConfirmModal({
+            title: "Сбросить фото?",
+            description: "Это действие нельзя отменить",
+            primaryText: "Сбросить",
+            cancelText: "Отмена",
+            onPrimary: async () => {
+                setShowConfirmModal(false);
+                const success = await deletePhoto();
+                if (success) {
+                    // показать успех
+                }
+            },
+            variant: "warning"
+        });
+    };
 
     useEffect(() => {
         const isChanged =
@@ -151,21 +177,21 @@ const Profile = () => {
         if (fileInputRef.current) fileInputRef.current.value = '';
     };
 
-    const resetPhoto = async () => {
-        setIsPhotoUploading(true);
-        const success = await deletePhoto();
-        setIsPhotoUploading(false);
-        if (success) {
-            setPhotoPreview(null);
-            setIsPhotoChanged(false);
-            setPhotoFile(null);
-        }
-        setIsPhotoUploading(false);
-    };
+    // const resetPhoto = async () => {
+    //     setIsPhotoUploading(true);
+    //     const success = await deletePhoto();
+    //     setIsPhotoUploading(false);
+    //     if (success) {
+    //         setPhotoPreview(null);
+    //         setIsPhotoChanged(false);
+    //         setPhotoFile(null);
+    //     }
+    //     setIsPhotoUploading(false);
+    // };
 
     const handleLogout = async () => {
         await logout();
-        window.location.href = '/register';
+        window.location.href = '/auth';
     };
 
     const formatDate = (dateString) => {
@@ -295,6 +321,17 @@ const Profile = () => {
                     />
                 </div>
             </div>
+            <Modal
+                isOpen={showConfirmModal}
+                onClose={() => setShowConfirmModal(false)}
+                title={modalConfig.title}
+                description={modalConfig.description}
+                primaryText={modalConfig.primaryText}
+                cancelText={modalConfig.cancelText}
+                onPrimary={modalConfig.onPrimary}
+                onCancel={() => setShowConfirmModal(false)}
+                variant={modalConfig.variant || "default"}
+            />
         </div>
     );
 };

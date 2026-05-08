@@ -3,6 +3,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import InputField from '../../components/ui/InputField';
 import Button from '../../components/ui/Button';
+import Modal from '../../components/ui/Modal';
 import Loader from '../../components/ui/Loader';
 import tabLoginTop from '../../assets/login/tab-login-top.svg';
 import tabRegisterTop from '../../assets/login/tab-register-top.svg';
@@ -22,6 +23,42 @@ function Login({ onSwitchToRegister, onForgotPassword }) {
     const [loading, setLoading]   = useState(false);
     const [generalError, setGeneralError] = useState('');
 
+    const [showSuccessModal, setShowSuccessModal] = useState(false);
+    const [showErrorModal, setShowErrorModal] = useState(false);
+    const [errorMessage, setErrorMessage] = useState('');
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        const newErrors = {};
+        ['email', 'password'].forEach(f => {
+            const err = validateField(f, formData[f]);
+            if (err) newErrors[f] = err;
+        });
+        if (Object.keys(newErrors).length) { setErrors(newErrors); return; }
+
+        setLoading(true);
+        setGeneralError('');
+        try {
+            const success = await login(formData.email, formData.password);
+            if (success) {
+                setShowSuccessModal(true);
+            } else {
+                setErrorMessage('Неверный email или пароль');
+                setShowErrorModal(true);
+            }
+        } catch {
+            setErrorMessage('Ошибка соединения с сервером');
+            setShowErrorModal(true);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleSuccessClose = () => {
+        setShowSuccessModal(false);
+        navigate('/profile');
+    };
+
     const handleChange = (e) => {
         const { name, value } = e.target;
         setFormData(prev => ({ ...prev, [name]: value }));
@@ -39,31 +76,6 @@ function Login({ onSwitchToRegister, onForgotPassword }) {
         const { name, value } = e.target;
         const error = validateField(name, value);
         if (error) setErrors(prev => ({ ...prev, [name]: error }));
-    };
-
-    const handleSubmit = async (e) => {
-        e.preventDefault();
-        const newErrors = {};
-        ['email', 'password'].forEach(f => {
-            const err = validateField(f, formData[f]);
-            if (err) newErrors[f] = err;
-        });
-        if (Object.keys(newErrors).length) { setErrors(newErrors); return; }
-
-        setLoading(true);
-        setGeneralError('');
-        try {
-            const success = await login(formData.email, formData.password);
-            if (success) {
-                navigate('/profile');
-            } else {
-                setGeneralError('Неверный email или пароль');
-            }
-        } catch {
-            setGeneralError('Ошибка соединения с сервером');
-        } finally {
-            setLoading(false);
-        }
     };
 
     return (
@@ -157,6 +169,26 @@ function Login({ onSwitchToRegister, onForgotPassword }) {
                     aria-hidden="true"
                 />
             </div>
+
+            {/* Модалки */}
+            <Modal
+                isOpen={showSuccessModal}
+                onClose={handleSuccessClose}
+                title="Успешный вход!"
+                description="Добро пожаловать обратно в Synethia"
+                primaryText="Перейти в профиль"
+                onPrimary={handleSuccessClose}
+                variant="success"
+            />
+
+            <Modal
+                isOpen={showErrorModal}
+                onClose={() => setShowErrorModal(false)}
+                title="Ошибка входа"
+                description={errorMessage}
+                primaryText="Понятно"
+                variant="error"
+            />
         </div>
     );
 }

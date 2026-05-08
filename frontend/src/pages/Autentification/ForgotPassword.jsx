@@ -98,6 +98,31 @@ function ForgotPassword({ onBack }) {
         }
     };
 
+    const handleCodeChange = async (e) => {
+        const newCode = e.target.value;
+        setCode(newCode);
+        setError('');
+
+        // Автопроверка, если введено достаточное количество символов
+        if (newCode.length >= 4) {  // подставь нужную длину кода
+            setLoading(true);
+            try {
+                // const ok = await verifyCode(email, newCode);
+                const ok = true; // заглушка
+                if (ok) {
+                    onBack(); // или setMode('login') через пропс
+                    // Можно передать email обратно, если нужно
+                } else if (newCode.length > 6) {
+                    setError('Неверный код');
+                }
+            } catch {
+                setError('Ошибка проверки кода');
+            } finally {
+                setLoading(false);
+            }
+        }
+    };
+
     // ── Шаг 3: сменить пароль ────────────────────────────────────────
     const handleResetPassword = async (e) => {
         e.preventDefault();
@@ -156,25 +181,36 @@ function ForgotPassword({ onBack }) {
 
                         {/* ── ШАГ 1+2: email + код ────────────────── */}
                         {(step === 1 || step === 2) && (
-                            <form onSubmit={step === 1 ? (e) => { e.preventDefault(); handleSendCode(); } : handleVerifyCode} noValidate>
-                                {/* Email + кнопка «Получить код» в одной строке */}
-                                <div>
-                                    <InputField
-                                        label="Email"
-                                        name="email"
-                                        type="email"
-                                        value={email}
-                                        onChange={e => { setEmail(e.target.value); setError(''); }}
-                                    />
-                                    {/* Кнопка «Получить код» прямо под полем, с таймером */}
-                                    <button
+                            <form onSubmit={step === 1 ? (e) => { e.preventDefault(); handleSendCode(); } : undefined} noValidate>
+
+                        <InputField
+                                    label="Email"
+                                    name="email"
+                                    type="email"
+                                    value={email}
+                                    onChange={e => { 
+                                        setEmail(e.target.value); 
+                                        setError(''); 
+                                    }}
+                                />
+
+                                {/* Новая строка: кнопка + таймер рядом */}
+                                <div className="send-code-row">
+                                    <Button
                                         type="button"
-                                        className={`forgot-send-code-btn ${timer > 0 ? 'forgot-send-code-btn--disabled' : ''}`}
+                                        variant="primary"
                                         onClick={handleSendCode}
-                                        disabled={timer > 0 || loading}
+                                        disabled={timer > 0 || loading || !email}
+                                        className="forgot-send-code-btn"
                                     >
-                                        {timer > 0 ? formatTimer(timer) : 'Получить код'}
-                                    </button>
+                                        ПОЛУЧИТЬ КОД
+                                    </Button>
+
+                                    {timer > 0 && (
+                                        <div className="timer-display">
+                                            {formatTimer(timer)}
+                                        </div>
+                                    )}
                                 </div>
 
                                 {step === 2 && (
@@ -188,11 +224,6 @@ function ForgotPassword({ onBack }) {
 
                                 {error && <div className="auth-error">{error}</div>}
 
-                                {step === 2 && (
-                                    <Button type="submit" variant="primary" disabled={loading} className="auth-submit-button">
-                                        {loading ? 'Подождите...' : 'Подтвердить'}
-                                    </Button>
-                                )}
                             </form>
                         )}
 

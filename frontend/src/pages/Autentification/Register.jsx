@@ -3,6 +3,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import InputField from '../../components/ui/InputField';
 import Button from '../../components/ui/Button';
+import Modal from '../../components/ui/Modal';
 import Loader from '../../components/ui/Loader';
 import tabLoginTop from '../../assets/login/tab-login-top.svg';
 import tabRegisterTop from '../../assets/login/tab-register-top.svg';
@@ -32,6 +33,10 @@ function Register({ onSwitchToLogin }) {
     const [errors, setErrors]   = useState({});
     const [loading, setLoading] = useState(false);
     const [generalError, setGeneralError] = useState('');
+
+    const [showSuccessModal, setShowSuccessModal] = useState(false);
+    const [showErrorModal, setShowErrorModal] = useState(false);
+    const [errorMessage, setErrorMessage] = useState('');
 
     const handleChange = (e) => {
         const { name, value } = e.target;
@@ -86,25 +91,19 @@ function Register({ onSwitchToLogin }) {
         if (Object.keys(newErrors).length) { setErrors(newErrors); return; }
 
         setLoading(true);
-        setGeneralError('');
-        try {
-            const success = await register({
-                name:     formData.name,
-                nickname: formData.nickname,
-                email:    formData.email,
-                password: formData.password,
-            });
-            if (success) {
-                navigate('/profile');
-            } else {
-                setGeneralError('Ошибка регистрации. Возможно, пользователь уже существует.');
+            try {
+                const success = await register(formData);
+                if (success) {
+                    setShowSuccessModal(true);
+                } else {
+                    setGeneralError('Ошибка регистрации...');
+                }
+            } catch {
+                setGeneralError('Ошибка соединения с сервером');
+            } finally {
+                setLoading(false);
             }
-        } catch {
-            setGeneralError('Ошибка соединения с сервером');
-        } finally {
-            setLoading(false);
-        }
-    };
+        };
 
     return (
         <div className="auth-frame">
@@ -177,13 +176,6 @@ function Register({ onSwitchToLogin }) {
                             )}
 
                             <div className="auth-buttons-row">
-                                <Button
-                                    type="button"
-                                    variant="negative"
-                                    onClick={onSwitchToLogin}
-                                >
-                                    Назад
-                                </Button>
                                 <Button type="submit" variant="primary">
                                     Продолжить
                                 </Button>
@@ -249,6 +241,18 @@ function Register({ onSwitchToLogin }) {
                     aria-hidden="true"
                 />
             </div>
+            <Modal
+                isOpen={showSuccessModal}
+                onClose={() => {
+                    setShowSuccessModal(false);
+                    navigate('/profile');
+                }}
+                title="Регистрация успешна!"
+                description="Добро пожаловать в Synethia"
+                primaryText="Перейти в профиль"
+                onPrimary={() => navigate('/profile')}
+                variant="success"
+            />
         </div>
     );
 }

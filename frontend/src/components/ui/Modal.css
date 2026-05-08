@@ -8,10 +8,10 @@
     bottom: 0;
     width: 100vw;
     height: 100vh;
-    background: rgba(11, 11, 31, 0.4);       
-    backdrop-filter: blur(30px);              
+    background: rgba(11, 11, 31, 0.4);
+    backdrop-filter: blur(30px);
     -webkit-backdrop-filter: blur(30px);
-    z-index: 9999;                     
+    z-index: 9999;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -31,7 +31,7 @@
     align-items: center;
     justify-content: center;
     flex-direction: column;
-    gap:32px;
+    gap: 32px;
 }
 
 .modal-content::before {
@@ -56,14 +56,22 @@
 .modal-buttons {
     display: flex;
     justify-content: center;
-    gap:70px;
-    margin-top:12px;
+    gap: 70px;
+    margin-top: 12px;
 
 }
 
-.modal-success::before { background: linear-gradient(95deg, var(--color-cyan), var(--color-violet), var(--color-cyan)); }
-.modal-error::before   { background: linear-gradient(95deg, var(--color-pink), var(--color-violet), var(--color-pink)); }
-.modal-warning::before { background: linear-gradient(95deg, var(--color-pink), var(--color-violet), var(--color-cyan)); }
+.modal-success::before {
+    background: linear-gradient(95deg, var(--color-cyan), var(--color-violet), var(--color-cyan));
+}
+
+.modal-error::before {
+    background: linear-gradient(95deg, var(--color-violet), var(--color-pink), var(--color-violet));
+}
+
+.modal-warning::before {
+    background: linear-gradient(95deg, var(--color-pink), var(--color-violet), var(--color-cyan));
+}
 
 @media (max-width: 1120px) {
     .modal-description {
@@ -74,11 +82,11 @@
 
 @media (max-width: 800px) {
 
-.modal-buttons {
-    flex-direction: column;
-    margin:0;
-    gap:28px;
-}
+    .modal-buttons {
+        flex-direction: column;
+        margin: 0;
+        gap: 28px;
+    }
 }
 
 @media (max-width: 600px) {
