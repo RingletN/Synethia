@@ -1,16 +1,24 @@
 @import '../../index.css';
 
+/* ─────────────────────────────────────────
+   Базовые страничные контейнеры
+───────────────────────────────────────── */
+.auth-page-container {
+    position: relative;
+}
+
 .auth-page {
     display: flex;
     justify-content: center;
     align-items: center;
-    /* min-height: 80vh; */
     min-height: 35vh;
-    /* padding: 40px 20px; */
-    margin-top:8.5vw;
+    margin-top: 8.5vw;
     position: relative;
 }
 
+/* ─────────────────────────────────────────
+   Фрейм
+───────────────────────────────────────── */
 .auth-frame {
     display: flex;
     flex-direction: column;
@@ -27,43 +35,57 @@
     background: transparent;
 }
 
-.auth-frame__top {
+.auth-frame__top,
+.forgot-frame__top {
     position: relative;
-    /* height: 120px;         */
     flex-shrink: 0;
 }
 
-.auth-frame__top-svg {
+.auth-frame__top-svg,
+.forgot-frame__top-svg {
     display: block;
     width: 100%;
-    height: 100%;
-    object-fit: fill;   
+    /* height: 100%; */
+    height: auto;
+    object-fit: fill;
 }
 
-.auth-tabs {
+/* ─────────────────────────────────────────
+   Табы
+───────────────────────────────────────── */
+.auth-tabs{
     position: absolute;
     inset: 0;
     display: flex;
     align-items: flex-start;
 }
 
-.auth-tab {
+.auth-tab{
     flex: 1;
     background: none;
     border: none;
     cursor: pointer;
-    padding-top:12px;
+    padding-top: 12px;
+}
+/* Переопределяем поведение flex для forgot-табов */
+.forgot-frame__top .forgot-tab {
+    flex: 0 0 auto;   /* не растягиваться */
+}
+.forgot-tabs {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: top;
+    justify-content: flex-start; /* прижимаем к левому краю */
+    gap: 62px;     
+    inset: 0;              /* расстояние между стрелкой и заголовком */
 }
 
-.auth-tab h3{
+.auth-tab h3 {
     letter-spacing: 2%;
     font-family: var(--font-montserrat);
     font-weight: var(--font-weight-bold);
-    font-size:var(--font-size-h3);
-    color: var(--color-bright);
-}
-
-.auth-tab:not(.auth-tab--active) h3 {
+    font-size: var(--font-size-h3);
     color: var(--color-pale);
 }
 
@@ -71,16 +93,19 @@
     color: var(--color-bright);
 }
 
+/* ─────────────────────────────────────────
+   Середина: боковые линии
+───────────────────────────────────────── */
 .auth-frame__middle {
     position: relative;
-    flex: 1 0 auto;    
+    flex: 1 0 auto;
 }
 
 .auth-frame__line {
     position: absolute;
     top: 0;
     bottom: 0;
-    width: 3px;
+
     background: linear-gradient(
         to bottom,
         #308CFF 0%,
@@ -89,12 +114,22 @@
     pointer-events: none;
 }
 
-.auth-frame__line--left  { left: 0; }
-.auth-frame__line--right { right: 0; }
+.auth-frame__line--left  { left: 0;     width: 3px;}
+.auth-frame__line--right { right: 0;     width: 3px;}
 
+.forgot-page .auth-frame__line {
+    background: linear-gradient(
+        to bottom,
+        #A925FF 0%,
+        #08E1FF 100%
+    );
+}
 
+/* ─────────────────────────────────────────
+   Контент формы
+───────────────────────────────────────── */
 .auth-content {
-    position: relative;  
+    position: relative;
     padding: 0px 43px 1px 43px;
 }
 
@@ -104,8 +139,10 @@
     gap: 32px;
 }
 
+/* ─────────────────────────────────────────
+   Нижняя часть
+───────────────────────────────────────── */
 .auth-frame__bottom {
-    /* height: 126px;         */
     flex-shrink: 0;
 }
 
@@ -116,18 +153,65 @@
     object-fit: fill;
 }
 
-.auth-submit-button {
-    margin-top: 32px; 
+/* ─────────────────────────────────────────
+   Кнопки в ряд (Назад + Продолжить)
+───────────────────────────────────────── */
+.auth-buttons-row {
+    display: flex;
+    gap: 16px;
+    margin-top: 32px;
 }
 
+.auth-buttons-row > * {
+    flex: 1;
+}
 
+.auth-submit-button {
+    margin-top: 32px;
+}
+
+/* ─────────────────────────────────────────
+   Ошибка
+───────────────────────────────────────── */
+.auth-error {
+    font-family: var(--font-montserrat);
+    font-size: 13px;
+    color: #ff4d4d;
+    text-align: center;
+    margin-top: -16px;
+}
+
+/* ─────────────────────────────────────────
+   Ссылка «Забыли пароль?»
+───────────────────────────────────────── */
+.auth-forgot-link {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-family: var(--font-montserrat);
+    font-size: 32px;
+    color: var(--color-pale);
+    font-weight: var(--font-weight-bold);
+    letter-spacing: 5%;
+    text-decoration: underline;
+    text-decoration-thickness: 3px;
+    text-underline-offset: 40%;
+    text-align: left;
+    padding: 0;
+}
+
+.auth-forgot-link:hover {
+    color: var(--color-bright);
+}
+
+/* ─────────────────────────────────────────
+   Фоновая линия
+───────────────────────────────────────── */
 .login-bg-line {
-    /* position: absolute; */
     position: fixed;
     bottom: -0.5vw;
     left: 50%;
-    /* top: 65px; */
-    display:flex;
+    display: flex;
     justify-content: flex-end;
     transform: translateX(-50%);
     width: 100vw;
@@ -138,23 +222,20 @@
 }
 
 @keyframes fadeInBg {
-    0% {
-        opacity: 0;
-    }
-    100% {
-        opacity: 1;
-    }
+    0%   { opacity: 0; }
+    100% { opacity: 1; }
 }
 
-.login-bg-line img{
+.login-bg-line img {
     width: 100%;
     height: auto;
     max-width: none;
     display: block;
 }
 
-
-/* Оверлей загрузки */
+/* ─────────────────────────────────────────
+   Оверлей загрузки
+───────────────────────────────────────── */
 .loader-overlay {
     position: absolute;
     inset: 0;
@@ -168,9 +249,64 @@
 }
 
 /* ─────────────────────────────────────────
+   ForgotPassword — хэдер
+───────────────────────────────────────── */
+
+.forgot-back-btn {
+    background: none;
+    border: none;
+    border-radius: 50%;
+    width: 136px;
+    height: 73px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    flex-shrink: 0;
+}
+
+/* Остальная область хэдера — не кликабельна */
+.forgot-frame__top {
+    cursor: default;
+}
+
+.forgot-title {
+    padding-top: 12px;
+}
+
+/* ─────────────────────────────────────────
+   ForgotPassword — кнопка «Получить код»
+───────────────────────────────────────── */
+/* .forgot-send-code-btn {
+    margin-top: 8px;
+    background: none;
+    border: 1.5px solid #308CFF;
+    border-radius: 24px;
+    color: #308CFF;
+    font-family: var(--font-montserrat);
+    font-weight: var(--font-weight-bold);
+    font-size: 13px;
+    letter-spacing: 0.08em;
+    padding: 8px 20px;
+    cursor: pointer;
+    transition: background 0.2s, color 0.2s;
+    white-space: nowrap;
+} */
+
+/* .forgot-send-code-btn:hover:not(.forgot-send-code-btn--disabled) {
+    background: rgba(48, 140, 255, 0.15);
+}
+
+.forgot-send-code-btn--disabled {
+    border-color: rgba(255, 255, 255, 0.25);
+    color: rgba(255, 255, 255, 0.4);
+    cursor: default;
+} */
+
+/* ─────────────────────────────────────────
    Адаптив
 ───────────────────────────────────────── */
-@media (max-width: 600px) {
+@media (max-width: 800px) {
     .auth-content {
         padding: 24px 24px 32px;
     }
@@ -178,4 +314,22 @@
     .auth-tab {
         font-size: 15px;
     }
+
+    .auth-buttons-row {
+        flex-direction: column;
+    }
+
+.auth-frame__line--left,
+.auth-frame__line--right
+{
+    width: 2.73px;
+}
+}
+
+@media (max-width: 685px) {
+.auth-frame__line--left,
+.auth-frame__line--right
+{
+    width: 2.5px;
+}
 }

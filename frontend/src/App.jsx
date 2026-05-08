@@ -9,6 +9,7 @@ import Home from './pages/Home/Home'
 import Projects from './pages/Projects/Projects'
 import Profile from './pages/Profile/Profile'
 import Register from './pages/Autentification/Register'
+import AuthPage from './pages/Autentification/AuthPage'
 
 import './App.css'
 
@@ -50,6 +51,7 @@ function App() {
         <Route path="/projects" element={<Projects />}/>
        {/* <Route path="/canvas" element={<Canvas />} /> */}
         <Route path="/register" element={<Register />} />
+         <Route path="/auth" element={<AuthPage />} />
         <Route 
           path="/profile" 
           element={

@@ -4,24 +4,32 @@ import { useNavigate } from 'react-router-dom';
 import InputField from '../../components/ui/InputField';
 import Button from '../../components/ui/Button';
 import Loader from '../../components/ui/Loader';
-import BgLoginLine from '../../assets/backgrounds/bg-login-line.png';
 import tabLoginTop from '../../assets/login/tab-login-top.svg';
 import tabRegisterTop from '../../assets/login/tab-register-top.svg';
 import frameBottom from '../../assets/login/frame-bottom.svg';
-import './Register.css';
 
-function Register() {
-    const { register, login } = useAuth();
+/**
+ * Регистрация разбита на 2 шага:
+ *   Шаг 1 — Имя, Псевдоним, Email  → кнопки «Назад» (→ Login) и «Продолжить»
+ *   Шаг 2 — Пароль, Подтвердить пароль → кнопки «Назад» (← Шаг 1) и «Зарегистрироваться»
+ *
+ * props:
+ *   onSwitchToLogin — переключить на вкладку «Вход»
+ */
+function Register({ onSwitchToLogin }) {
+    const { register } = useAuth();
     const navigate = useNavigate();
 
-    const [isLoginMode, setIsLoginMode] = useState(false);
+    const [step, setStep] = useState(1); // 1 | 2
+
     const [formData, setFormData] = useState({
         name: '',
         nickname: '',
         email: '',
         password: '',
+        confirmPassword: '',
     });
-    const [errors, setErrors] = useState({});
+    const [errors, setErrors]   = useState({});
     const [loading, setLoading] = useState(false);
     const [generalError, setGeneralError] = useState('');
 
@@ -33,23 +41,20 @@ function Register() {
     };
 
     const validateField = (name, value) => {
-        let error = '';
         switch (name) {
             case 'email':
-                if (!/^\S+@\S+\.\S+$/.test(value)) error = 'Введите корректный email';
-                break;
+                return /^\S+@\S+\.\S+$/.test(value) ? '' : 'Введите корректный email';
             case 'password':
-                if (value.length < 6) error = 'Пароль не менее 6 символов';
-                break;
+                return value.length >= 6 ? '' : 'Пароль не менее 6 символов';
+            case 'confirmPassword':
+                return value === formData.password ? '' : 'Пароли не совпадают';
             case 'name':
-                if (!isLoginMode && value.trim().length < 2) error = 'Имя не менее 2 символов';
-                break;
+                return value.trim().length >= 2 ? '' : 'Имя не менее 2 символов';
             case 'nickname':
-                if (!isLoginMode && value.trim().length < 2) error = 'Псевдоним не менее 2 символов';
-                break;
-            default: break;
+                return value.trim().length >= 2 ? '' : 'Псевдоним не менее 2 символов';
+            default:
+                return '';
         }
-        return error;
     };
 
     const handleBlur = (e) => {
@@ -58,43 +63,41 @@ function Register() {
         if (error) setErrors(prev => ({ ...prev, [name]: error }));
     };
 
-    const handleSubmit = async (e) => {
+    // ── Шаг 1: валидация и переход на шаг 2 ──────────────────────────
+    const handleStep1Continue = (e) => {
         e.preventDefault();
-        let hasError = false;
         const newErrors = {};
-        if (!isLoginMode) {
-            ['name', 'nickname', 'email', 'password'].forEach(field => {
-                const err = validateField(field, formData[field]);
-                if (err) { newErrors[field] = err; hasError = true; }
-            });
-        } else {
-            ['email', 'password'].forEach(field => {
-                const err = validateField(field, formData[field]);
-                if (err) { newErrors[field] = err; hasError = true; }
-            });
-        }
-        if (hasError) { setErrors(newErrors); return; }
+        ['name', 'nickname', 'email'].forEach(f => {
+            const err = validateField(f, formData[f]);
+            if (err) newErrors[f] = err;
+        });
+        if (Object.keys(newErrors).length) { setErrors(newErrors); return; }
+        setStep(2);
+    };
+
+    // ── Шаг 2: финальная отправка ─────────────────────────────────────
+    const handleStep2Submit = async (e) => {
+        e.preventDefault();
+        const newErrors = {};
+        ['password', 'confirmPassword'].forEach(f => {
+            const err = validateField(f, formData[f]);
+            if (err) newErrors[f] = err;
+        });
+        if (Object.keys(newErrors).length) { setErrors(newErrors); return; }
 
         setLoading(true);
         setGeneralError('');
         try {
-            let success = false;
-            if (isLoginMode) {
-                success = await login(formData.email, formData.password);
-            } else {
-                success = await register({
-                    name: formData.name,
-                    nickname: formData.nickname,
-                    email: formData.email,
-                    password: formData.password,
-                });
-            }
+            const success = await register({
+                name:     formData.name,
+                nickname: formData.nickname,
+                email:    formData.email,
+                password: formData.password,
+            });
             if (success) {
                 navigate('/profile');
             } else {
-                setGeneralError(isLoginMode
-                    ? 'Неверный email или пароль'
-                    : 'Ошибка регистрации. Возможно, пользователь уже существует.');
+                setGeneralError('Ошибка регистрации. Возможно, пользователь уже существует.');
             }
         } catch {
             setGeneralError('Ошибка соединения с сервером');
@@ -103,83 +106,62 @@ function Register() {
         }
     };
 
-    const toggleMode = () => {
-        setIsLoginMode(prev => !prev);
-        setErrors({});
-        setGeneralError('');
-        setFormData({ name: '', nickname: '', email: '', password: '' });
-    };
-
     return (
-        <div className="auth-page-container">
-                    <div className="login-bg-line">
-                <img src={BgLoginLine} alt="фоновая линия" />
-            </div>
-        <div className="auth-page">
-
-            <div className="auth-frame">
-
-                <div className="auth-frame__top">
-                    <img
-                        className="auth-frame__top-svg"
-                        src={isLoginMode ? tabLoginTop : tabRegisterTop}
-                        alt=""
-                        aria-hidden="true"
-                    />
-
-                    <div className="auth-tabs">
-                        <button
-                            type="button"
-                            className={`auth-tab ${isLoginMode ? 'auth-tab--active' : ''}`}
-                            onClick={() => !isLoginMode && toggleMode()}
-                        > <h3>
-                            Вход
-                        </h3>
-                        </button>
-                        <button
-                            type="button"
-                            className={`auth-tab ${!isLoginMode ? 'auth-tab--active' : ''}`}
-                            onClick={() => isLoginMode && toggleMode()}
-                        >
-                            <h3>
-                                Регистрация
-                            </h3>
-                        </button>
-                    </div>
+        <div className="auth-frame">
+            {/* Верхняя часть с табами */}
+            <div className="auth-frame__top">
+                <img
+                    className="auth-frame__top-svg"
+                    src={tabRegisterTop}
+                    alt=""
+                    aria-hidden="true"
+                />
+                <div className="auth-tabs">
+                    <button
+                        type="button"
+                        className="auth-tab"
+                        onClick={onSwitchToLogin}
+                    >
+                        <h3>Вход</h3>
+                    </button>
+                    <button
+                        type="button"
+                        className="auth-tab auth-tab--active"
+                    >
+                        <h3>Регистрация</h3>
+                    </button>
                 </div>
+            </div>
 
-                <div className="auth-frame__middle">
-                    <div className="auth-frame__line auth-frame__line--left" />
-                    <div className="auth-frame__line auth-frame__line--right" />
+            {/* Середина */}
+            <div className="auth-frame__middle">
+                <div className="auth-frame__line auth-frame__line--left" />
+                <div className="auth-frame__line auth-frame__line--right" />
 
-                    {/* Контент формы */}
-                    <div className="auth-content">
-                        {loading && (
-                            <div className="loader-overlay">
-                                <Loader />
-                            </div>
-                        )}
-                        <form onSubmit={handleSubmit} noValidate>
-                            {!isLoginMode && (
-                                <>
-                                    <InputField
-                                        label="Имя"
-                                        name="name"
-                                        value={formData.name}
-                                        onChange={handleChange}
-                                        onBlur={handleBlur}
-                                        error={errors.name}
-                                    />
-                                    <InputField
-                                        label="Псевдоним"
-                                        name="nickname"
-                                        value={formData.nickname}
-                                        onChange={handleChange}
-                                        onBlur={handleBlur}
-                                        error={errors.nickname}
-                                    />
-                                </>
-                            )}
+                <div className="auth-content">
+                    {loading && (
+                        <div className="loader-overlay"><Loader /></div>
+                    )}
+
+                    {/* ── ШАГ 1 ───────────────────────────────────── */}
+                    {step === 1 && (
+                        <form onSubmit={handleStep1Continue} noValidate>
+                            <InputField
+                                label="Имя"
+                                name="name"
+                                value={formData.name}
+                                onChange={handleChange}
+                                onBlur={handleBlur}
+                                error={errors.name}
+                            />
+                            <InputField
+                                label="Псевдоним"
+                                name="nickname"
+                                value={formData.nickname}
+                                onChange={handleChange}
+                                onBlur={handleBlur}
+                                error={errors.nickname}
+                            />
                             <InputField
                                 label="Email"
                                 name="email"
@@ -189,6 +171,29 @@ function Register() {
                                 onBlur={handleBlur}
                                 error={errors.email}
                             />
+
+                            {generalError && (
+                                <div className="auth-error">{generalError}</div>
+                            )}
+
+                            <div className="auth-buttons-row">
+                                <Button
+                                    type="button"
+                                    variant="negative"
+                                    onClick={onSwitchToLogin}
+                                >
+                                    Назад
+                                </Button>
+                                <Button type="submit" variant="primary">
+                                    Продолжить
+                                </Button>
+                            </div>
+                        </form>
+                    )}
+
+                    {/* ── ШАГ 2 ───────────────────────────────────── */}
+                    {step === 2 && (
+                        <form onSubmit={handleStep2Submit} noValidate>
                             <InputField
                                 label="Пароль"
                                 name="password"
@@ -199,25 +204,50 @@ function Register() {
                                 error={errors.password}
                                 showPasswordToggle
                             />
+                            <InputField
+                                label="Повторите пароль"
+                                name="confirmPassword"
+                                type="password"
+                                value={formData.confirmPassword}
+                                onChange={handleChange}
+                                onBlur={handleBlur}
+                                error={errors.confirmPassword}
+                                showPasswordToggle
+                            />
+
                             {generalError && (
                                 <div className="auth-error">{generalError}</div>
                             )}
-                            <Button type="submit" variant="primary" disabled={loading} className="auth-submit-button"> 
-                                {loading ? 'Подождите...' : (isLoginMode ? 'Войти' : 'Зарегистрироваться')}
-                            </Button>
-                        </form>
-                    </div>
-                </div>
 
-                <div className="auth-frame__bottom">
-                    <img
-                        className="auth-frame__bottom-svg"
-                        src={frameBottom}
-                        alt=""
-                        aria-hidden="true"
-                    />
+                            <div className="auth-buttons-row">
+                                <Button
+                                    type="button"
+                                    variant="negative"
+                                    onClick={() => setStep(1)}
+                                >
+                                    Назад
+                                </Button>
+                                <Button
+                                    type="submit"
+                                    variant="primary"
+                                    disabled={loading}
+                                >
+                                    {loading ? 'Подождите...' : 'Зарегистрироваться'}
+                                </Button>
+                            </div>
+                        </form>
+                    )}
                 </div>
-</div>
+            </div>
+
+            {/* Нижняя часть */}
+            <div className="auth-frame__bottom">
+                <img
+                    className="auth-frame__bottom-svg"
+                    src={frameBottom}
+                    alt=""
+                    aria-hidden="true"
+                />
             </div>
         </div>
     );
