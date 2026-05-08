@@ -37,6 +37,7 @@ function Register({ onSwitchToLogin }) {
     const [showSuccessModal, setShowSuccessModal] = useState(false);
     const [showErrorModal, setShowErrorModal] = useState(false);
     const [errorMessage, setErrorMessage] = useState('');
+    const [showValidationError, setShowValidationError] = useState(false);
 
     const handleChange = (e) => {
         const { name, value } = e.target;
@@ -69,27 +70,36 @@ function Register({ onSwitchToLogin }) {
     };
 
     // ── Шаг 1: валидация и переход на шаг 2 ──────────────────────────
-    const handleStep1Continue = (e) => {
-        e.preventDefault();
-        const newErrors = {};
-        ['name', 'nickname', 'email'].forEach(f => {
-            const err = validateField(f, formData[f]);
-            if (err) newErrors[f] = err;
-        });
-        if (Object.keys(newErrors).length) { setErrors(newErrors); return; }
-        setStep(2);
-    };
+const handleStep1Continue = (e) => {
+    e.preventDefault();
+    const newErrors = {};
+    ['name', 'nickname', 'email'].forEach(f => {
+        const err = validateField(f, formData[f]);
+        if (err) newErrors[f] = err;
+    });
+
+    if (Object.keys(newErrors).length) {
+        setErrors(newErrors);
+        setShowValidationError(true);
+        return;
+    }
+    setStep(2);
+};
 
     // ── Шаг 2: финальная отправка ─────────────────────────────────────
-    const handleStep2Submit = async (e) => {
-        e.preventDefault();
-        const newErrors = {};
-        ['password', 'confirmPassword'].forEach(f => {
-            const err = validateField(f, formData[f]);
-            if (err) newErrors[f] = err;
-        });
-        if (Object.keys(newErrors).length) { setErrors(newErrors); return; }
+const handleStep2Submit = async (e) => {
+    e.preventDefault();
+    const newErrors = {};
+    ['password', 'confirmPassword'].forEach(f => {
+        const err = validateField(f, formData[f]);
+        if (err) newErrors[f] = err;
+    });
 
+    if (Object.keys(newErrors).length) {
+        setErrors(newErrors);
+        setShowValidationError(true);
+        return;
+    }
         setLoading(true);
             try {
                 const success = await register(formData);
@@ -252,6 +262,14 @@ function Register({ onSwitchToLogin }) {
                 primaryText="Перейти в профиль"
                 onPrimary={() => navigate('/profile')}
                 variant="success"
+            />
+            <Modal
+                isOpen={showValidationError}
+                onClose={() => setShowValidationError(false)}
+                title="Ошибка заполнения"
+                description="Пожалуйста, заполните все поля корректно"
+                primaryText="Понятно"
+                variant="error"
             />
         </div>
     );

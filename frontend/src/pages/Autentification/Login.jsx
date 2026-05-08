@@ -26,33 +26,41 @@ function Login({ onSwitchToRegister, onForgotPassword }) {
     const [showSuccessModal, setShowSuccessModal] = useState(false);
     const [showErrorModal, setShowErrorModal] = useState(false);
     const [errorMessage, setErrorMessage] = useState('');
+    const [showValidationError, setShowValidationError] = useState(false);
 
-    const handleSubmit = async (e) => {
-        e.preventDefault();
-        const newErrors = {};
-        ['email', 'password'].forEach(f => {
-            const err = validateField(f, formData[f]);
-            if (err) newErrors[f] = err;
-        });
-        if (Object.keys(newErrors).length) { setErrors(newErrors); return; }
+ const handleSubmit = async (e) => {
+    e.preventDefault();
 
-        setLoading(true);
-        setGeneralError('');
-        try {
-            const success = await login(formData.email, formData.password);
-            if (success) {
-                setShowSuccessModal(true);
-            } else {
-                setErrorMessage('Неверный email или пароль');
-                setShowErrorModal(true);
-            }
-        } catch {
-            setErrorMessage('Ошибка соединения с сервером');
+    const newErrors = {};
+    ['email', 'password'].forEach(f => {
+        const err = validateField(f, formData[f]);
+        if (err) newErrors[f] = err;
+    });
+
+    if (Object.keys(newErrors).length > 0) {
+        setErrors(newErrors);
+        setShowValidationError(true);     // ← показываем модалку
+        return;
+    }
+
+    // Если валидация прошла — отправляем
+    setLoading(true);
+    setGeneralError('');
+    try {
+        const success = await login(formData.email, formData.password);
+        if (success) {
+            setShowSuccessModal(true);
+        } else {
+            setErrorMessage('Неверный email или пароль');
             setShowErrorModal(true);
-        } finally {
-            setLoading(false);
         }
-    };
+    } catch {
+        setErrorMessage('Ошибка соединения с сервером');
+        setShowErrorModal(true);
+    } finally {
+        setLoading(false);
+    }
+};
 
     const handleSuccessClose = () => {
         setShowSuccessModal(false);
@@ -186,6 +194,14 @@ function Login({ onSwitchToRegister, onForgotPassword }) {
                 onClose={() => setShowErrorModal(false)}
                 title="Ошибка входа"
                 description={errorMessage}
+                primaryText="Понятно"
+                variant="error"
+            />
+            <Modal
+                isOpen={showValidationError}
+                onClose={() => setShowValidationError(false)}
+                title="Ошибка заполнения"
+                description="Пожалуйста, заполните все поля корректно"
                 primaryText="Понятно"
                 variant="error"
             />
