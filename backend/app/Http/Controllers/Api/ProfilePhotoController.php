@@ -11,8 +11,11 @@ class ProfilePhotoController extends Controller
 public function upload(Request $request)
 {
     $request->validate([
-        'photo' => 'required|image|max:2048',
-    ]);
+            'photo' => 'required|image|mimes:jpeg,png,jpg,webp|max:2048', // 2MB
+        ], [
+            'photo.max' => 'Фото не должно превышать 2 МБ',
+            'photo.image' => 'Файл должен быть изображением',
+        ]);
 
     $user = $request->user();
 

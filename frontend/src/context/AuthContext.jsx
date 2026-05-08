@@ -1,21 +1,18 @@
-// src/context/AuthContext.jsx
 import { createContext, useContext, useState, useEffect } from 'react';
 
 const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
+
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const apiUrl = 'http://127.0.0.1:8000';
 
   // Получаем CSRF cookie
   const getCsrfCookie = async () => {
-    console.log("1. Запрашиваем CSRF cookie...");
     try {
-      await fetch(`${apiUrl}/sanctum/csrf-cookie`, {
-        credentials: 'include',
-      });
-      await new Promise(r => setTimeout(r, 400)); // небольшая пауза
+      await fetch(`${apiUrl}/sanctum/csrf-cookie`, { credentials: 'include' });
+      await new Promise(r => setTimeout(r, 300));
     } catch (e) {
       console.error("CSRF fetch error", e);
     }
@@ -29,7 +26,6 @@ export const AuthProvider = ({ children }) => {
       ...options.headers,
     };
 
-    // Добавляем X-XSRF-TOKEN из cookie
     const xsrfToken = document.cookie
       .split('; ')
       .find(row => row.startsWith('XSRF-TOKEN='))
@@ -37,9 +33,6 @@ export const AuthProvider = ({ children }) => {
 
     if (xsrfToken) {
       headers['X-XSRF-TOKEN'] = decodeURIComponent(xsrfToken);
-      console.log("X-XSRF-TOKEN добавлен");
-    } else {
-      console.warn("XSRF-TOKEN не найден в cookie!");
     }
 
     return fetch(url, {
@@ -49,16 +42,32 @@ export const AuthProvider = ({ children }) => {
     });
   };
 
+  // Обновление пользователя
+  const refreshUser = async () => {
+    try {
+      const res = await fetchWithCsrf(`${apiUrl}/api/me`);
+      if (res.ok) {
+        const userData = await res.json();
+
+        // преобразуем относительный путь фото в абсолютный
+        if (userData.profile_photo) {
+          userData.profile_photo = userData.profile_photo.startsWith('http')
+            ? userData.profile_photo
+            : `${apiUrl}${userData.profile_photo.startsWith('/') ? '' : '/'}${userData.profile_photo}`;
+        }
+
+        setUser(userData);
+        return userData;
+      }
+    } catch (error) {
+      console.error("Ошибка обновления пользователя:", error);
+    }
+    return null;
+  };
+
   const fetchUser = async () => {
     try {
-        const res = await fetchWithCsrf(`${apiUrl}/api/me`);
-        if (res.ok) {
-            const userData = await res.json();
-            if (userData.profile_photo) {
-                userData.profile_photo = toAbsoluteUrl(userData.profile_photo);
-            }
-            setUser(userData);
-        }
+      await refreshUser();
     } catch (err) {
       console.error(err);
     } finally {
@@ -70,6 +79,9 @@ export const AuthProvider = ({ children }) => {
     fetchUser();
   }, []);
 
+
+  // === АУТЕНТИФИКАЦИЯ ===
+
   const register = async (formData) => {
     try {
       const res = await fetchWithCsrf(`${apiUrl}/api/register`, {
@@ -78,10 +90,9 @@ export const AuthProvider = ({ children }) => {
       });
 
       const data = await res.json().catch(() => ({}));
-      console.log("Register response:", res.status, data);
 
       if (res.ok) {
-        setUser(data.user);
+        await refreshUser();   
         return true;
       } else {
         console.error(data);
@@ -101,10 +112,9 @@ export const AuthProvider = ({ children }) => {
       });
 
       const data = await res.json().catch(() => ({}));
-      console.log("Login response:", res.status, data);
 
       if (res.ok) {
-        setUser(data.user);
+        await refreshUser();
         return true;
       } else {
         console.error(data);
@@ -117,98 +127,110 @@ export const AuthProvider = ({ children }) => {
   };
 
   const logout = async () => {
-  try {
-    await fetch('http://127.0.0.1:8000/api/logout', {
-      method: 'POST',
-      credentials: 'include',
-    });
-  } catch (err) {
-    console.error(err);
-  }
-  setUser(null);
-};
-
-const toAbsoluteUrl = (path) => {
-    if (!path) return null;
-    if (path.startsWith('http')) return path;
-    return `${apiUrl}${path.startsWith('/') ? path : '/' + path}`;
-};
-
-// внутри AuthProvider
-const updateUser = async (data) => {
     try {
-        const res = await fetchWithCsrf(`${apiUrl}/api/profile`, {
-            method: 'PUT',
-            body: JSON.stringify(data),
-        });
-        const result = await res.json();
-        if (res.ok) {
-            setUser(prev => ({ ...prev, ...result.user }));
-            return true;
-        }
-        console.error(result);
-        return false;
+      await fetchWithCsrf(`${apiUrl}/api/logout`, { method: 'POST' });
     } catch (err) {
-        console.error(err);
-        return false;
+      console.error("Logout error:", err);
+    } finally {
+      // всегда очищаем, даже если сервер не ответил
+      setUser(null);
+      document.cookie = 'laravel_session=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+      document.cookie = 'XSRF-TOKEN=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+      localStorage.clear();
+      sessionStorage.clear();
     }
-};
-// Добавим вспомогательный метод для FormData-запросов с CSRF
-const fetchFormData = async (url, formData, method = 'POST') => {
-  await getCsrfCookie();
-  
-  const xsrfToken = document.cookie
-    .split('; ')
-    .find(row => row.startsWith('XSRF-TOKEN='))
-    ?.split('=')[1];
-  
-  const headers = {};
-  if (xsrfToken) {
-    headers['X-XSRF-TOKEN'] = decodeURIComponent(xsrfToken);
-  }
-  
-  return fetch(url, {
-    method,
-    headers,
-    credentials: 'include',
-    body: formData, // НЕ устанавливаем Content-Type – браузер сам добавит boundary
-  });
-};
+  };
 
-const uploadPhoto = async (file) => {
+  const updateUser = async (data) => {
+    try {
+      const res = await fetchWithCsrf(`${apiUrl}/api/profile`, {
+        method: 'PUT',
+        body: JSON.stringify(data),
+      });
+
+      if (res.ok) {
+        await refreshUser();
+        return true;
+      }
+
+      const errorData = await res.json().catch(() => ({}));
+      console.error('Server errors:', errorData);
+
+      return false;
+    } catch (err) {
+      console.error(err);
+      return false;
+    }
+  };
+
+  const uploadPhoto = async (file) => {
     const formData = new FormData();
     formData.append('photo', file);
-    try {
-        const res = await fetchFormData(`${apiUrl}/api/profile/photo`, formData, 'POST');
-        const data = await res.json();
-        if (res.ok) {
-            const fullUrl = toAbsoluteUrl(data.photo_url);
-            setUser(prev => ({ ...prev, profile_photo: fullUrl }));
-            return fullUrl;
-        }
-        return null;
-    } catch (err) {
-        console.error(err);
-        return null;
-    }
-};
 
-const deletePhoto = async () => {
     try {
-        const res = await fetchWithCsrf(`${apiUrl}/api/profile/photo`, { method: 'DELETE' });
-        if (res.ok) {
-            setUser(prev => ({ ...prev, profile_photo: null }));
-            return true;
-        }
-        return false;
+      const res = await fetchFormData(`${apiUrl}/api/profile/photo`, formData);
+      const responseData = await res.json();
+
+      if (res.ok) {
+        await refreshUser();
+        return responseData.photo_url || responseData.full_url;
+      }
+      return null;
     } catch (err) {
-        console.error(err);
-        return false;
+      console.error(err);
+      return null;
     }
-};
+  };
+
+  const deletePhoto = async () => {
+    try {
+      const res = await fetchWithCsrf(`${apiUrl}/api/profile/photo`, { method: 'DELETE' });
+      if (res.ok) {
+        await refreshUser();
+        return true;
+      }
+      return false;
+    } catch (err) {
+      console.error(err);
+      return false;
+    }
+  };
+
+  // Вспомогательная функция для FormData (фото)
+  const fetchFormData = async (url, formData) => {
+    await getCsrfCookie();
+
+    const xsrfToken = document.cookie
+      .split('; ')
+      .find(row => row.startsWith('XSRF-TOKEN='))
+      ?.split('=')[1];
+
+    const headers = {};
+    if (xsrfToken) headers['X-XSRF-TOKEN'] = decodeURIComponent(xsrfToken);
+
+    return fetch(url, {
+      method: 'POST',
+      headers,
+      credentials: 'include',
+      body: formData,
+    });
+  };
+
 
   return (
-    <AuthContext.Provider value={{ user, loading, register, login, logout, updateUser, uploadPhoto, deletePhoto }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        loading,
+        register,
+        login,
+        logout,
+        updateUser,
+        uploadPhoto,
+        deletePhoto,
+        refreshUser   
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );

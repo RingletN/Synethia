@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { useLocation } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext'; 
 
 import Logo from '../../assets/Logo.svg'
 import ProfileIcon from '../../assets/icons/profile.svg'
@@ -11,7 +12,7 @@ import './Header.css';
 const Header = () => {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const location = useLocation();
-
+    const { user } = useAuth();
     const toggleMenu = () => setIsMenuOpen(!isMenuOpen);
     const closeMenu = () => setIsMenuOpen(false);
 
@@ -30,10 +31,17 @@ const Header = () => {
                 <a href="/" className={isActive('/') ? 'active' : ''}>ГЛАВНАЯ</a>
                 <a href="/canvas" className={isActive('/canvas') ? 'active' : ''}>ХОЛСТ</a>
                 <a href="/projects" className={isActive('/projects') ? 'active' : ''}>ПРОЕКТЫ</a>
-                <a href="/profile" className="profile-link">
-                    <img src={ProfileGlow} alt="" className="profile-glow" />
-                    <img src={ProfileIcon} alt="Profile" className="profile-icon" />
-                </a>
+                {user ? (
+                    <Link to="/profile" className="profile-link">
+                        <img src={ProfileGlow} alt="" className="profile-glow" />
+                        <img src={ProfileIcon} alt="Profile" className="profile-icon" />
+                    </Link>
+                ) : (
+                    <Link to="/auth" className="profile-link">
+                        <img src={ProfileIcon} alt="Profile" className="profile-icon" />
+                        <img src={ProfileIcon} alt="Profile" className="profile-icon" />
+                    </Link>
+                )}
             </nav>
 
             {/* Бургер */}
@@ -62,7 +70,16 @@ const Header = () => {
                             <a href="/" className={isActive('/') ? 'active' : ''} onClick={closeMenu}>ГЛАВНАЯ</a>
                             <a href="/canvas" className={isActive('/canvas') ? 'active' : ''} onClick={closeMenu}>ХОЛСТ</a>
                             <a href="/projects" className={isActive('/projects') ? 'active' : ''} onClick={closeMenu}>ПРОЕКТЫ</a>
-                            <a href="/profile" className={isActive('/profile') ? 'active' : ''} onClick={closeMenu}>ПРОФИЛЬ</a>
+                            {/* <a href="/profile" className={isActive('/profile') ? 'active' : ''} onClick={closeMenu}>ПРОФИЛЬ</a> */}
+                            {user ? (
+                                <Link to="/profile" className={isActive('/profile') ? 'active' : ''} onClick={closeMenu}>
+                                    ПРОФИЛЬ
+                                </Link>
+                            ) : (
+                                <Link to="/auth" className={isActive('/auth') ? 'active' : ''} onClick={closeMenu}>
+                                    ВХОД
+                                </Link>
+                            )}
                         </nav>
                     </div>
                 </div>

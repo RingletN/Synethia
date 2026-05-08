@@ -16,6 +16,16 @@ const Modal = ({
 }) => {
     if (!isOpen) return null;
 
+    const handlePrimary = () => {
+        onPrimary?.();
+        onClose();           // ← важно!
+    };
+
+    const handleCancel = () => {
+        onCancel?.();
+        onClose();           // ← важно!
+    };
+
     return createPortal(
         <div className="modal-overlay" onClick={onClose}>
             <div 

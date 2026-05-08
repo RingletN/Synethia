@@ -15,7 +15,7 @@ import './App.css'
 function PrivateRoute({ children }) {
   const { user, loading } = useAuth();
   // if (loading) return <div>Загрузка...</div>;
-  return user ? children : <Navigate to="/auth" />;
+  return user ? children : <Navigate to="/auth" replace/>;
 }
 
 function App() {

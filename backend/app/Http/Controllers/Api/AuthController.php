@@ -7,25 +7,29 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
+use Illuminate\Support\Facades\Validator;
 
 class AuthController extends Controller
 {
     public function register(Request $request)
     {
-        try {
-            $validated = $request->validate([
-                'name' => 'required|string|max:255',
-                'nickname' => 'required|string|max:255|unique:users',
-                'email' => 'required|email|unique:users',
-                'password' => 'required|string|min:6',
-            ]);
+        $validator = Validator::make($request->all(), User::rules());
 
+        if ($validator->fails()) {
+            return response()->json([
+                'message' => 'Ошибка валидации',
+                'errors'  => $validator->errors()
+            ], 422);
+        }
+
+        try {
+            $validated = $validator->validated(); // или $request->all(), но лучше validated()
             $validated['password'] = Hash::make($validated['password']);
             $validated['registration_date'] = now()->toDateString();
 
             $user = User::create($validated);
 
-            auth()->login($user); // сессия
+            auth()->login($user);
 
             return response()->json([
                 'user' => $user,
@@ -75,25 +79,34 @@ class AuthController extends Controller
     {
         $user = $request->user();
 
-        $rules = [
-            'name' => 'sometimes|string|max:255',
-            'nickname' => 'sometimes|string|max:255|unique:users,nickname,' . $user->id,
-            'email' => 'sometimes|email|unique:users,email,' . $user->id,
-            'password' => 'sometimes|string|min:6',
-        ];
+        $validator = Validator::make($request->all(), User::rules($user->id));
 
-        $validated = $request->validate($rules);
-
-        if (isset($validated['password'])) {
-            $validated['password'] = Hash::make($validated['password']);
+        if ($validator->fails()) {
+            return response()->json([
+                'message' => 'Ошибка валидации',
+                'errors'  => $validator->errors()
+            ], 422);
         }
 
-        $user->update($validated);
+        try {
+            $validated = $validator->validated();
 
-        return response()->json([
-            'user' => $user,
-            'message' => 'Профиль обновлён'
-        ]);
+            if (isset($validated['password'])) {
+                $validated['password'] = Hash::make($validated['password']);
+            }
+
+            $user->update($validated);
+
+            return response()->json([
+                'user' => $user,
+                'message' => 'Профиль обновлён'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'message' => 'Ошибка обновления профиля',
+                'error' => $e->getMessage()
+            ], 422);
+        }
     }
 
     public function me(Request $request)
