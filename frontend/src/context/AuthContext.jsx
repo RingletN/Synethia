@@ -126,6 +126,62 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+const sendResetCode = async (email) => {
+    try {
+        // Сначала получаем CSRF
+        await fetch(`${apiUrl}/sanctum/csrf-cookie`, { credentials: 'include' });
+        await new Promise(r => setTimeout(r, 300));
+
+        const xsrfToken = document.cookie
+            .split('; ')
+            .find(row => row.startsWith('XSRF-TOKEN='))
+            ?.split('=')[1];
+
+        const res = await fetch(`${apiUrl}/api/forgot-password/send-code`, {
+            method: 'POST',   // явно POST
+            credentials: 'include',
+            headers: {
+                'Content-Type': 'application/json',
+                ...(xsrfToken ? { 'X-XSRF-TOKEN': decodeURIComponent(xsrfToken) } : {}),
+            },
+            body: JSON.stringify({ email }),
+        });
+
+        console.log('sendResetCode status:', res.status); // смотри в консоли
+        return res.ok;
+    } catch (e) {
+        console.error(e);
+        return false;
+    }
+};
+
+const verifyResetCode = async (email, code) => {
+    try {
+        const res = await fetchWithCsrf(`${apiUrl}/api/forgot-password/verify-code`, {
+            method: 'POST',
+            body: JSON.stringify({ email, code }),
+        });
+        if (res.ok) return { valid: true };
+        const data = await res.json().catch(() => ({}));
+        return { valid: false, error: data.error || 'Неверный код' };
+    } catch {
+        return { valid: false, error: 'Ошибка соединения' };
+    }
+};
+
+const resetPassword = async (email, code, password) => {
+    try {
+        const res = await fetchWithCsrf(`${apiUrl}/api/forgot-password/reset`, {
+            method: 'POST',
+            body: JSON.stringify({ email, code, password }),
+        });
+        if (res.ok) return true;
+        return false;
+    } catch {
+        return false;
+    }
+};
+
   const logout = async () => {
     try {
       await fetchWithCsrf(`${apiUrl}/api/logout`, { method: 'POST' });
@@ -228,7 +284,10 @@ export const AuthProvider = ({ children }) => {
         updateUser,
         uploadPhoto,
         deletePhoto,
-        refreshUser   
+        refreshUser,
+        sendResetCode,
+        verifyResetCode,
+        resetPassword,  
       }}
     >
       {children}

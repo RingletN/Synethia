@@ -1,42 +1,37 @@
 import { useState, useEffect, useRef } from 'react';
+import { useAuth } from '../../context/AuthContext';
 import InputField from '../../components/ui/InputField';
 import Button from '../../components/ui/Button';
 import Loader from '../../components/ui/Loader';
+import Modal from '../../components/ui/Modal';
 import frameBottom from '../../assets/login/frame-bottom1.svg';
-import forgotTop from '../../assets/login/forgot-top.svg'; 
+import forgotTop from '../../assets/login/forgot-top.svg';
 import arrowBack from '../../assets/login/arrow-back.svg';
-// Если хэдер у тебя один для этого окна — замени на нужный импорт
 
 /**
- * ForgotPassword — восстановление доступа.
- *
- * Шаги:
- *   1 — ввод Email + кнопка «Получить код» (с таймером 1:00)
- *   2 — ввод кода подтверждения
- *   3 — ввод нового пароля + подтверждение
- *
  * props:
- *   onBack — вернуться на Login
- *
- * API-вызовы (замени на свои реальные):
- *   sendCode(email)            → Promise<boolean>
- *   verifyCode(email, code)    → Promise<boolean>
- *   resetPassword(email, code, newPassword) → Promise<boolean>
+ *   onBack(email?) — вернуться на Login, передаём email для автозаполнения
  */
 function ForgotPassword({ onBack }) {
-    const [step, setStep]     = useState(1); // 1 | 2 | 3
+    const { sendResetCode, verifyResetCode, resetPassword } = useAuth();
+
+    const [step, setStep]       = useState(1);
     const [loading, setLoading] = useState(false);
-    const [error, setError]   = useState('');
 
-    const [email, setEmail]   = useState('');
-    const [code, setCode]     = useState('');
-    const [password, setPassword]   = useState('');
+    const [email, setEmail]               = useState('');
+    const [code, setCode]                 = useState('');
+    const [codeError, setCodeError]       = useState(''); // ошибка под полем кода
+    const [password, setPassword]         = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
+    const [passwordError, setPasswordError]     = useState('');
+    const [generalError, setGeneralError]       = useState('');
 
-    // ── Таймер «Получить код» ─────────────────────────────────────────
+    const [showSuccessModal, setShowSuccessModal] = useState(false);
+
+    // ── Таймер ───────────────────────────────────────────────────────
     const TIMER_SECONDS = 60;
-    const [timer, setTimer]      = useState(0); // 0 = кнопка активна
-    const timerRef               = useRef(null);
+    const [timer, setTimer] = useState(0);
+    const timerRef = useRef(null);
 
     const startTimer = () => {
         setTimer(TIMER_SECONDS);
@@ -50,97 +45,89 @@ function ForgotPassword({ onBack }) {
 
     useEffect(() => () => clearInterval(timerRef.current), []);
 
-    const formatTimer = (s) => `${String(Math.floor(s / 60)).padStart(2,'0')}:${String(s % 60).padStart(2,'0')}`;
+    const formatTimer = (s) =>
+        `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
 
     // ── Шаг 1: отправить код ─────────────────────────────────────────
     const handleSendCode = async () => {
         if (!email || !/^\S+@\S+\.\S+$/.test(email)) {
-            setError('Введите корректный email'); return;
+            setGeneralError('Введите корректный email');
+            return;
         }
-        setError('');
+        setGeneralError('');
         setLoading(true);
         try {
-            // TODO: замени на свой вызов API
-            // const ok = await sendCode(email);
-            const ok = true; // заглушка
+            const ok = await sendResetCode(email);
             if (ok) {
                 startTimer();
-                if (step === 1) setStep(2); // показываем поле кода
+                setStep(2);
+                setCode('');
+                setCodeError('');
             } else {
-                setError('Не удалось отправить код. Проверьте email.');
+                setGeneralError('Не удалось отправить код. Проверьте email.');
             }
         } catch {
-            setError('Ошибка соединения с сервером');
+            setGeneralError('Ошибка соединения с сервером');
         } finally {
             setLoading(false);
         }
     };
 
-    // ── Шаг 2: проверить код ─────────────────────────────────────────
-    const handleVerifyCode = async (e) => {
-        e.preventDefault();
-        if (!code.trim()) { setError('Введите код'); return; }
-        setError('');
-        setLoading(true);
-        try {
-            // TODO: замени на свой вызов API
-            // const ok = await verifyCode(email, code);
-            const ok = true; // заглушка
-            if (ok) {
-                setStep(3);
-            } else {
-                setError('Неверный код');
-            }
-        } catch {
-            setError('Ошибка соединения с сервером');
-        } finally {
-            setLoading(false);
-        }
-    };
+    // ── Шаг 2: динамическая проверка кода ────────────────────────────
+    const verifyDebounceRef = useRef(null);
 
-    const handleCodeChange = async (e) => {
-        const newCode = e.target.value;
-        setCode(newCode);
-        setError('');
+    const handleCodeChange = (e) => {
+        const value = e.target.value.replace(/\D/g, '').slice(0, 6); // только цифры, макс 6
+        setCode(value);
+        setCodeError('');
 
-        // Автопроверка, если введено достаточное количество символов
-        if (newCode.length >= 4) {  // подставь нужную длину кода
-            setLoading(true);
-            try {
-                // const ok = await verifyCode(email, newCode);
-                const ok = true; // заглушка
-                if (ok) {
-                    onBack(); // или setMode('login') через пропс
-                    // Можно передать email обратно, если нужно
-                } else if (newCode.length > 6) {
-                    setError('Неверный код');
+        // Запускаем проверку только когда введено 6 цифр
+        if (value.length === 6) {
+            clearTimeout(verifyDebounceRef.current);
+            verifyDebounceRef.current = setTimeout(async () => {
+                setLoading(true);
+                try {
+                    const result = await verifyResetCode(email, value);
+                    if (result.valid) {
+                        setStep(3); // автоматический переход
+                    } else {
+                        setCodeError(result.error || 'Неверный код');
+                    }
+                } catch {
+                    setCodeError('Ошибка проверки кода');
+                } finally {
+                    setLoading(false);
                 }
-            } catch {
-                setError('Ошибка проверки кода');
-            } finally {
-                setLoading(false);
-            }
+            }, 300); // небольшой debounce чтобы не дёргать при быстром вводе
         }
     };
 
     // ── Шаг 3: сменить пароль ────────────────────────────────────────
     const handleResetPassword = async (e) => {
         e.preventDefault();
-        if (password.length < 6) { setError('Пароль не менее 6 символов'); return; }
-        if (password !== confirmPassword) { setError('Пароли не совпадают'); return; }
-        setError('');
+
+        let hasError = false;
+        if (password.length < 8) {
+            setPasswordError('Пароль не менее 8 символов');
+            hasError = true;
+        } else if (password !== confirmPassword) {
+            setPasswordError('Пароли не совпадают');
+            hasError = true;
+        } else {
+            setPasswordError('');
+        }
+        if (hasError) return;
+
         setLoading(true);
         try {
-            // TODO: замени на свой вызов API
-            // const ok = await resetPassword(email, code, password);
-            const ok = true; // заглушка
+            const ok = await resetPassword(email, code, password);
             if (ok) {
-                onBack(); // после успеха → обратно на логин
+                setShowSuccessModal(true);
             } else {
-                setError('Ошибка смены пароля');
+                setPasswordError('Ошибка смены пароля. Попробуйте заново.');
             }
         } catch {
-            setError('Ошибка соединения с сервером');
+            setPasswordError('Ошибка соединения с сервером');
         } finally {
             setLoading(false);
         }
@@ -149,25 +136,14 @@ function ForgotPassword({ onBack }) {
     return (
         <div className="auth-page forgot-page">
             <div className="auth-frame">
-                {/* Хэдер «Восстановление доступа» */}
+                {/* Хэдер */}
                 <div className="auth-frame__top forgot-frame__top">
-                    <img
-                        className="forgot-frame__top-svg"
-                        src={forgotTop}
-                        alt=""
-                        aria-hidden="true"
-                    />
+                    <img className="forgot-frame__top-svg" src={forgotTop} alt="" aria-hidden="true" />
                     <div className="forgot-tabs">
-                    {/* Кнопка «назад» — курсор pointer только на неё */}
-                    <button
-                        type="button"
-                        className=" forgot-tab forgot-back-btn"
-                        onClick={onBack}
-                        aria-label="Назад"
-                    >
-                        <img src={arrowBack} alt="назад" />
-                    </button>
-                    <h3 className="forgot-tab forgot-title">Восстановление доступа</h3>
+                        <button type="button" className="forgot-tab forgot-back-btn" onClick={() => onBack()} aria-label="Назад">
+                            <img src={arrowBack} alt="назад" />
+                        </button>
+                        <h3 className="forgot-tab forgot-title">Восстановление доступа</h3>
                     </div>
                 </div>
 
@@ -179,55 +155,72 @@ function ForgotPassword({ onBack }) {
                     <div className="auth-content">
                         {loading && <div className="loader-overlay"><Loader /></div>}
 
-                        {/* ── ШАГ 1+2: email + код ────────────────── */}
-                        {(step === 1 || step === 2) && (
-                            <form onSubmit={step === 1 ? (e) => { e.preventDefault(); handleSendCode(); } : undefined} noValidate>
-
-                        <InputField
+                        {/* ── ШАГ 1: Email ─────────────────────────── */}
+                        {step === 1 && (
+                            <form onSubmit={(e) => { e.preventDefault(); handleSendCode(); }} noValidate>
+                                <InputField
                                     label="Email"
                                     name="email"
                                     type="email"
                                     value={email}
-                                    onChange={e => { 
-                                        setEmail(e.target.value); 
-                                        setError(''); 
-                                    }}
+                                    onChange={e => { setEmail(e.target.value); setGeneralError(''); }}
                                 />
-
-                                {/* Новая строка: кнопка + таймер рядом */}
-                                <div className="send-code-row">
-                                    <Button
-                                        type="button"
-                                        variant="primary"
-                                        onClick={handleSendCode}
-                                        disabled={timer > 0 || loading || !email}
-                                        className="forgot-send-code-btn"
-                                    >
-                                        ПОЛУЧИТЬ КОД
-                                    </Button>
-
-                                    {timer > 0 && (
-                                        <div className="timer-display">
-                                            {formatTimer(timer)}
-                                        </div>
-                                    )}
-                                </div>
-
-                                {step === 2 && (
-                                    <InputField
-                                        label="Код"
-                                        name="code"
-                                        value={code}
-                                        onChange={e => { setCode(e.target.value); setError(''); }}
-                                    />
-                                )}
-
-                                {error && <div className="auth-error">{error}</div>}
-
+                                {generalError && <div className="auth-error">{generalError}</div>}
+                                <Button
+                                    type="submit"
+                                    variant="primary"
+                                    disabled={loading || !email}
+                                    className="auth-submit-button"
+                                >
+                                    Получить код
+                                </Button>
                             </form>
                         )}
 
-                        {/* ── ШАГ 3: новый пароль ─────────────────── */}
+{/* ── ШАГ 2: Код ───────────────────────────── */}
+{step === 2 && (
+    <form noValidate>
+        <InputField
+            label="Email"
+            name="email"
+            type="email"
+            value={email}
+            disabled
+        />
+
+        {/* Кнопка + таймер рядом */}
+        <div className="send-code-row">
+            <Button
+                type="button"
+                variant="primary"
+                onClick={handleSendCode}
+                disabled={timer > 0 || loading}
+                className="forgot-send-code-btn"
+            >
+                ПОЛУЧИТЬ КОД
+            </Button>
+
+            {timer > 0 && (
+                <div className="timer-display">
+                    {formatTimer(timer)}
+                </div>
+            )}
+        </div>
+
+        <InputField
+            label="Код из письма"
+            name="code"
+            type="text"
+            inputMode="numeric"
+            value={code}
+            onChange={handleCodeChange}
+            error={codeError}
+            maxLength={6}
+        />
+    </form>
+)}
+
+                        {/* ── ШАГ 3: Новый пароль ──────────────────── */}
                         {step === 3 && (
                             <form onSubmit={handleResetPassword} noValidate>
                                 <InputField
@@ -235,7 +228,7 @@ function ForgotPassword({ onBack }) {
                                     name="password"
                                     type="password"
                                     value={password}
-                                    onChange={e => { setPassword(e.target.value); setError(''); }}
+                                    onChange={e => { setPassword(e.target.value); setPasswordError(''); }}
                                     showPasswordToggle
                                 />
                                 <InputField
@@ -243,30 +236,46 @@ function ForgotPassword({ onBack }) {
                                     name="confirmPassword"
                                     type="password"
                                     value={confirmPassword}
-                                    onChange={e => { setConfirmPassword(e.target.value); setError(''); }}
+                                    onChange={e => { setConfirmPassword(e.target.value); setPasswordError(''); }}
                                     showPasswordToggle
+                                    error={passwordError}
                                 />
 
-                                {error && <div className="auth-error">{error}</div>}
-
-                                <Button type="submit" variant="primary" disabled={loading} className="auth-submit-button">
-                                    {loading ? 'Подождите...' : 'Продолжить'}
+                                <Button
+                                    type="submit"
+                                    variant="primary"
+                                    disabled={loading}
+                                    className="auth-submit-button"
+                                >
+                                    {loading ? 'Подождите...' : 'Сохранить пароль'}
                                 </Button>
                             </form>
                         )}
                     </div>
                 </div>
 
-                {/* Нижняя часть */}
+                {/* Низ */}
                 <div className="auth-frame__bottom">
-                    <img
-                        className="auth-frame__bottom-svg"
-                        src={frameBottom}
-                        alt=""
-                        aria-hidden="true"
-                    />
+                    <img className="auth-frame__bottom-svg" src={frameBottom} alt="" aria-hidden="true" />
                 </div>
             </div>
+
+            {/* Модалка успеха */}
+            <Modal
+                isOpen={showSuccessModal}
+                onClose={() => {
+                    setShowSuccessModal(false);
+                    onBack(email); // передаём email для автозаполнения на логине
+                }}
+                title="Пароль восстановлен!"
+                description="Теперь вы можете войти с новым паролем"
+                primaryText="Войти"
+                onPrimary={() => {
+                    setShowSuccessModal(false);
+                    onBack(email);
+                }}
+                variant="success"
+            />
         </div>
     );
 }

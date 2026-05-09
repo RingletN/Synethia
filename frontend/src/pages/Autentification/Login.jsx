@@ -9,11 +9,7 @@ import tabLoginTop from '../../assets/login/tab-login-top.svg';
 import tabRegisterTop from '../../assets/login/tab-register-top.svg';
 import frameBottom from '../../assets/login/frame-bottom.svg';
 
-/**
- * props:
- *   onSwitchToRegister — переключить на вкладку «Регистрация»
- *   onForgotPassword   — открыть экран восстановления пароля
- */
+
 function Login({ onSwitchToRegister, onForgotPassword }) {
     const { login } = useAuth();
     const navigate  = useNavigate();

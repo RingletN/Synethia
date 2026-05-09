@@ -236,7 +236,7 @@
 /* ─────────────────────────────────────────
    Оверлей загрузки
 ───────────────────────────────────────── */
-.loader-overlay {
+/* .loader-overlay {
     position: absolute;
     inset: 0;
     background: rgba(0, 0, 0, 0.55);
@@ -246,7 +246,7 @@
     justify-content: center;
     z-index: 10;
     border-radius: 4px;
-}
+} */
 
 /* ─────────────────────────────────────────
    ForgotPassword — хэдер

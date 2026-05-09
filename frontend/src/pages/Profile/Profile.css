@@ -57,8 +57,9 @@
     overflow: hidden;
 }
 
-.profile-data-block::before,
-.loader-overlay::before {
+.profile-data-block::before
+/* ,.loader-overlay::before  */
+{
     content: '';
     position: absolute;
     inset: 0;
@@ -217,7 +218,7 @@
 }
 
 /* Оверлей загрузки внутри блока */
-.loader-overlay {
+/* .loader-overlay {
   position: absolute;
   top: 0;
   left: 0;
@@ -228,7 +229,25 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: inherit; /* чтобы углы совпадали с блоком */
+  border-radius: inherit; 
+  z-index: 10;
+} */
+
+.loader-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 30%;
+  height: 40%;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 40px;
   z-index: 10;
 }
 
