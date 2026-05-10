@@ -1,0 +1,123 @@
+@import '../../index.css';
+
+.canvas-content{
+    display: flex;
+    flex-direction: column;
+    gap: 30px;
+}
+
+.canvas-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.divider{
+    padding:0;
+    margin:0 0;
+}
+
+.canvas-header-icons{
+    display: flex;
+    gap: 22px;
+    align-items: center;
+}
+
+.workspace-area{
+    display:flex;
+    flex-direction: column;
+    gap: 45px;
+}
+
+.canvas-block{
+    display:flex;
+    justify-content: space-between;
+    /* width:100%; */
+    min-height: 90vh;
+}
+
+.draw-block{
+    display:flex;
+    flex-direction: column;
+    gap: 32px;
+   
+}
+
+.canvas-panel{
+ position: relative;
+}
+
+.settings-block{
+    display:flex;
+    flex-direction: column;
+    gap: 32px;
+    position: relative;
+}
+
+.tools-panel{
+    display:flex;
+    align-items: center;
+    gap: 16px;
+    position: relative;
+}
+
+.idk-panel{
+    display:flex;
+    align-items: center;
+    /* gap: 16px; */
+    position: relative;
+    height:100px; /* временно потом удалю */
+}
+
+.music-player{
+    display:flex;
+    align-items: center;
+    gap: 16px;
+    position: relative;}
+
+
+.tools-panel::before,
+.idk-panel::before,
+.canvas-panel::before,
+.settings-block::before,
+.music-player::before{
+    content: '';
+    position: absolute;
+    inset: 0;
+    padding:3px;
+    mask: 
+        linear-gradient(#fff 0 0) content-box, 
+        linear-gradient(#fff 0 0);
+    mask-composite: exclude;
+    -webkit-mask: 
+        linear-gradient(#fff 0 0) content-box, 
+        linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    pointer-events: none;    
+    z-index: 1;
+    /* filter: blur(1px); */
+}
+
+.tools-panel::before{
+    border-radius: 40px 40px 0 0;
+    background: linear-gradient(95deg, var(--color-cyan), var(--color-violet), var(--color-pink));
+}
+
+.idk-panel::before{
+    border-radius: 0px 0px 40px 40px;
+    background: linear-gradient(95deg, var(--color-cyan), var(--color-violet), var(--color-pink));
+}
+
+.canvas-panel::before{
+    background: var(--color-violet);
+}
+
+.settings-block::before{
+    border-radius: 40px;
+    background: linear-gradient(95deg, var(--color-pink), var(--color-violet), var(--color-cyan));
+}
+
+.music-player::before{
+    border-radius: 40px;
+    background: linear-gradient(95deg, var(--color-cyan), var(--color-violet), var(--color-pink));
+}

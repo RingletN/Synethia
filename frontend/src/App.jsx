@@ -5,7 +5,7 @@ import Header from './components/layout/Header'
 import Footer from './components/layout/Footer'
 import BackgroundGlow from './components/layout/BackgroundGlow'
 import Home from './pages/Home/Home'
-// import Canvas from './pages/Canvas'
+import Canvas from './pages/Canvas/Canvas'
 import Projects from './pages/Projects/Projects'
 import Profile from './pages/Profile/Profile'
 import AuthPage from './pages/Autentification/AuthPage'
@@ -49,7 +49,7 @@ function App() {
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/projects" element={<Projects />}/>
-       {/* <Route path="/canvas" element={<Canvas />} /> */}
+       <Route path="/canvas" element={<Canvas />} />
          <Route path="/auth" element={<AuthPage />} />
         <Route 
           path="/profile" 
