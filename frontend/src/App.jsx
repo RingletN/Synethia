@@ -8,7 +8,7 @@ import Home from './pages/Home/Home'
 import Canvas from './pages/Canvas/Canvas'
 import Projects from './pages/Projects/Projects'
 import Profile from './pages/Profile/Profile'
-import AuthPage from './pages/Autentification/AuthPage'
+import AuthPage from './pages/Auth/AuthPage'
 
 import './App.css'
 
@@ -49,8 +49,8 @@ function App() {
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/projects" element={<Projects />}/>
-       <Route path="/canvas" element={<Canvas />} />
-         <Route path="/auth" element={<AuthPage />} />
+        <Route path="/canvas" element={<Canvas />} />
+        <Route path="/auth" element={<AuthPage />} />
         <Route 
           path="/profile" 
           element={
