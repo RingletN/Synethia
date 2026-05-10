@@ -14,7 +14,8 @@
 
 .divider{
     padding:0;
-    margin:0 0;
+    margin-top:6px;
+    margin-bottom:0px;
 }
 
 .canvas-header-icons{
@@ -30,28 +31,43 @@
 }
 
 .canvas-block{
-    display:flex;
-    justify-content: space-between;
-    /* width:100%; */
-    min-height: 90vh;
+    display: flex;
+    flex-direction: row;
+    align-items: stretch;
+    gap: 46px; /* CANVAS_BLOCK_GAP — менять только вместе с константой в JSX */
+    width: 100%;
+    overflow: hidden;
 }
 
 .draw-block{
-    display:flex;
-    flex-direction: column;
+    display: grid;
+    grid-template-rows: auto 1fr auto;
     gap: 32px;
-   
+    flex-shrink: 0;
+    min-width: 0;
+    overflow: visible;
+    width: fit-content;
 }
 
 .canvas-panel{
- position: relative;
+    position: relative;
+    overflow: hidden;
+    min-height: 600px;
+    min-width: 600px;
+    max-width: none;   
+    max-height: none;
+    box-sizing: border-box;
 }
 
 .settings-block{
-    display:flex;
+    display: flex;
     flex-direction: column;
     gap: 32px;
     position: relative;
+    flex: 1;
+    min-width: 200px;
+    align-self: stretch;
+    box-sizing: border-box;
 }
 
 .tools-panel{
@@ -59,22 +75,30 @@
     align-items: center;
     gap: 16px;
     position: relative;
+    box-sizing: border-box;
+    overflow: hidden;
+    padding: 8px 22px;
+    background-color: rgba(190, 190, 190, 0.1);
+    border-radius: 40px 40px 0 0;
 }
 
 .idk-panel{
     display:flex;
     align-items: center;
-    /* gap: 16px; */
     position: relative;
-    height:100px; /* временно потом удалю */
+    height:100px;
+    box-sizing: border-box;
+    overflow: hidden;
+    background-color: rgba(190, 190, 190, 0.1);
+    border-radius: 0px 0px 40px 40px;
 }
 
 .music-player{
     display:flex;
     align-items: center;
     gap: 16px;
-    position: relative;}
-
+    position: relative;
+}
 
 .tools-panel::before,
 .idk-panel::before,
@@ -95,17 +119,16 @@
     -webkit-mask-composite: xor;
     pointer-events: none;    
     z-index: 1;
-    /* filter: blur(1px); */
 }
 
 .tools-panel::before{
     border-radius: 40px 40px 0 0;
-    background: linear-gradient(95deg, var(--color-cyan), var(--color-violet), var(--color-pink));
+    background: linear-gradient(180deg, var(--color-cyan), var(--color-violet));
 }
 
 .idk-panel::before{
     border-radius: 0px 0px 40px 40px;
-    background: linear-gradient(95deg, var(--color-cyan), var(--color-violet), var(--color-pink));
+    background: linear-gradient(180deg, var(--color-violet), var(--color-cyan));
 }
 
 .canvas-panel::before{
@@ -114,10 +137,26 @@
 
 .settings-block::before{
     border-radius: 40px;
-    background: linear-gradient(95deg, var(--color-pink), var(--color-violet), var(--color-cyan));
+    background: linear-gradient(185deg, var(--color-pink), var(--color-violet), var(--color-cyan));
 }
 
 .music-player::before{
     border-radius: 40px;
     background: linear-gradient(95deg, var(--color-cyan), var(--color-violet), var(--color-pink));
 }
+
+.project-title-input {
+    background: transparent;
+    border: none;
+    outline: none;
+    color: var(--color-bright);
+    font-weight: var(--font-weight-semibold);
+    letter-spacing: 0%;
+    font-size: var(--font-size-h2);
+    margin: 0;
+}
+
+.project-title-input::placeholder {
+    color: var(--color-pale);
+}
+

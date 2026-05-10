@@ -1,100 +1,274 @@
-import React, { useState } from "react";
-// import BgCanvasLine from '../../assets/backgrounds/bg-canvas-line.png';
-import SortIcon from "../../assets/icons/icon-sort.svg";
+import React, { useState, useRef, useEffect, useCallback } from "react";
+import DrawingArea from "./components/DrawingArea";
+import ToolsPanel from "./components/ToolsPanel";
+import { useDrawing } from "./hooks/useDrawing";
+import Button from "../../components/ui/Button";
+
 import StarIcon from "../../assets/icons/icon-star.svg";
 import StarSelectedIcon from "../../assets/icons/icon-star-selected.svg";
 import SaveIcon from "../../assets/icons/icon-save.svg";
 import DownloadIcon from "../../assets/icons/icon-download.svg";
 import TrashIcon from "../../assets/icons/icon-trash.svg";
 import QuestionIcon from "../../assets/icons/icon-question.svg";
-import CameraIcon from "../../assets/icons/icon-import-photo.svg";
-import BrushIcon from "../../assets/icons/icon-brush.svg";
-import BrushSelectedIcon from "../../assets/icons/icon-brush-selected.svg";
-import EraserIcon from "../../assets/icons/icon-eraser.svg";
-import EraserSelectedIcon from "../../assets/icons/icon-eraser-selected.svg";
-import UndoIcon from "../../assets/icons/icon-undo.svg";
-import UndoBlockedIcon from "../../assets/icons/icon-undo-blocked.svg";
-import RedoIcon from "../../assets/icons/icon-redo.svg";
-import RedoBlockedIcon from "../../assets/icons/icon-redo-blocked.svg";
-import ClearCanvasIcon from "../../assets/icons/icon-clear-canvas.svg";
 
-import Button from "../../components/ui/Button";
 import "./Canvas.css";
 
+const CANVAS_BLOCK_GAP = 46;
+const SETTINGS_MIN_WIDTH = 200;
+const CANVAS_MIN_SIZE = 600;
+const INITIAL_CANVAS_WIDTH = 750;
+const INITIAL_CANVAS_HEIGHT = 600;
+
 const Canvas = () => {
-  return (
-    <div className="canvas-content">
-      {/* <div className="projects-bg-line">
-                <img src={BgCanvasLine} alt="фоновая линия" />
-            </div> */}
 
-      <div className="canvas-header">
-        <div className="canvas-header-text">
-          <h2>Введите название проекта...</h2>
-          <div className="divider" />
+    // Размеры холста
+    const [canvasSize, setCanvasSize] = useState({
+        width: INITIAL_CANVAS_WIDTH,
+        height: INITIAL_CANVAS_HEIGHT,
+    });
+
+    // Выбранный инструмент (кисть или ластик)
+    const [isBrushSelected, setIsBrushSelected] = useState(true);
+    const [isStarSelected, setIsStarSelected] = useState(false);
+
+    // Рефы
+    const toolsPanelRef = useRef(null);
+    const canvasPanelRef = useRef(null);
+    const drawBlockRef = useRef(null);
+
+    const pendingResizeRef = useRef(null);
+    const isDraggingRef = useRef(false);
+    const dragDir = useRef(null);
+
+    const currentSizeRef = useRef({
+        w: INITIAL_CANVAS_WIDTH,
+        h: INITIAL_CANVAS_HEIGHT,
+    });
+
+    // Движок рисования и история действий
+    const { engineRef, initEngine, undo, redo, clear, canUndo, canRedo } =
+        useDrawing(8);
+
+    // dir: 'horizontal' | 'vertical' | 'both'
+    // При нажатии на край или угол начинается перетаскивание, сохраняем направление в ref
+    const handleResizeMouseDown = useCallback(
+        (dir) => (e) => {
+        e.preventDefault();
+        isDraggingRef.current = true;
+        dragDir.current = dir;
+
+        // Запоминаем размер на момент начала перетаскивания
+        currentSizeRef.current = {
+            w: canvasPanelRef.current?.clientWidth ?? INITIAL_CANVAS_WIDTH,
+            h: canvasPanelRef.current?.clientHeight ?? INITIAL_CANVAS_HEIGHT,
+        };
+        },
+        [],
+    );
+
+    // Синхронизируем размер холста при изменении размера окна или контейнера
+    useEffect(() => {
+        const onMove = (e) => {
+        if (
+            !isDraggingRef.current ||
+            !canvasPanelRef.current ||
+            !engineRef.current
+        )
+            return;
+
+        const rect = canvasPanelRef.current.getBoundingClientRect();
+        const containerRect = drawBlockRef.current?.getBoundingClientRect();
+
+        const maxW = containerRect
+            ? containerRect.width - CANVAS_BLOCK_GAP - SETTINGS_MIN_WIDTH
+            : 2000;
+
+        const rawW = Math.round(e.clientX - rect.left);
+        const rawH = Math.round(e.clientY - rect.top);
+
+        const newW =
+            dragDir.current !== "vertical"
+            ? Math.min(maxW, Math.max(CANVAS_MIN_SIZE, rawW))
+            : currentSizeRef.current.w;
+
+        const newH =
+            dragDir.current !== "horizontal"
+            ? Math.max(CANVAS_MIN_SIZE, rawH)
+            : currentSizeRef.current.h;
+
+        engineRef.current.resize(newW, newH);
+        canvasPanelRef.current.style.width = `${newW}px`;
+        canvasPanelRef.current.style.height = `${newH}px`;
+        };
+
+        const onUp = () => {
+        isDraggingRef.current = false;
+        };
+
+        window.addEventListener("mousemove", onMove);
+        window.addEventListener("mouseup", onUp);
+
+        return () => {
+        window.removeEventListener("mousemove", onMove);
+        window.removeEventListener("mouseup", onUp);
+        };
+    }, [engineRef]);
+
+    // Коллбек для получения рефов холста от DrawingArea и инициализации движка
+    const handleCanvasReady = useCallback(
+        (canvases) => {
+        initEngine(canvases);
+        },
+        [initEngine],
+    );
+
+    // После каждого рендера проверяем, было ли запрошено изменение размера
+    useEffect(() => {
+        if (!pendingResizeRef.current || !engineRef.current) return;
+        const { width, height } = pendingResizeRef.current;
+        pendingResizeRef.current = null;
+        engineRef.current.resize(width, height);
+    });
+
+    // Синхронизируем ширину canvas-panel с шириной draw-block, чтобы при ресайзе окна 
+    // холст не выходил за пределы. 
+    const syncLayout = useCallback(() => {
+        const canvasEl = canvasPanelRef.current;
+        const container = drawBlockRef.current;
+        if (!canvasEl || !container) return;
+
+        const toolsW = toolsPanelRef.current?.offsetWidth ?? CANVAS_MIN_SIZE;
+        const maxW = Math.max(
+        CANVAS_MIN_SIZE,
+        container.offsetWidth - CANVAS_BLOCK_GAP - SETTINGS_MIN_WIDTH,
+        );
+
+        canvasEl.style.maxWidth = `${maxW}px`;
+    }, []);
+
+    // ResizeObserver следит за изменением размера контейнера 
+    // и вызывает syncLayout, который обновляет max-width для canvas-panel
+    useEffect(() => {
+        const obs = new ResizeObserver(() => requestAnimationFrame(syncLayout));
+        if (drawBlockRef.current) obs.observe(drawBlockRef.current);
+        return () => obs.disconnect();
+    }, [syncLayout]);
+
+    return (
+        <div className="canvas-content">
+        <div className="canvas-header">
+            <div className="canvas-header-text">
+            <input
+                className="project-title-input"
+                placeholder="Введите название проекта..."
+            />
+            <div className="divider" />
+            </div>
+            <div className="canvas-header-icons">
+            <div
+                className="icon favourite-btn"
+                onClick={() => setIsStarSelected((prev) => !prev)}
+            >
+                <img
+                src={isStarSelected ? StarSelectedIcon : StarIcon}
+                alt="Избранное"
+                />
+            </div>
+            <div className="icon save-btn">
+                <img src={SaveIcon} alt="Сохранить проект" />
+            </div>
+            <div className="icon download-btn">
+                <img src={DownloadIcon} alt="Скачать файлы" />
+            </div>
+            <div className="icon delete-btn">
+                <img src={TrashIcon} alt="Удалить проект" />
+            </div>
+            <div className="icon question-btn">
+                <img src={QuestionIcon} alt="Обучение" />
+            </div>
+            </div>
         </div>
-        <div className="canvas-header-icons">
-          <div className="add-faivorite-btn">
-            <img src={StarIcon} alt="Добавить в избранное" />
-          </div>
-          <div className="remove-faivorite-btn">
-            <img src={StarSelectedIcon} alt="Удалить из избранного" />
-          </div>
-          <div className="save-btn">
-            <img src={SaveIcon} alt="Сохранить проект" />
-          </div>
-          <div className="download-btn">
-            <img src={DownloadIcon} alt="Скачать файлы" />
-          </div>
-          <div className="delete-btn">
-            <img src={TrashIcon} alt="Удалить проект" />
-          </div>
-          <div className="question-btn">
-            <img src={QuestionIcon} alt="Обучение" />
-          </div>
-        </div>
-      </div>
-      <div className="workspace-area">
-        <div className="canvas-block">
-          <div className="draw-block">
-            <div className="tools-panel">
-              <div className="import-photo-btn">
-                <img src={CameraIcon} alt="Импортировать фото" />
-              </div>
-              <div className="choose-brush-btn">
-                <img src={BrushIcon} alt="Кисть" />
-                <img src={BrushSelectedIcon} alt="Кисть" />
-              </div>
-              <div className="choose-eraser-btn">
-                <img src={EraserIcon} alt="Ластик" />
-                <img src={EraserSelectedIcon} alt="Ластик" />
-              </div>
-              <div className="undo-btn">
-                <img src={UndoIcon} alt="Назад" />
-                <img src={UndoBlockedIcon} alt="Назад" />
-              </div>
-              <div className="redo-btn">
-                <img src={RedoIcon} alt="Вперед" />
-                <img src={RedoBlockedIcon} alt="Вперед" />
-              </div>
-              <div className="clear-canvas-btn">
-                <img src={ClearCanvasIcon} alt="Очистка холста" />
-              </div>
+
+        <div className="workspace-area">
+            <div className="canvas-block" ref={drawBlockRef}>
+            <div className="draw-block">
+                <ToolsPanel
+                ref={toolsPanelRef}
+                engine={engineRef.current}
+                onUndo={undo}
+                onRedo={redo}
+                canUndo={canUndo}
+                canRedo={canRedo}
+                onClear={clear}
+                isBrushSelected={isBrushSelected}
+                setIsBrushSelected={setIsBrushSelected}
+                />
+
+                <div
+                className="canvas-panel"
+                ref={canvasPanelRef}
+                style={{ width: canvasSize.width, height: canvasSize.height }}
+                >
+                <DrawingArea
+                    width={canvasSize.width}
+                    height={canvasSize.height}
+                    onReady={handleCanvasReady}
+                />
+
+                {/* Правый край */}
+                <div
+                    style={{
+                    position: "absolute",
+                    top: 0,
+                    right: -4,
+                    width: 8,
+                    height: "100%",
+                    cursor: "ew-resize",
+                    zIndex: 10,
+                    }}
+                    onMouseDown={handleResizeMouseDown("horizontal")}
+                />
+
+                {/* Нижний край */}
+                <div
+                    style={{
+                    position: "absolute",
+                    bottom: -4,
+                    left: 0,
+                    width: "100%",
+                    height: 8,
+                    cursor: "ns-resize",
+                    zIndex: 10,
+                    }}
+                    onMouseDown={handleResizeMouseDown("vertical")}
+                />
+
+                {/* Угол */}
+                <div
+                    style={{
+                    position: "absolute",
+                    bottom: 0,
+                    right: 0,
+                    width: 16,
+                    height: 16,
+                    cursor: "nwse-resize",
+                    zIndex: 11,
+                    }}
+                    onMouseDown={handleResizeMouseDown("both")}
+                />
+                </div>
+
+                <div className="idk-panel" />
             </div>
 
-            <div className="canvas-panel"></div>
-            <div className="idk-panel">
-              {/* пока не знаю что сюда разместить */}
+            <div className="settings-block" />
             </div>
-          </div>
-          <div className="settings-block"></div>
-        </div>
 
-        <div className="music-player"></div>
-        <Button variant="primary">СГЕНЕРИРОВАТЬ МЕЛОДИЮ</Button>
-      </div>
-    </div>
-  );
-};
+            <div className="music-player" />
+            <Button variant="primary">СГЕНЕРИРОВАТЬ МЕЛОДИЮ</Button>
+        </div>
+        </div>
+    );
+    };
 
 export default Canvas;
