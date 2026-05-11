@@ -161,3 +161,51 @@
     color: var(--color-pale);
 }
 
+.color-picker-popup {
+    position: absolute;
+    top: calc(100% + 10px);
+    left: 80%;
+    transform: translateX(-50%);
+    background: rgba(20, 20, 40, 0.95);
+    border-radius: 16px;
+    padding: 14px 18px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    z-index: 1000;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+    border: 1.5px solid rgba(255,255,255,0.08);
+    backdrop-filter: blur(12px);
+}
+
+.popup-title {
+    font-size: 12px;
+    color: rgba(255,255,255,0.5);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-bottom: 4px;
+}
+
+.native-color-picker-only {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 60px;     /* увеличил */
+    height: 60px;
+    border: none;
+    border-radius: 12px;
+    cursor: pointer;
+    padding: 0;
+    background: none;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+}
+
+.native-color-picker-only::-webkit-color-swatch-wrapper {
+    padding: 0;
+    border-radius: 12px;
+}
+
+.native-color-picker-only::-webkit-color-swatch {
+    border: none;
+    border-radius: 12px;
+}

@@ -27,9 +27,16 @@ const Canvas = () => {
         height: INITIAL_CANVAS_HEIGHT,
     });
 
+    
     // Выбранный инструмент (кисть или ластик)
     const [isBrushSelected, setIsBrushSelected] = useState(true);
     const [isStarSelected, setIsStarSelected] = useState(false);
+
+        const [bgColor, setBgColor] = useState('#4D4DFF');
+const bgColorRef = useRef('#4D4DFF'); // реф чтобы колбэк не протухал
+
+// Синхронизируем реф с состоянием
+useEffect(() => { bgColorRef.current = bgColor; }, [bgColor]);
 
     // Рефы
     const toolsPanelRef = useRef(null);
@@ -46,8 +53,33 @@ const Canvas = () => {
     });
 
     // Движок рисования и история действий
-    const { engineRef, initEngine, undo, redo, clear, canUndo, canRedo } =
-        useDrawing(8);
+    const { engineRef, initEngine, saveToHistory, undo, redo, clear, canUndo, canRedo } =
+    useDrawing(8, '#4D4DFF');
+
+        // Функция экспорта — создаём временный канвас, фон + рисунок
+const handleDownload = useCallback(() => {
+    const mainCanvas = engineRef.current?.mainCanvas;
+    if (!mainCanvas) return;
+
+    const { width, height } = mainCanvas;
+    const exportCanvas = document.createElement('canvas');
+    exportCanvas.width = width;
+    exportCanvas.height = height;
+    const ctx = exportCanvas.getContext('2d');
+
+    // 1. Заливаем фоном
+    ctx.fillStyle = bgColor;
+    ctx.fillRect(0, 0, width, height);
+
+    // 2. Накладываем рисунок сверху
+    ctx.drawImage(mainCanvas, 0, 0);
+
+    // 3. Скачиваем
+    const link = document.createElement('a');
+    link.download = 'drawing.png';
+    link.href = exportCanvas.toDataURL('image/png');
+    link.click();
+}, [bgColor, engineRef]);
 
     // dir: 'horizontal' | 'vertical' | 'both'
     // При нажатии на край или угол начинается перетаскивание, сохраняем направление в ref
@@ -99,7 +131,8 @@ const Canvas = () => {
         engineRef.current.resize(newW, newH);
         canvasPanelRef.current.style.width = `${newW}px`;
         canvasPanelRef.current.style.height = `${newH}px`;
-        };
+        setCanvasSize({ width: newW, height: newH });     
+    };
 
         const onUp = () => {
         isDraggingRef.current = false;
@@ -114,13 +147,14 @@ const Canvas = () => {
         };
     }, [engineRef]);
 
-    // Коллбек для получения рефов холста от DrawingArea и инициализации движка
-    const handleCanvasReady = useCallback(
-        (canvases) => {
+    // Коллбек получения рефов от DrawingArea
+    const handleCanvasReady = useCallback((canvases) => {
         initEngine(canvases);
-        },
-        [initEngine],
-    );
+        // Вешаем колбэк здесь, после initEngine
+        if (engineRef.current) {
+            engineRef.current.onStrokeEnd = () => saveToHistory(bgColorRef.current);
+        }
+    }, [initEngine, saveToHistory, engineRef]);
 
     // После каждого рендера проверяем, было ли запрошено изменение размера
     useEffect(() => {
@@ -129,6 +163,13 @@ const Canvas = () => {
         pendingResizeRef.current = null;
         engineRef.current.resize(width, height);
     });
+
+    // Смена фона — тоже шаг в истории
+const handleBgColorChange = useCallback((color) => {
+    setBgColor(color);
+    bgColorRef.current = color;
+    saveToHistory(color);
+}, [saveToHistory]);
 
     // Синхронизируем ширину canvas-panel с шириной draw-block, чтобы при ресайзе окна 
     // холст не выходил за пределы. 
@@ -154,6 +195,11 @@ const Canvas = () => {
         return () => obs.disconnect();
     }, [syncLayout]);
 
+    // undo/redo пробрасывают setBgColor как колбэк восстановления
+const handleUndo = useCallback(() => undo(null, setBgColor), [undo]);
+const handleRedo = useCallback(() => redo(null, setBgColor), [redo]);
+const handleClear = useCallback(() => clear(bgColorRef.current), [clear]);
+
     return (
         <div className="canvas-content">
         <div className="canvas-header">
@@ -177,7 +223,7 @@ const Canvas = () => {
             <div className="icon save-btn">
                 <img src={SaveIcon} alt="Сохранить проект" />
             </div>
-            <div className="icon download-btn">
+            <div className="icon download-btn" onClick={handleDownload}> 
                 <img src={DownloadIcon} alt="Скачать файлы" />
             </div>
             <div className="icon delete-btn">
@@ -195,19 +241,22 @@ const Canvas = () => {
                 <ToolsPanel
                 ref={toolsPanelRef}
                 engine={engineRef.current}
-                onUndo={undo}
-                onRedo={redo}
+                onUndo={handleUndo}
+                onRedo={handleRedo}
                 canUndo={canUndo}
                 canRedo={canRedo}
-                onClear={clear}
+                onClear={handleClear}
                 isBrushSelected={isBrushSelected}
                 setIsBrushSelected={setIsBrushSelected}
+                onBackgroundColorChange={handleBgColorChange}
+                currentBgColor={bgColor}
                 />
 
                 <div
                 className="canvas-panel"
                 ref={canvasPanelRef}
-                style={{ width: canvasSize.width, height: canvasSize.height }}
+                style={{ width: canvasSize.width, height: canvasSize.height,
+                    backgroundColor: bgColor }}
                 >
                 <DrawingArea
                     width={canvasSize.width}

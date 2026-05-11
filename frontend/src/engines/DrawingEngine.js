@@ -1,11 +1,8 @@
 // engines/DrawingEngine.js
 class DrawingEngine {
-    constructor(mainCanvas, gridCanvas, duration = 8) {
+    constructor(mainCanvas, duration = 8) {
         this.mainCanvas = mainCanvas;
-        this.gridCanvas = gridCanvas;
-
         this.ctx = mainCanvas.getContext('2d');
-        this.gridCtx = gridCanvas.getContext('2d');
 
         this.isDrawing = false;
         this.isErasing = false;
@@ -24,13 +21,12 @@ class DrawingEngine {
             'triangle': '#9900ff'
         };
 
-        this.onStrokeEnd = null; // колбэк — вызывается после каждого мазка
+        this.onStrokeEnd = null;
 
         this.initCanvases();
         this.setupEventListeners();
     }
 
-    // Инициализация контекста и базовых параметров рисования
     initCanvases() {
         this.ctx.lineCap = 'round';
         this.ctx.lineJoin = 'round';
@@ -158,8 +154,6 @@ class DrawingEngine {
 
         this.mainCanvas.width = newWidth;
         this.mainCanvas.height = newHeight;
-        this.gridCanvas.width = newWidth;
-        this.gridCanvas.height = newHeight;
 
         // После изменения размера нужно восстановить все мазки, так как канвас очищается.
         this.ctx.lineCap = 'round';
