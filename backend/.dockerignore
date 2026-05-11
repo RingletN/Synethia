@@ -1,0 +1,14 @@
+.git
+.gitignore
+.env
+/vendor
+/node_modules
+tests
+.dockerignore
+Dockerfile
+.docker
+*.log
+storage/framework/cache
+storage/framework/sessions
+storage/framework/views
+storage/logs

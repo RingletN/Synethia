@@ -38,4 +38,28 @@ php artisan serve --host=127.0.0.1 --port=8000
 
 миграции.............
 
-php artisan make:migration update_users_table_constraints_and_lengths --table=users                                                                                                                  
+php artisan make:migration update_users_table_constraints_and_lengths --table=users      
+
+я так пон на компе я подключ к локальной бд
+из пгадмина
+
+а на ноуте ТОЖЕ но пароль от постгрескл postgres
+DB_CONNECTION=pgsql
+DB_HOST=127.0.0.1
+DB_PORT=5432
+DB_DATABASE=synethia
+DB_USERNAME=postgres
+DB_PASSWORD=postgres
+
+php artisan migrate
+
+
+докер всё, не использую уже 
+docker compose down -v
+docker compose build --no-cache
+docker compose up -d
+
+docker compose up -d database  
+
+docker compose exec backend php artisan migrate
+

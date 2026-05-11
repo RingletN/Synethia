@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect } from 'react';
+import { createContext, useContext, useState, useEffect, useRef } from 'react';
 
 const AuthContext = createContext();
 
@@ -8,31 +8,59 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
   const apiUrl = 'http://127.0.0.1:8000';
 
-  // Получаем CSRF cookie
+  // Флаг — CSRF уже был получен в этой сессии
+  const csrfInitialized = useRef(false);
+
+  // Получаем CSRF cookie и ждём пока кука реально появится
   const getCsrfCookie = async () => {
+    if (csrfInitialized.current && getXsrfToken()) return; // уже есть
+
     try {
-      await fetch(`${apiUrl}/sanctum/csrf-cookie`, { credentials: 'include' });
-      await new Promise(r => setTimeout(r, 300));
+      await fetch(`${apiUrl}/sanctum/csrf-cookie`, {
+        credentials: 'include',
+      });
+
+      // Ждём появления куки (polling до 1 сек)
+      for (let i = 0; i < 10; i++) {
+        if (getXsrfToken()) break;
+        await new Promise(r => setTimeout(r, 100));
+      }
+
+      csrfInitialized.current = true;
+
+      // Отладка — убери после исправления
+      console.log('[CSRF] token after init:', getXsrfToken() ? 'OK' : 'MISSING');
     } catch (e) {
       console.error("CSRF fetch error", e);
     }
   };
 
+  const getXsrfToken = () => {
+    const match = document.cookie
+        .split('; ')
+        .find(row => row.startsWith('XSRF-TOKEN='));
+    return match ? decodeURIComponent(match.split('=').slice(1).join('=')) : null;
+};
+
   const fetchWithCsrf = async (url, options = {}) => {
-    await getCsrfCookie();
+    const method = (options.method || 'GET').toUpperCase();
+
+    if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(method)) {
+      await getCsrfCookie();
+    }
+
+    const xsrfToken = getXsrfToken();
+
+    // Отладка — убери после исправления
+    console.log(`[${method}] ${url} | XSRF: ${xsrfToken ? xsrfToken.slice(0, 20) + '...' : 'MISSING'}`);
 
     const headers = {
       'Content-Type': 'application/json',
       ...options.headers,
     };
 
-    const xsrfToken = document.cookie
-      .split('; ')
-      .find(row => row.startsWith('XSRF-TOKEN='))
-      ?.split('=')[1];
-
     if (xsrfToken) {
-      headers['X-XSRF-TOKEN'] = decodeURIComponent(xsrfToken);
+      headers['X-XSRF-TOKEN'] = xsrfToken;
     }
 
     return fetch(url, {
@@ -42,14 +70,17 @@ export const AuthProvider = ({ children }) => {
     });
   };
 
-  // Обновление пользователя
+  // Обновление пользователя (GET — без CSRF)
   const refreshUser = async () => {
     try {
-      const res = await fetchWithCsrf(`${apiUrl}/api/me`);
+      const res = await fetch(`${apiUrl}/api/me`, {
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+      });
+
       if (res.ok) {
         const userData = await res.json();
 
-        // преобразуем относительный путь фото в абсолютный
         if (userData.profile_photo) {
           userData.profile_photo = userData.profile_photo.startsWith('http')
             ? userData.profile_photo
@@ -67,6 +98,8 @@ export const AuthProvider = ({ children }) => {
 
   const fetchUser = async () => {
     try {
+      // При старте сразу инициализируем CSRF
+      await getCsrfCookie();
       await refreshUser();
     } catch (err) {
       console.error(err);
@@ -84,18 +117,20 @@ export const AuthProvider = ({ children }) => {
 
   const register = async (formData) => {
     try {
+      const { confirmPassword, ...dataToSend } = formData;
       const res = await fetchWithCsrf(`${apiUrl}/api/register`, {
         method: 'POST',
-        body: JSON.stringify(formData),
+        body: JSON.stringify(dataToSend),
       });
 
       const data = await res.json().catch(() => ({}));
 
       if (res.ok) {
-        await refreshUser();   
+        await refreshUser();
         return true;
       } else {
-        console.error(data);
+        console.error('Статус:', res.status);
+        console.error('Ошибки:', JSON.stringify(data, null, 2));
         return false;
       }
     } catch (err) {
@@ -126,61 +161,44 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-const sendResetCode = async (email) => {
+  const sendResetCode = async (email) => {
     try {
-        // Сначала получаем CSRF
-        await fetch(`${apiUrl}/sanctum/csrf-cookie`, { credentials: 'include' });
-        await new Promise(r => setTimeout(r, 300));
-
-        const xsrfToken = document.cookie
-            .split('; ')
-            .find(row => row.startsWith('XSRF-TOKEN='))
-            ?.split('=')[1];
-
-        const res = await fetch(`${apiUrl}/api/forgot-password/send-code`, {
-            method: 'POST',   // явно POST
-            credentials: 'include',
-            headers: {
-                'Content-Type': 'application/json',
-                ...(xsrfToken ? { 'X-XSRF-TOKEN': decodeURIComponent(xsrfToken) } : {}),
-            },
-            body: JSON.stringify({ email }),
-        });
-
-        console.log('sendResetCode status:', res.status); // смотри в консоли
-        return res.ok;
+      const res = await fetchWithCsrf(`${apiUrl}/api/forgot-password/send-code`, {
+        method: 'POST',
+        body: JSON.stringify({ email }),
+      });
+      return res.ok;
     } catch (e) {
-        console.error(e);
-        return false;
+      console.error(e);
+      return false;
     }
-};
+  };
 
-const verifyResetCode = async (email, code) => {
+  const verifyResetCode = async (email, code) => {
     try {
-        const res = await fetchWithCsrf(`${apiUrl}/api/forgot-password/verify-code`, {
-            method: 'POST',
-            body: JSON.stringify({ email, code }),
-        });
-        if (res.ok) return { valid: true };
-        const data = await res.json().catch(() => ({}));
-        return { valid: false, error: data.error || 'Неверный код' };
+      const res = await fetchWithCsrf(`${apiUrl}/api/forgot-password/verify-code`, {
+        method: 'POST',
+        body: JSON.stringify({ email, code }),
+      });
+      if (res.ok) return { valid: true };
+      const data = await res.json().catch(() => ({}));
+      return { valid: false, error: data.error || 'Неверный код' };
     } catch {
-        return { valid: false, error: 'Ошибка соединения' };
+      return { valid: false, error: 'Ошибка соединения' };
     }
-};
+  };
 
-const resetPassword = async (email, code, password) => {
+  const resetPassword = async (email, code, password) => {
     try {
-        const res = await fetchWithCsrf(`${apiUrl}/api/forgot-password/reset`, {
-            method: 'POST',
-            body: JSON.stringify({ email, code, password }),
-        });
-        if (res.ok) return true;
-        return false;
+      const res = await fetchWithCsrf(`${apiUrl}/api/forgot-password/reset`, {
+        method: 'POST',
+        body: JSON.stringify({ email, code, password }),
+      });
+      return res.ok;
     } catch {
-        return false;
+      return false;
     }
-};
+  };
 
   const logout = async () => {
     try {
@@ -188,7 +206,7 @@ const resetPassword = async (email, code, password) => {
     } catch (err) {
       console.error("Logout error:", err);
     } finally {
-      // всегда очищаем, даже если сервер не ответил
+      csrfInitialized.current = false;
       setUser(null);
       document.cookie = 'laravel_session=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
       document.cookie = 'XSRF-TOKEN=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
@@ -211,7 +229,6 @@ const resetPassword = async (email, code, password) => {
 
       const errorData = await res.json().catch(() => ({}));
       console.error('Server errors:', errorData);
-
       return false;
     } catch (err) {
       console.error(err);
@@ -252,17 +269,13 @@ const resetPassword = async (email, code, password) => {
     }
   };
 
-  // Вспомогательная функция для FormData (фото)
+  // Для FormData (загрузка фото) — без Content-Type, браузер выставит boundary сам
   const fetchFormData = async (url, formData) => {
     await getCsrfCookie();
 
-    const xsrfToken = document.cookie
-      .split('; ')
-      .find(row => row.startsWith('XSRF-TOKEN='))
-      ?.split('=')[1];
-
+    const xsrfToken = getXsrfToken();
     const headers = {};
-    if (xsrfToken) headers['X-XSRF-TOKEN'] = decodeURIComponent(xsrfToken);
+    if (xsrfToken) headers['X-XSRF-TOKEN'] = xsrfToken;
 
     return fetch(url, {
       method: 'POST',
@@ -287,7 +300,7 @@ const resetPassword = async (email, code, password) => {
         refreshUser,
         sendResetCode,
         verifyResetCode,
-        resetPassword,  
+        resetPassword,
       }}
     >
       {children}

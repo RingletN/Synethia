@@ -79,7 +79,7 @@ class AuthController extends Controller
     {
         $user = $request->user();
 
-        $validator = Validator::make($request->all(), User::rules($user->id));
+        $validator = Validator::make($request->all(), User::updateRules($user->id));
 
         if ($validator->fails()) {
             return response()->json([

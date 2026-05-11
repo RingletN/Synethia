@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Validation\Rule;
 use Laravel\Sanctum\HasApiTokens;
 
 #[Fillable(['name', 'nickname', 'email', 'password', 
@@ -43,10 +44,36 @@ class User extends Authenticatable
     public static function rules($id = null): array
     {
         return [
-            'name'       => 'required|string|min:2|max:60|regex:/^[а-яА-Яa-zA-Z\s]+$/u',
-            'nickname'   => 'required|string|min:2|max:30|regex:/^[a-zA-Z0-9_-]+$/|unique:users,nickname,' . $id,
-            'email'      => 'required|email|max:255|unique:users,email,' . $id,
-            'password'   => 'sometimes|string|min:8|regex:/^[a-zA-Z0-9!@#$%^&*()_+\-=\[\]{};:\'"\\|,.<>\/?]+$/',
+            'name'     => 'required|string|min:2|max:60|regex:/^[а-яА-Яa-zA-Z\s]+$/u',
+            'nickname' => [
+                'required', 'string', 'min:2', 'max:30',
+                'regex:/^[a-zA-Z0-9_-]+$/',
+                $id ? Rule::unique('users', 'nickname')->ignore($id) 
+                    : Rule::unique('users', 'nickname'),
+            ],
+            'email' => [
+                'required', 'email', 'max:255',
+                $id ? Rule::unique('users', 'email')->ignore($id)
+                    : Rule::unique('users', 'email'),
+            ],
+            'password' => ['sometimes', 'string', 'min:8', 'regex:/^[a-zA-Z0-9!@#$%^&*()\-_=+\[\]{};:,.<>?]+$/'],
+        ];
+    }
+
+    public static function updateRules($id): array
+    {
+        return [
+            'name'     => 'sometimes|string|min:2|max:60|regex:/^[а-яА-Яa-zA-Z\s]+$/u',
+            'nickname' => [
+                'sometimes', 'string', 'min:2', 'max:30',
+                'regex:/^[a-zA-Z0-9_-]+$/',
+                Rule::unique('users', 'nickname')->ignore($id),
+            ],
+            'email' => [
+                'sometimes', 'email', 'max:255',
+                Rule::unique('users', 'email')->ignore($id),
+            ],
+            'password' => ['sometimes', 'string', 'min:8', 'regex:/^[a-zA-Z0-9!@#$%^&*()\-_=+\[\]{};:,.<>?]+$/'],
         ];
     }
 }
