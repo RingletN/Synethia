@@ -16,6 +16,7 @@ const InputField = ({
     placeholder = '',
     required = false,
     showPasswordToggle = false,
+    autoComplete,  
 }) => {
     const [inputType, setInputType] = useState(type);
     const [showPassword, setShowPassword] = useState(false);
@@ -49,6 +50,7 @@ const InputField = ({
                     readOnly={readOnly}
                     placeholder={placeholder}
                     required={required}
+                    autoComplete={autoComplete}
                 />
                 {showPasswordToggle && type === 'password' && <EyeIcon />}
             </div>

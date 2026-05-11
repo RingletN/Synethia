@@ -12,6 +12,7 @@ import Loader from '../../components/ui/Loader';
 import Modal from '../../components/ui/Modal';
 
 import { getValidationErrorMessage } from '../../utils/validationErrors';
+import { useUnsavedChanges } from '../../hooks/useUnsavedChanges'; // ← новый хук
 
 import './Profile.css';
 
@@ -21,25 +22,25 @@ const Profile = () => {
     const { user, updateUser, uploadPhoto, deletePhoto, logout } = useAuth();
 
     // === СОСТОЯНИЯ ===
-    const [originalData, setOriginalData] = useState({ //изначальные данные для сравнения
+    const [originalData, setOriginalData] = useState({
         name: '',
         nickname: '',
         email: '',
         password: '',
     });
 
-    const [formData, setFormData] = useState({ //данные формы
+    const [formData, setFormData] = useState({
         name: '',
         nickname: '',
         email: '',
         password: '',
     });
 
-    const [hasChanges, setHasChanges] = useState(false); //есть ли изменения в форме
-    const [errors, setErrors] = useState({}); //ошибки валидации
+    const [hasChanges, setHasChanges] = useState(false);
+    const [errors, setErrors] = useState({});
 
     // Статусы загрузки
-    const [isSaving, setIsSaving] = useState(false); 
+    const [isSaving, setIsSaving] = useState(false);
     const [isPhotoUploading, setIsPhotoUploading] = useState(false);
 
     // Фото
@@ -53,7 +54,6 @@ const Profile = () => {
     const [modalConfig, setModalConfig] = useState({});
 
     // === ЭФФЕКТЫ ===
-    // Загрузка данных пользователя
     useEffect(() => {
         if (user) {
             const data = {
@@ -70,7 +70,7 @@ const Profile = () => {
 
     // Отслеживание изменений
     useEffect(() => {
-        const isChanged = 
+        const isChanged =
             formData.name !== originalData.name ||
             formData.nickname !== originalData.nickname ||
             formData.email !== originalData.email ||
@@ -79,45 +79,53 @@ const Profile = () => {
         setHasChanges(isChanged);
     }, [formData, originalData]);
 
+    // === ХЕЛПЕРЫ МОДАЛКИ ===
     const openModal = (config) => {
         setModalConfig(config);
         setShowModal(true);
     };
 
+    const closeModal = () => {
+        setShowModal(false);
+        // Если у конфига есть кастомный onClose — вызываем его
+        // (нужно для blocker.reset() из useUnsavedChanges)
+        if (modalConfig.onClose) modalConfig.onClose();
+    };
+
     // === ПОДТВЕРЖДЕНИЯ ===
     const handleLogout = () => {
         openModal({
-            title: "Выйти из аккаунта?",
-            description: "Вы действительно хотите выйти?",
-            primaryText: "Выйти",
-            cancelText: "Отмена",
-            variant: "warning",
+            title: 'Выйти из аккаунта?',
+            description: 'Вы действительно хотите выйти? Несохраненные изменения будут утеряны.',
+            primaryText: 'Выйти',
+            cancelText: 'Отмена',
+            variant: 'warning',
             onPrimary: async () => {
                 await logout();
                 window.location.href = '/auth';
-            }
+            },
         });
     };
 
     const handlePhotoReset = () => {
         openModal({
-            title: "Сбросить фото?",
-            description: "Это действие нельзя будет отменить",
-            primaryText: "Сбросить",
-            cancelText: "Отмена",
-            variant: "warning",
+            title: 'Сбросить фото?',
+            description: 'Это действие нельзя будет отменить',
+            primaryText: 'Сбросить',
+            cancelText: 'Отмена',
+            variant: 'warning',
             onPrimary: async () => {
                 const success = await deletePhoto();
                 if (success) {
                     setPhotoPreview(null);
                     openModal({
-                        title: "Готово",
-                        description: "Фото успешно удалено",
-                        primaryText: "ОК",
-                        variant: "success"
+                        title: 'Готово',
+                        description: 'Фото успешно удалено',
+                        primaryText: 'ОК',
+                        variant: 'success',
                     });
                 }
-            }
+            },
         });
     };
 
@@ -134,32 +142,29 @@ const Profile = () => {
         let error = '';
 
         if (name === 'name' || name === 'nickname') {
-            error = value.trim().length < 2 
-                ? getValidationErrorMessage(name, 'min') 
+            error = value.trim().length < 2
+                ? getValidationErrorMessage(name, 'min')
                 : '';
         }
         if (name === 'email' && value) {
-            error = /^\S+@\S+\.\S+$/.test(value) 
-                ? '' 
+            error = /^\S+@\S+\.\S+$/.test(value)
+                ? ''
                 : getValidationErrorMessage(name, 'email');
         }
         if (name === 'password' && value) {
-            error = value.length < 6 
-                ? getValidationErrorMessage(name, 'min') 
+            error = value.length < 6
+                ? getValidationErrorMessage(name, 'min')
                 : '';
         }
 
         setErrors(prev => ({ ...prev, [name]: error }));
     };
 
-    // == СОХРАНЕНИЕ ПРОФИЛЯ ===
-    // Сохранение данных профиля
+    // === СОХРАНЕНИЕ ПРОФИЛЯ ===
     const handleSave = async () => {
-        // собираем ошибки валидации
         let hasError = false;
         const newErrors = {};
 
-        // проверка всех полей
         if (formData.name.trim().length < 2) {
             newErrors.name = getValidationErrorMessage('name', 'min');
             hasError = true;
@@ -184,7 +189,6 @@ const Profile = () => {
 
         setIsSaving(true);
 
-        // формируем объект только с измененными полями
         const payload = {};
         if (formData.name !== originalData.name) payload.name = formData.name;
         if (formData.nickname !== originalData.nickname) payload.nickname = formData.nickname;
@@ -196,33 +200,31 @@ const Profile = () => {
             return;
         }
 
-        // отправляем на сервер только измененные поля
         const success = await updateUser(payload);
 
         if (success) {
             setOriginalData(prev => ({ ...prev, ...payload, password: '' }));
             setFormData(prev => ({ ...prev, password: '' }));
             openModal({
-                title: "Успешно!",
-                description: "Данные профиля обновлены",
-                primaryText: "ОК",
-                variant: "success"
+                title: 'Успешно!',
+                description: 'Данные профиля обновлены',
+                primaryText: 'ОК',
+                variant: 'success',
             });
         } else {
             openModal({
-                title: "Ошибка",
-                description: "Не удалось обновить данные. Возможно, такой псевдоним или email уже занят.",
-                primaryText: "Понятно",
-                variant: "error"
+                title: 'Ошибка',
+                description: 'Не удалось обновить данные. Возможно, такой псевдоним или email уже занят.',
+                primaryText: 'Понятно',
+                variant: 'error',
             });
         }
 
         setIsSaving(false);
     };
 
-    // Работа с фото
+    // === РАБОТА С ФОТО ===
     const handlePhotoChange = (event) => {
-        // предпросмотр выбранного фото
         const file = event.target.files[0];
         if (!file) return;
         setPhotoFile(file);
@@ -230,35 +232,32 @@ const Profile = () => {
         setIsPhotoChanged(true);
     };
 
-    // Подтверждение изменения фото
     const confirmPhoto = async () => {
         if (!photoFile) return;
         setIsPhotoUploading(true);
 
-        // загружаем фото и получаем новый URL
         const newUrl = await uploadPhoto(photoFile);
         if (newUrl) {
             setPhotoPreview(newUrl);
             setIsPhotoChanged(false);
             setPhotoFile(null);
             openModal({
-                title: "Готово",
-                description: "Фото успешно обновлено",
-                primaryText: "ОК",
-                variant: "success"
+                title: 'Готово',
+                description: 'Фото успешно обновлено',
+                primaryText: 'ОК',
+                variant: 'success',
             });
         } else {
             openModal({
-                title: "Ошибка",
-                description: "Не удалось загрузить фото",
-                primaryText: "Понятно",
-                variant: "error"
+                title: 'Ошибка',
+                description: 'Не удалось загрузить фото',
+                primaryText: 'Понятно',
+                variant: 'error',
             });
         }
         setIsPhotoUploading(false);
     };
 
-    // Отмена изменения фото
     const cancelPhoto = () => {
         setPhotoPreview(user?.profile_photo || null);
         setIsPhotoChanged(false);
@@ -266,18 +265,19 @@ const Profile = () => {
         if (fileInputRef.current) fileInputRef.current.value = '';
     };
 
-    // Вспомогательная функция для форматирования даты
     const formatDate = (dateString) => {
         if (!dateString) return '—';
         const date = new Date(dateString);
-        return date.toLocaleDateString('ru-RU', { 
-            day: '2-digit', 
-            month: '2-digit', 
-            year: 'numeric' 
+        return date.toLocaleDateString('ru-RU', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric',
         });
     };
 
-    // if (!user) return <div>Загрузка профиля...</div>;
+    // === ХУК ЗАЩИТЫ ОТ УХОДА С НЕСОХРАНЁННЫМИ ДАННЫМИ ===
+    // Должен вызываться ПОСЛЕ определения всех функций, которые он использует
+    useUnsavedChanges(hasChanges, openModal);
 
     return (
         <div className="profile-page">
@@ -314,17 +314,17 @@ const Profile = () => {
                         <h3>Мои данные</h3>
                         {hasChanges && (
                             <div className="action-icons">
-                                <img 
-                                    src={CloseIcon} 
-                                    alt="Отменить" 
-                                    onClick={() => setFormData({ ...originalData, password: '' })} 
-                                    className="icon" 
+                                <img
+                                    src={CloseIcon}
+                                    alt="Отменить"
+                                    onClick={() => setFormData({ ...originalData, password: '' })}
+                                    className="icon"
                                 />
-                                <img 
-                                    src={ConfirmIcon} 
-                                    alt="Сохранить" 
-                                    onClick={handleSave} 
-                                    className="icon" 
+                                <img
+                                    src={ConfirmIcon}
+                                    alt="Сохранить"
+                                    onClick={handleSave}
+                                    className="icon"
                                 />
                             </div>
                         )}
@@ -369,6 +369,7 @@ const Profile = () => {
                         onBlur={handleBlur}
                         error={errors.password}
                         showPasswordToggle
+                        autoComplete="new-password"
                     />
                 </div>
 
@@ -417,14 +418,20 @@ const Profile = () => {
             {/* Модальное окно */}
             <Modal
                 isOpen={showModal}
-                onClose={() => setShowModal(false)}
+                onClose={closeModal}   
                 title={modalConfig.title}
                 description={modalConfig.description}
                 primaryText={modalConfig.primaryText}
                 cancelText={modalConfig.cancelText}
-                onPrimary={modalConfig.onPrimary}
-                onCancel={() => setShowModal(false)}
-                variant={modalConfig.variant || "default"}
+                onPrimary={() => {
+                    setShowModal(false);
+                    modalConfig.onPrimary?.();
+                }}
+                onCancel={() => {
+                    setShowModal(false);
+                    modalConfig.onCancel?.();
+                }}
+                variant={modalConfig.variant || 'default'}
             />
         </div>
     );
