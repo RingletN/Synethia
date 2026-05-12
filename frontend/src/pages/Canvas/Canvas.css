@@ -100,8 +100,12 @@
 .music-player{
     display:flex;
     align-items: center;
-    gap: 16px;
+    justify-content: center;
+    /* margin-bottom: 16px; */
     position: relative;
+    gap:17px;
+    padding:23px 5px;
+    min-height: 75px;
 }
 
 .tools-panel::before,

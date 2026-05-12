@@ -3,6 +3,7 @@ import DrawingArea from "./components/DrawingArea";
 import ToolsPanel from "./components/ToolsPanel";
 import { useDrawing } from "./hooks/useDrawing";
 import { imageToSegments } from "../../utils/imageToSegments";
+import MelodyEngine from "../../engines/MelodyEngine";
 import Button from "../../components/ui/Button";
 import Loader from "../../components/ui/Loader";
 import Modal from "../../components/ui/Modal";
@@ -13,222 +14,245 @@ import SaveIcon from "../../assets/icons/icon-save.svg";
 import DownloadIcon from "../../assets/icons/icon-download.svg";
 import TrashIcon from "../../assets/icons/icon-trash.svg";
 import QuestionIcon from "../../assets/icons/icon-question.svg";
-
+import PauseIcon from "../../assets/icons/icon-pause.svg";
+import PlayIcon from "../../assets/icons/icon-play.svg";
+import SkipBackIcon from "../../assets/icons/icon-skip-back.svg";
+import SkipForwardIcon from "../../assets/icons/icon-skip-forward.svg";
+import VolumeHighIcon from "../../assets/icons/icon-volume-high.svg";
+import VolumeLowIcon from "../../assets/icons/icon-volume-low.svg";
+import VolumeNoIcon from "../../assets/icons/icon-volume-no.svg";
 
 import "./Canvas.css";
 
-const CANVAS_BLOCK_GAP = 46;
+const CANVAS_BLOCK_GAP   = 46;
 const SETTINGS_MIN_WIDTH = 200;
-const CANVAS_MIN_SIZE = 600;
-const INITIAL_CANVAS_WIDTH = 750;
+const CANVAS_MIN_SIZE    = 600;
+const INITIAL_CANVAS_WIDTH  = 750;
 const INITIAL_CANVAS_HEIGHT = 600;
 
-const Canvas = () => {
+// Одиночный экземпляр MelodyEngine на всё время жизни компонента
+const melodyEngine = new MelodyEngine();
 
+const Canvas = () => {
     const [canvasSize, setCanvasSize] = useState({
-        width: INITIAL_CANVAS_WIDTH,
+        width:  INITIAL_CANVAS_WIDTH,
         height: INITIAL_CANVAS_HEIGHT,
     });
 
     const [isBrushSelected, setIsBrushSelected] = useState(true);
-    const [isStarSelected, setIsStarSelected] = useState(false);
+    const [isStarSelected,  setIsStarSelected]  = useState(false);
     const [brushColor, setBrushColor] = useState('#00ffd1');
-    
-    // Флаг обработки фото — блокирует кнопку импорта и показывает спиннер
     const [isImporting, setIsImporting] = useState(false);
 
-        // Для модальных окон с сообщениями
-        const [modal, setModal] = useState({
-            isOpen: false,
-            title: '',
-            description: '',
-            variant: 'default', // 'default' | 'error'
-        });
+    // ── Состояние мелодии ──────────────────────────────────────────
+    const [isPlaying,    setIsPlaying]    = useState(false);
+    const [melodyReady,  setMelodyReady]  = useState(false); // есть что воспроизводить
+    const [activeNote,   setActiveNote]   = useState(null);  // текущая нота (для анимации)
 
+    // Параметры генерации (базовые, без UI — заложим основу)
+    const melodyParams = useRef({
+        bpm:      80,
+        duration: 8,
+        scale:    'major',
+        smoothing: 30,
+    });
+
+    // Кэш последнего построенного списка событий
+    const noteEventsRef = useRef({ events: [], tonicMidi: 60 });
+
+    // ── Цвет фона ──────────────────────────────────────────────────
+    const [modal, setModal] = useState({
+        isOpen: false, title: '', description: '', variant: 'default',
+    });
     const [bgColor, setBgColor] = useState('#4D4DFF');
-    const bgColorRef = useRef('#4D4DFF');
+    const bgColorRef    = useRef('#4D4DFF');
     const brushColorRef = useRef('#00ffd1');
 
-    useEffect(() => { bgColorRef.current = bgColor; }, [bgColor]);
+    useEffect(() => { bgColorRef.current    = bgColor;    }, [bgColor]);
     useEffect(() => { brushColorRef.current = brushColor; }, [brushColor]);
 
-    const toolsPanelRef = useRef(null);
+    const toolsPanelRef  = useRef(null);
     const canvasPanelRef = useRef(null);
-    const drawBlockRef = useRef(null);
-
+    const drawBlockRef   = useRef(null);
     const pendingResizeRef = useRef(null);
-    const isDraggingRef = useRef(false);
-    const dragDir = useRef(null);
-
-    const currentSizeRef = useRef({
-        w: INITIAL_CANVAS_WIDTH,
-        h: INITIAL_CANVAS_HEIGHT,
-    });
+    const isDraggingRef    = useRef(false);
+    const dragDir          = useRef(null);
+    const currentSizeRef   = useRef({ w: INITIAL_CANVAS_WIDTH, h: INITIAL_CANVAS_HEIGHT });
 
     const { engineRef, initEngine, saveToHistory, undo, redo, clear, canUndo, canRedo } =
         useDrawing(8, '#4D4DFF');
 
-        // ==================== МОДАЛЬНЫЕ ОКНА ====================
+    // ── Модальные окна ─────────────────────────────────────────────
     const showModal = useCallback((title, description, variant = 'default') => {
-        setModal({
-            isOpen: true,
-            title,
-            description,
-            variant,
-        });
+        setModal({ isOpen: true, title, description, variant });
     }, []);
-
     const closeModal = useCallback(() => {
         setModal(prev => ({ ...prev, isOpen: false }));
     }, []);
 
-    // ==================== ОБРАБОТЧИКИ ====================
+    // ── Обработчики ────────────────────────────────────────────────
     const handleBrushColorChange = useCallback((newColor) => {
         setBrushColor(newColor);
         brushColorRef.current = newColor;
-        
-        if (engineRef.current) {
-            engineRef.current.currentColor = newColor;
-        }
+        if (engineRef.current) engineRef.current.currentColor = newColor;
     }, [engineRef]);
-    
+
     const handleImportPhoto = useCallback(async (file) => {
         if (!engineRef.current) {
             showModal("Ошибка", "Движок рисования не инициализирован", "error");
             return;
         }
-
         setIsImporting(true);
-
         try {
             const currentLineWidth = engineRef.current.getLineWidth?.() || 5;
-
             const segments = await imageToSegments(file, {
-                threshold: 28,
-                maxWidth: 850,
-                color: '#00ffd1',
-                lineWidth: currentLineWidth,
-                instrument: 'sine',
+                threshold: 28, maxWidth: 850,
+                color: '#00ffd1', lineWidth: currentLineWidth, instrument: 'sine',
             });
-
             if (segments.length === 0) {
                 showModal(
                     "Контуры не найдены",
                     "На изображении не удалось обнаружить достаточно контуров.\n\nПопробуйте другое фото или уменьшите значение threshold.",
-                    "default"
                 );
                 return;
             }
-
             engineRef.current.addSegments(segments);
-
+            setMelodyReady(true);
         } catch (err) {
             console.error('Ошибка обработки изображения:', err);
-            showModal(
-                "Ошибка обработки фото",
-                "Не удалось обработать изображение. Возможно, файл повреждён или не является изображением.",
-                "error"
-            );
+            showModal("Ошибка обработки фото", "Не удалось обработать изображение.", "error");
         } finally {
             setIsImporting(false);
         }
     }, [engineRef, showModal]);
 
+    // ── Генерация и воспроизведение мелодии ───────────────────────
+
+    /**
+     * Строит нотные события из текущих сегментов холста.
+     * Вызывается каждый раз перед воспроизведением (или при изменении параметров).
+     */
+    const buildMelody = useCallback(() => {
+        if (!engineRef.current) return false;
+        const segments = engineRef.current.getAllSegments();
+        if (!segments || segments.length === 0) return false;
+
+        noteEventsRef.current = melodyEngine.buildNoteEvents(segments, melodyParams.current);
+        return noteEventsRef.current.events.length > 0;
+    }, [engineRef]);
+
+    /** Запускает / останавливает воспроизведение */
+    const handleGenerateMelody = useCallback(() => {
+        // Если играет — остановить
+        if (melodyEngine.getIsPlaying()) {
+            melodyEngine.stop();
+            setIsPlaying(false);
+            setActiveNote(null);
+            return;
+        }
+
+        // Построить события
+        const ok = buildMelody();
+        if (!ok) {
+            showModal(
+                "Нечего воспроизводить",
+                "Нарисуйте что-нибудь на холсте, а затем нажмите «СГЕНЕРИРОВАТЬ МЕЛОДИЮ».",
+            );
+            return;
+        }
+
+        const { events } = noteEventsRef.current;
+        const { duration } = melodyParams.current;
+
+        setIsPlaying(true);
+        setActiveNote(null);
+
+        melodyEngine.play(
+            events,
+            duration,
+            // колбэк на каждую ноту
+            (ev) => setActiveNote(ev),
+            // колбэк по окончании
+            () => {
+                setIsPlaying(false);
+                setActiveNote(null);
+            },
+        );
+    }, [buildMelody, showModal]);
+
+    // Обновляем melodyReady при каждом мазке
+    const handleStrokeEnd = useCallback(() => {
+        setMelodyReady(true);
+    }, []);
+
+    // ── Скачать ────────────────────────────────────────────────────
     const handleDownload = useCallback(() => {
         const mainCanvas = engineRef.current?.mainCanvas;
         if (!mainCanvas) return;
-
         const { width, height } = mainCanvas;
         const exportCanvas = document.createElement('canvas');
-        exportCanvas.width = width;
+        exportCanvas.width  = width;
         exportCanvas.height = height;
         const ctx = exportCanvas.getContext('2d');
-
         ctx.fillStyle = bgColor;
         ctx.fillRect(0, 0, width, height);
         ctx.drawImage(mainCanvas, 0, 0);
-
         const link = document.createElement('a');
         link.download = 'drawing.png';
         link.href = exportCanvas.toDataURL('image/png');
         link.click();
     }, [bgColor, engineRef]);
 
-    /**
-     * Обработчик импорта фото.
-     * 1. Запускаем edge detection (async, не блокирует UI).
-     * 2. Передаём сегменты в DrawingEngine через addSegments.
-     * 3. Сохраняем шаг в историю.
-     */
-
-    const handleResizeMouseDown = useCallback(
-        (dir) => (e) => {
-            e.preventDefault();
-            isDraggingRef.current = true;
-            dragDir.current = dir;
-
-            currentSizeRef.current = {
-                w: canvasPanelRef.current?.clientWidth ?? INITIAL_CANVAS_WIDTH,
-                h: canvasPanelRef.current?.clientHeight ?? INITIAL_CANVAS_HEIGHT,
-            };
-        },
-        [],
-    );
+    // ── Ресайз холста ──────────────────────────────────────────────
+    const handleResizeMouseDown = useCallback((dir) => (e) => {
+        e.preventDefault();
+        isDraggingRef.current = true;
+        dragDir.current = dir;
+        currentSizeRef.current = {
+            w: canvasPanelRef.current?.clientWidth  ?? INITIAL_CANVAS_WIDTH,
+            h: canvasPanelRef.current?.clientHeight ?? INITIAL_CANVAS_HEIGHT,
+        };
+    }, []);
 
     useEffect(() => {
         const onMove = (e) => {
-            if (
-                !isDraggingRef.current ||
-                !canvasPanelRef.current ||
-                !engineRef.current
-            )
-                return;
-
+            if (!isDraggingRef.current || !canvasPanelRef.current || !engineRef.current) return;
             const rect = canvasPanelRef.current.getBoundingClientRect();
             const containerRect = drawBlockRef.current?.getBoundingClientRect();
-
             const maxW = containerRect
                 ? containerRect.width - CANVAS_BLOCK_GAP - SETTINGS_MIN_WIDTH
                 : 2000;
-
             const rawW = Math.round(e.clientX - rect.left);
             const rawH = Math.round(e.clientY - rect.top);
-
-            const newW =
-                dragDir.current !== "vertical"
-                    ? Math.min(maxW, Math.max(CANVAS_MIN_SIZE, rawW))
-                    : currentSizeRef.current.w;
-
-            const newH =
-                dragDir.current !== "horizontal"
-                    ? Math.max(CANVAS_MIN_SIZE, rawH)
-                    : currentSizeRef.current.h;
-
+            const newW = dragDir.current !== "vertical"
+                ? Math.min(maxW, Math.max(CANVAS_MIN_SIZE, rawW))
+                : currentSizeRef.current.w;
+            const newH = dragDir.current !== "horizontal"
+                ? Math.max(CANVAS_MIN_SIZE, rawH)
+                : currentSizeRef.current.h;
             engineRef.current.resize(newW, newH);
-            canvasPanelRef.current.style.width = `${newW}px`;
+            canvasPanelRef.current.style.width  = `${newW}px`;
             canvasPanelRef.current.style.height = `${newH}px`;
             setCanvasSize({ width: newW, height: newH });
         };
-
-        const onUp = () => {
-            isDraggingRef.current = false;
-        };
-
+        const onUp = () => { isDraggingRef.current = false; };
         window.addEventListener("mousemove", onMove);
-        window.addEventListener("mouseup", onUp);
-
+        window.addEventListener("mouseup",   onUp);
         return () => {
             window.removeEventListener("mousemove", onMove);
-            window.removeEventListener("mouseup", onUp);
+            window.removeEventListener("mouseup",   onUp);
         };
     }, [engineRef]);
 
     const handleCanvasReady = useCallback((canvases) => {
         initEngine(canvases);
         if (engineRef.current) {
-            engineRef.current.onStrokeEnd = () => saveToHistory(bgColorRef.current);
+            engineRef.current.onStrokeEnd = () => {
+                saveToHistory(bgColorRef.current);
+                handleStrokeEnd();
+            };
         }
-    }, [initEngine, saveToHistory, engineRef]);
+    }, [initEngine, saveToHistory, engineRef, handleStrokeEnd]);
 
     useEffect(() => {
         if (!pendingResizeRef.current || !engineRef.current) return;
@@ -244,15 +268,13 @@ const Canvas = () => {
     }, [saveToHistory]);
 
     const syncLayout = useCallback(() => {
-        const canvasEl = canvasPanelRef.current;
-        const container = drawBlockRef.current;
+        const canvasEl   = canvasPanelRef.current;
+        const container  = drawBlockRef.current;
         if (!canvasEl || !container) return;
-
         const maxW = Math.max(
             CANVAS_MIN_SIZE,
             container.offsetWidth - CANVAS_BLOCK_GAP - SETTINGS_MIN_WIDTH,
         );
-
         canvasEl.style.maxWidth = `${maxW}px`;
     }, []);
 
@@ -262,10 +284,19 @@ const Canvas = () => {
         return () => obs.disconnect();
     }, [syncLayout]);
 
-    const handleUndo = useCallback(() => undo(null, setBgColor), [undo]);
-    const handleRedo = useCallback(() => redo(null, setBgColor), [redo]);
-    const handleClear = useCallback(() => clear(bgColorRef.current), [clear]);
+    const handleUndo  = useCallback(() => undo(null, setBgColor),  [undo]);
+    const handleRedo  = useCallback(() => redo(null, setBgColor),  [redo]);
+    const handleClear = useCallback(() => {
+        clear(bgColorRef.current);
+        setMelodyReady(false);
+        melodyEngine.stop();
+        setIsPlaying(false);
+    }, [clear]);
 
+    // ── Текст кнопки ───────────────────────────────────────────────
+    const buttonLabel = isPlaying ? 'ОСТАНОВИТЬ' : 'СГЕНЕРИРОВАТЬ МЕЛОДИЮ';
+
+    // ── Рендер ─────────────────────────────────────────────────────
     return (
         <div className="canvas-content">
             <div className="canvas-header">
@@ -277,14 +308,8 @@ const Canvas = () => {
                     <div className="divider-project" />
                 </div>
                 <div className="canvas-header-icons">
-                    <div
-                        className="icon favourite-btn"
-                        onClick={() => setIsStarSelected((prev) => !prev)}
-                    >
-                        <img
-                            src={isStarSelected ? StarSelectedIcon : StarIcon}
-                            alt="Избранное"
-                        />
+                    <div className="icon favourite-btn" onClick={() => setIsStarSelected(p => !p)}>
+                        <img src={isStarSelected ? StarSelectedIcon : StarIcon} alt="Избранное" />
                     </div>
                     <div className="icon save-btn">
                         <img src={SaveIcon} alt="Сохранить проект" />
@@ -326,8 +351,8 @@ const Canvas = () => {
                             className="canvas-panel"
                             ref={canvasPanelRef}
                             style={{
-                                width: canvasSize.width,
-                                height: canvasSize.height,
+                                width:           canvasSize.width,
+                                height:          canvasSize.height,
                                 backgroundColor: bgColor,
                             }}
                         >
@@ -337,24 +362,25 @@ const Canvas = () => {
                                 onReady={handleCanvasReady}
                             />
 
-                          {/* Правый край */}
-    <div className="resize-handle-horizontal"
-         onMouseDown={handleResizeMouseDown("horizontal")} />
+                            {/* Ресайз-хендлы */}
+                            <div className="resize-handle-horizontal"
+                                 onMouseDown={handleResizeMouseDown("horizontal")} />
+                            <div className="resize-handle-vertical"
+                                 onMouseDown={handleResizeMouseDown("vertical")} />
+                            <div className="resize-handle-corner"
+                                 onMouseDown={handleResizeMouseDown("both")} />
 
-    {/* Нижний край */}
-    <div className="resize-handle-vertical"
-         onMouseDown={handleResizeMouseDown("vertical")} />
+                            {/* Оверлей импорта фото */}
+                            {isImporting && (
+                                <div className="import-overlay">
+                                    <Loader size={64} color="cyan" speed={1200} />
+                                </div>
+                            )}
 
-    {/* Угол */}
-    <div className="resize-handle-corner"
-         onMouseDown={handleResizeMouseDown("both")} />
-
-                            {/* Оверлей обработки фото */}
-{isImporting && (
-    <div className="import-overlay">
-        <Loader size={64} color="cyan" speed={1200} />
-    </div>
-)}
+                            {/* Индикатор активной ноты во время воспроизведения */}
+                            {isPlaying && activeNote && (
+                                <ActiveNoteIndicator note={activeNote} />
+                            )}
                         </div>
 
                         <div className="idk-panel" />
@@ -363,11 +389,47 @@ const Canvas = () => {
                     <div className="settings-block" />
                 </div>
 
-                <div className="music-player" />
-                <Button variant="primary">СГЕНЕРИРОВАТЬ МЕЛОДИЮ</Button>
-            </div>
-                        {/* Модальное окно */}
-                        <Modal
+                <div className="music-player" >
+
+                    <div className="icon skip-back-btn">
+                        <img src={SkipBackIcon} alt="Назад" />
+                    </div>
+                    <div className="icon pause-btn">
+                        <img src={PauseIcon} alt="Пауза" />
+                    </div>
+
+                    <div className="icon play-btn">
+                        <img src={PlayIcon} alt="Воспроизвести" />
+                    </div>
+                    <div className="icon skip-forward-btn">
+                        <img src={SkipForwardIcon} alt="Вперед" />
+                    </div>
+
+                    <div className="icon volume-high-btn">
+                        <img src={VolumeHighIcon} alt="Громко" />
+                    </div>
+
+                    <div className="icon volume-low-btn">
+                        <img src={VolumeLowIcon} alt="Тихо" />
+                    </div>
+
+                    <div className="icon volume-no-btn">
+                        <img src={VolumeNoIcon} alt="Без звука" />
+                    </div>
+                </div>
+</div>
+                    
+                {/* Кнопка генерации / остановки */}
+                <Button
+                    variant={isPlaying ? "secondary" : "primary"}
+                    onClick={handleGenerateMelody}
+                    disabled={isImporting}
+                >
+                    {buttonLabel}
+                </Button>
+
+
+            <Modal
                 isOpen={modal.isOpen}
                 onClose={closeModal}
                 title={modal.title}
@@ -376,6 +438,57 @@ const Canvas = () => {
                 primaryText="ОК"
                 onPrimary={closeModal}
             />
+        </div>
+    );
+};
+
+// ─── Маленький индикатор текущей ноты ────────────────────────────────────────
+const NOTE_NAMES = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+
+const freqToNoteName = (freq) => {
+    if (!freq) return '';
+    const midi  = Math.round(69 + 12 * Math.log2(freq / 440));
+    const note  = NOTE_NAMES[midi % 12];
+    const octave = Math.floor(midi / 12) - 1;
+    return `${note}${octave}`;
+};
+
+const INSTRUMENT_LABEL = {
+    sine:     'Синус',
+    square:   'Квадрат',
+    sawtooth: 'Пила',
+    triangle: 'Треугольник',
+};
+
+const ActiveNoteIndicator = ({ note }) => {
+    if (!note) return null;
+    return (
+        <div style={{
+            position: 'absolute',
+            bottom: 12,
+            right: 12,
+            background: 'rgba(0,0,0,0.55)',
+            backdropFilter: 'blur(6px)',
+            borderRadius: 10,
+            padding: '6px 12px',
+            color: '#fff',
+            fontSize: 13,
+            fontFamily: 'monospace',
+            pointerEvents: 'none',
+            zIndex: 20,
+            display: 'flex',
+            gap: 10,
+            alignItems: 'center',
+        }}>
+            <span style={{ fontSize: 18, fontWeight: 700 }}>
+                {freqToNoteName(note.freq)}
+            </span>
+            <span style={{ opacity: 0.7 }}>
+                {INSTRUMENT_LABEL[note.instrument] || note.instrument}
+            </span>
+            <span style={{ opacity: 0.5 }}>
+                {Math.round(note.freq)} Гц
+            </span>
         </div>
     );
 };
