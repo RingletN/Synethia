@@ -32,7 +32,6 @@ class DrawingEngine {
         this.ctx.lineJoin = 'round';
     }
 
-    // Навешиваем обработчики мыши и тача для рисования
     setupEventListeners() {
         const canvas = this.mainCanvas;
         canvas.addEventListener('mousedown', e => this.startDrawing(e));
@@ -45,7 +44,6 @@ class DrawingEngine {
         canvas.addEventListener('touchend', () => this.stopDrawing());
     }
 
-    // получаем координаты мыши относительно канваса
     getMousePos(e) {
         const rect = this.mainCanvas.getBoundingClientRect();
         return {
@@ -54,7 +52,6 @@ class DrawingEngine {
         };
     }
 
-    // Начинаем новый мазок: сохраняем начальную точку и создаём новый сегмент для истории
     startDrawing(e) {
         this.isDrawing = true;
         const pos = this.getMousePos(e);
@@ -73,7 +70,6 @@ class DrawingEngine {
         };
     }
 
-    // Рисуем линию от последней точки к текущей, добавляем точку в текущий сегмент
     draw(e) {
         if (!this.isDrawing || !this.currentSegment) return;
         const pos = this.getMousePos(e);
@@ -96,7 +92,6 @@ class DrawingEngine {
         this.lastY = pos.y;
     }
 
-    // Завершаем мазок: сохраняем сегмент в историю и вызываем колбэк для сохранения в undo/redo
     stopDrawing() {
         if (!this.isDrawing) return;
         this.isDrawing = false;
@@ -104,7 +99,6 @@ class DrawingEngine {
 
         if (this.currentSegment && this.currentSegment.points.length > 1) {
             this.segments.push(this.currentSegment);
-            // Уведомляем снаружи - теперь можно сохранить в историю
             if (typeof this.onStrokeEnd === 'function') {
                 this.onStrokeEnd();
             }
@@ -112,8 +106,6 @@ class DrawingEngine {
         this.currentSegment = null;
     }
 
-    // Перерисовывает все сегменты по нормализованным координатам.
-    // Вызывается и после ресайза, и при undo/redo.
     redraw() {
         const w = this.mainCanvas.width;
         const h = this.mainCanvas.height;
@@ -147,54 +139,60 @@ class DrawingEngine {
         this.ctx.globalCompositeOperation = 'source-over';
     }
 
-    // Меняет физический размер холста и перерисовывает.
-    // Нормализованные координаты (0–1) не трогаем - они уже независимы от размера.
     resize(newWidth, newHeight) {
         if (newWidth < 100 || newHeight < 100) return;
 
         this.mainCanvas.width = newWidth;
         this.mainCanvas.height = newHeight;
 
-        // После изменения размера нужно восстановить все мазки, так как канвас очищается.
         this.ctx.lineCap = 'round';
         this.ctx.lineJoin = 'round';
 
         this.redraw();
     }
 
-    // Выбираем инструмент - просто меняем цвет и режим стирания.
     setInstrument(instrument) {
         this.currentInstrument = instrument;
         this.currentColor = this.instrumentColors[instrument] || '#00ffd1';
         this.isErasing = false;
     }
 
-    // Включаем режим ластика
     setEraserMode(isEraser) {
         this.isErasing = isEraser;
     }
 
-    // Полностью очищаем холст и историю
     clear() {
         this.segments = [];
         this.currentSegment = null;
         this.ctx.clearRect(0, 0, this.mainCanvas.width, this.mainCanvas.height);
     }
 
-    // Сериализация - глубокая копия, чтобы история не мутировала
     getState() {
         return { segments: JSON.parse(JSON.stringify(this.segments)) };
     }
 
-    // Десериализация - загружаем сегменты и перерисовываем
     loadState(state) {
         this.segments = state?.segments ? JSON.parse(JSON.stringify(state.segments)) : [];
         this.redraw();
     }
 
-    // Для аудио-конвертации: вернуть все сегменты с метаданными
     getAllSegments() {
         return JSON.parse(JSON.stringify(this.segments));
+    }
+
+    /**
+     * Добавляет готовые сегменты (например, из обработки фото) к текущим.
+     * Перерисовывает холст и вызывает onStrokeEnd для сохранения в историю.
+     * @param {Array} newSegments - массив нормализованных сегментов
+     */
+    addSegments(newSegments) {
+        if (!Array.isArray(newSegments) || newSegments.length === 0) return;
+        this.segments.push(...JSON.parse(JSON.stringify(newSegments)));
+        this.redraw();
+        // Уведомляем снаружи — сохранить в историю
+        if (typeof this.onStrokeEnd === 'function') {
+            this.onStrokeEnd();
+        }
     }
 }
 
