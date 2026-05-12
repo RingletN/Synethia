@@ -108,49 +108,97 @@ class MelodyEngine {
             scale     = 'major',
             smoothing = 30,
         } = options;
-
+    
         if (!segments?.length) return { events: [], tonicMidi: 60 };
-
+    
         const tonicMidi    = this.detectTonic(segments);
         const beatDuration = 60 / bpm;
         const totalBeats   = Math.ceil(duration * bpm / 60);
-        const events       = [];
-
-        for (const seg of segments) {
-            if (!seg.points || seg.points.length < 2) continue;
-
-            const instrument = this.COLOR_TO_INSTRUMENT[seg.color] || 'sine';
-            const volume     = this.INSTRUMENT_VOLUME[instrument];
-            const smoothed   = this.applySmoothing(seg.points, smoothing);
-
-            for (let beat = 0; beat < totalBeats; beat++) {
-                const beatStartX = beat / totalBeats;
-                const beatEndX   = (beat + 1) / totalBeats;
-
-                const pts = smoothed.filter(p => p.x >= beatStartX && p.x < beatEndX);
-                if (!pts.length) continue;
-
-                const avgY     = pts.reduce((s, p) => s + p.y, 0) / pts.length;
-                const rawFreq  = this.yNormToFreq(avgY);
-                const freq     = this.quantizeToScale(rawFreq, tonicMidi, scale);
-
-                const notesPerBeat = this.selectNotesPerBeat(bpm);
-                const noteDur      = beatDuration / notesPerBeat;
-
-                for (let i = 0; i < notesPerBeat; i++) {
-                    events.push({
-                        time:       beat * beatDuration + i * noteDur,
+        const maxPolyphony = 6;           // ← важный лимит
+        const timeStep     = 0.125;       // 1/8 бита — хороший баланс
+    
+        // 1. Downsample все сегменты один раз
+        const processedSegments = segments
+            .filter(seg => seg.points?.length >= 3)
+            .map(seg => ({
+                ...seg,
+                points: this.applySmoothing(seg.points, smoothing),
+                instrument: this.COLOR_TO_INSTRUMENT[seg.color] || 'sine',
+                volume: this.INSTRUMENT_VOLUME[this.COLOR_TO_INSTRUMENT[seg.color] || 'sine']
+            }));
+    
+        const eventsMap = new Map(); // key = time.toFixed(3), value = array of notes
+    
+        for (const seg of processedSegments) {
+            const { points, instrument, volume } = seg;
+    
+            // Разбиваем на временные слоты
+            for (let i = 0; i < points.length - 1; i++) {
+                const p1 = points[i];
+                const p2 = points[i + 1];
+    
+                const startBeat = Math.floor(p1.x * totalBeats);
+                const endBeat   = Math.floor(p2.x * totalBeats);
+    
+                for (let beat = startBeat; beat <= endBeat; beat++) {
+                    const beatStartX = beat / totalBeats;
+                    const beatEndX   = (beat + 1) / totalBeats;
+    
+                    // Находим пересечение отрезка с битом
+                    if (p2.x <= beatStartX || p1.x >= beatEndX) continue;
+    
+                    const t = Math.max(beatStartX, p1.x);
+                    const y = this._interpolateY(p1, p2, t);
+    
+                    const rawFreq = this.yNormToFreq(y);
+                    const freq    = this.quantizeToScale(rawFreq, tonicMidi, scale);
+    
+                    const time = beat * beatDuration + (t - beatStartX) * beatDuration;
+    
+                    // Округляем время до ближайшего timeStep
+                    const timeKey = (Math.round(time / timeStep) * timeStep).toFixed(3);
+    
+                    if (!eventsMap.has(timeKey)) eventsMap.set(timeKey, []);
+                    
+                    eventsMap.get(timeKey).push({
+                        time: parseFloat(timeKey),
                         freq,
-                        duration:   noteDur * 0.85,
+                        duration: timeStep * 0.9,
                         instrument,
                         volume,
                     });
                 }
             }
         }
-
-        events.sort((a, b) => a.time - b.time);
-        return { events, tonicMidi };
+    
+        // 2. Ограничиваем полифонию в каждом таймслоте
+        const finalEvents = [];
+    
+        for (const [_, notes] of eventsMap) {
+            if (notes.length === 0) continue;
+    
+            // Сортируем по "важности" (можно добавить приоритет по инструменту или громкости)
+            notes.sort((a, b) => b.volume - a.volume);
+    
+            // Берём топ-N
+            const selected = notes.slice(0, maxPolyphony);
+    
+            finalEvents.push(...selected);
+        }
+    
+        finalEvents.sort((a, b) => a.time - b.time);
+    
+        return { 
+            events: finalEvents, 
+            tonicMidi 
+        };
+    }
+    
+    // Вспомогательный метод
+    _interpolateY(p1, p2, x) {
+        if (p1.x === p2.x) return p1.y;
+        const t = (x - p1.x) / (p2.x - p1.x);
+        return p1.y + t * (p2.y - p1.y);
     }
 
     // ─────────────────────────────────────────────
