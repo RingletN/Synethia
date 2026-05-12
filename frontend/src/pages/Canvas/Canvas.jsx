@@ -3,6 +3,7 @@ import DrawingArea from "./components/DrawingArea";
 import ToolsPanel from "./components/ToolsPanel";
 import { useDrawing } from "./hooks/useDrawing";
 import useMelodyPlayer from './hooks/useMelodyPlayer'; 
+import { useAudioExporter } from './hooks/useAudioExporter';
 import { imageToSegments } from "../../utils/imageToSegments";
 import MelodyEngine from "../../engines/MelodyEngine";
 import Button from "../../components/ui/Button";
@@ -61,6 +62,7 @@ const Canvas = () => {
     const [isMelodyGenerated, setIsMelodyGenerated] = useState(false);
     const [melodyEvents, setMelodyEvents] = useState([]);
     const [totalDuration, setTotalDuration] = useState(8);
+    const { exportToWAV } = useAudioExporter(melodyEvents, totalDuration);
 
     // ── Цвет фона ──────────────────────────────────────────────────
     const [modal, setModal] = useState({
@@ -205,22 +207,30 @@ const {
   };
 
     // ── Скачать ────────────────────────────────────────────────────
-    const handleDownload = useCallback(() => {
-        const mainCanvas = engineRef.current?.mainCanvas;
-        if (!mainCanvas) return;
-        const { width, height } = mainCanvas;
-        const exportCanvas = document.createElement('canvas');
-        exportCanvas.width  = width;
-        exportCanvas.height = height;
-        const ctx = exportCanvas.getContext('2d');
-        ctx.fillStyle = bgColor;
-        ctx.fillRect(0, 0, width, height);
-        ctx.drawImage(mainCanvas, 0, 0);
-        const link = document.createElement('a');
-        link.download = 'drawing.png';
-        link.href = exportCanvas.toDataURL('image/png');
-        link.click();
-    }, [bgColor, engineRef]);
+    const handleDownload = useCallback((type = 'image') => {
+        if (type === 'image') {
+            const mainCanvas = engineRef.current?.mainCanvas;
+            if (!mainCanvas) {
+                showModal("Ошибка", "Холст не найден", "error");
+                return;
+            }
+            const exportCanvas = document.createElement('canvas');
+            exportCanvas.width  = mainCanvas.width;
+            exportCanvas.height = mainCanvas.height;
+            const ctx = exportCanvas.getContext('2d');
+            ctx.fillStyle = bgColor;
+            ctx.fillRect(0, 0, exportCanvas.width, exportCanvas.height);
+            ctx.drawImage(mainCanvas, 0, 0);
+    
+            const link = document.createElement('a');
+            link.download = 'drawing.png';
+            link.href = exportCanvas.toDataURL('image/png');
+            link.click();
+        } 
+        else if (type === 'wav') {
+            exportToWAV(`melody_${new Date().toISOString().slice(0,10)}.wav`);
+        }
+    }, [engineRef, bgColor, exportToWAV, showModal]);
 
     // ── Ресайз холста ──────────────────────────────────────────────
     const handleResizeMouseDown = useCallback((dir) => (e) => {
@@ -331,9 +341,28 @@ const {
                     <div className="icon save-btn">
                         <img src={SaveIcon} alt="Сохранить проект" />
                     </div>
-                    <div className="icon download-btn" onClick={handleDownload}>
-                        <img src={DownloadIcon} alt="Скачать файлы" />
-                    </div>
+                    <div 
+  className="icon download-btn" 
+  onClick={() => {
+    if (!isMelodyGenerated) {
+      handleDownload('image'); // только картинка
+      return;
+    }
+    
+    // Показать выбор
+    const choice = window.confirm(
+      "Что скачать?\n\nOK — Мелодию (WAV)\nОтмена — Картинку"
+    );
+    
+    if (choice) {
+      handleDownload('wav');
+    } else {
+      handleDownload('image');
+    }
+  }}
+>
+  <img src={DownloadIcon} alt="Скачать" />
+</div>
                     <div className="icon delete-btn">
                         <img src={TrashIcon} alt="Удалить проект" />
                     </div>
