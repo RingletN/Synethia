@@ -1,29 +1,25 @@
 // engines/MelodyEngine.js
 // Преобразует сегменты рисунка в музыкальную мелодию.
-// Алгоритм основан на статье: X → время, Y → частота, цвет → инструмент.
+// Алгоритм: X → время, Y → частота, цвет → инструмент.
+//
+// Этот класс — ЧИСТО алгоритмический, он не трогает Web Audio API.
+// Всё воспроизведение делегировано useMelodyPlayer (Tone.js).
 
 class MelodyEngine {
     constructor() {
-        this.audioContext = null;
-        this.isPlaying = false;
-        this.scheduledSources = []; // все запланированные осцилляторы
-        this.stopCallbacks = [];    // колбэки для остановки
+        this.A4_FREQ  = 440;
+        this.A4_MIDI  = 69;
 
-        // Частота A4 и её MIDI-номер (стандарт)
-        this.A4_FREQ = 440;
-        this.A4_MIDI = 69;
-
-        // Диапазон: C3 (130.81 Гц) — C6 (1046.50 Гц)
+        // Диапазон C3 — C6
         this.MIN_FREQ = 130.81;
         this.MAX_FREQ = 1046.50;
 
-        // Интервалы ладов (полутоны от тоники)
         this.SCALES = {
-            major:  [0, 2, 4, 5, 7, 9, 11],
-            minor:  [0, 2, 3, 5, 7, 8, 10],
+            major: [0, 2, 4, 5, 7, 9, 11],
+            minor: [0, 2, 3, 5, 7, 8, 10],
         };
 
-        // Цвет кисти → тип осциллятора
+        // Цвет кисти → тип осциллятора (должен совпадать с Tone.js OscillatorType)
         this.COLOR_TO_INSTRUMENT = {
             '#00ffd1': 'sine',
             '#ff3366': 'square',
@@ -31,7 +27,7 @@ class MelodyEngine {
             '#9900ff': 'triangle',
         };
 
-        // Громкость по инструменту
+        // Громкость 0..1 по инструменту
         this.INSTRUMENT_VOLUME = {
             sine:     0.28,
             square:   0.12,
@@ -44,51 +40,34 @@ class MelodyEngine {
     //  MIDI / частоты
     // ─────────────────────────────────────────────
 
-    /** Частота → MIDI-номер (формула 1 из статьи) */
     freqToMidi(freq) {
         return this.A4_MIDI + 12 * Math.log2(freq / this.A4_FREQ);
     }
 
-    /** MIDI-номер → частота */
     midiToFreq(midi) {
         return this.A4_FREQ * Math.pow(2, (midi - this.A4_MIDI) / 12);
     }
 
     /** Нормированная Y (0–1, 0 = верх) → частота в диапазоне C3–C6 */
     yNormToFreq(yNorm) {
-        // Верх холста = высокие частоты, низ = низкие
-        const t = 1 - yNorm;
+        const t = 1 - yNorm; // верх = высокие частоты
         return this.MIN_FREQ * Math.pow(this.MAX_FREQ / this.MIN_FREQ, t);
     }
 
-    /**
-     * Квантизует частоту в ближайшую ноту заданной тональности.
-     * @param {number} freq  - произвольная частота
-     * @param {number} tonicMidi - MIDI-номер тоники
-     * @param {'major'|'minor'} scale
-     * @returns {number} частота квантизованной ноты
-     */
     quantizeToScale(freq, tonicMidi, scale) {
-        const intervals = this.SCALES[scale] || this.SCALES.major;
-        const rawMidi = Math.round(this.freqToMidi(freq));
-
-        // Смещение от тоники (по модулю 12)
-        const tonicClass = tonicMidi % 12;
+        const intervals   = this.SCALES[scale] || this.SCALES.major;
+        const rawMidi     = Math.round(this.freqToMidi(freq));
+        const tonicClass  = tonicMidi % 12;
         const relSemitone = ((rawMidi - tonicClass) % 12 + 12) % 12;
 
-        // Ближайший интервал лада
         let closest = intervals[0];
         let minDist = Infinity;
         for (const iv of intervals) {
-            const d = Math.abs(iv - relSemitone);
-            const dWrapped = Math.min(d, 12 - d);
-            if (dWrapped < minDist) {
-                minDist = dWrapped;
-                closest = iv;
-            }
+            const d = Math.min(Math.abs(iv - relSemitone), 12 - Math.abs(iv - relSemitone));
+            if (d < minDist) { minDist = d; closest = iv; }
         }
 
-        const octave = Math.floor((rawMidi - tonicClass) / 12);
+        const octave   = Math.floor((rawMidi - tonicClass) / 12);
         const quantMidi = tonicClass + octave * 12 + closest;
         return this.midiToFreq(quantMidi);
     }
@@ -97,28 +76,18 @@ class MelodyEngine {
     //  Определение тоники
     // ─────────────────────────────────────────────
 
-    /**
-     * Находит тонику: самая левая точка всех сегментов → её Y → MIDI.
-     * @param {Array} segments
-     * @returns {number} tonicMidi
-     */
     detectTonic(segments) {
         let leftmostPoint = null;
-        let leftmostX = Infinity;
+        let leftmostX     = Infinity;
 
         for (const seg of segments) {
             for (const pt of seg.points) {
-                if (pt.x < leftmostX) {
-                    leftmostX = pt.x;
-                    leftmostPoint = pt;
-                }
+                if (pt.x < leftmostX) { leftmostX = pt.x; leftmostPoint = pt; }
             }
         }
 
-        if (!leftmostPoint) return this.freqToMidi(261.63); // C4 по умолчанию
-
-        const freq = this.yNormToFreq(leftmostPoint.y);
-        return Math.round(this.freqToMidi(freq));
+        if (!leftmostPoint) return Math.round(this.freqToMidi(261.63)); // C4
+        return Math.round(this.freqToMidi(this.yNormToFreq(leftmostPoint.y)));
     }
 
     // ─────────────────────────────────────────────
@@ -128,33 +97,24 @@ class MelodyEngine {
     /**
      * Преобразует массив сегментов в массив нотных событий.
      *
-     * @param {Array}  segments   - сегменты из DrawingEngine
-     * @param {object} options
-     *   @param {number}          options.bpm       - темп (по умолчанию 80)
-     *   @param {number}          options.duration  - длительность (сек, по умолчанию 8)
-     *   @param {'major'|'minor'} options.scale     - лад
-     *   @param {number}          options.smoothing - сглаживание 0–100
-     *
-     * @returns {{ events: Array, tonicMidi: number }}
-     *   events: [{ time, freq, duration, instrument, volume }]
+     * @param {Array}  segments
+     * @param {object} options  { bpm, duration, scale, smoothing }
+     * @returns {{ events: Array<{time, freq, duration, instrument, volume}>, tonicMidi: number }}
      */
     buildNoteEvents(segments, options = {}) {
         const {
-            bpm      = 80,
-            duration = 8,
-            scale    = 'major',
+            bpm       = 80,
+            duration  = 8,
+            scale     = 'major',
             smoothing = 30,
         } = options;
 
-        if (!segments || segments.length === 0) return { events: [], tonicMidi: 60 };
+        if (!segments?.length) return { events: [], tonicMidi: 60 };
 
-        const tonicMidi = this.detectTonic(segments);
-
-        // Число тактов (формула 3 из статьи: T = BPM * t_max / (60 * 4))
-        const beatDuration = 60 / bpm;          // длительность одного бита (сек)
+        const tonicMidi    = this.detectTonic(segments);
+        const beatDuration = 60 / bpm;
         const totalBeats   = Math.ceil(duration * bpm / 60);
-
-        const events = [];
+        const events       = [];
 
         for (const seg of segments) {
             if (!seg.points || seg.points.length < 2) continue;
@@ -167,16 +127,13 @@ class MelodyEngine {
                 const beatStartX = beat / totalBeats;
                 const beatEndX   = (beat + 1) / totalBeats;
 
-                // Точки, попавшие в этот такт
                 const pts = smoothed.filter(p => p.x >= beatStartX && p.x < beatEndX);
-                if (pts.length === 0) continue;
+                if (!pts.length) continue;
 
-                // Средняя Y → частота → квантизация (формула среднего из статьи)
-                const avgY   = pts.reduce((s, p) => s + p.y, 0) / pts.length;
-                const rawFreq = this.yNormToFreq(avgY);
-                const freq   = this.quantizeToScale(rawFreq, tonicMidi, scale);
+                const avgY     = pts.reduce((s, p) => s + p.y, 0) / pts.length;
+                const rawFreq  = this.yNormToFreq(avgY);
+                const freq     = this.quantizeToScale(rawFreq, tonicMidi, scale);
 
-                // Количество нот в такте — зависит от BPM (элемент случайности)
                 const notesPerBeat = this.selectNotesPerBeat(bpm);
                 const noteDur      = beatDuration / notesPerBeat;
 
@@ -184,7 +141,7 @@ class MelodyEngine {
                     events.push({
                         time:       beat * beatDuration + i * noteDur,
                         freq,
-                        duration:   noteDur * 0.85, // небольшой зазор между нотами
+                        duration:   noteDur * 0.85,
                         instrument,
                         volume,
                     });
@@ -192,7 +149,6 @@ class MelodyEngine {
             }
         }
 
-        // Сортируем по времени
         events.sort((a, b) => a.time - b.time);
         return { events, tonicMidi };
     }
@@ -201,7 +157,6 @@ class MelodyEngine {
     //  Вспомогательные
     // ─────────────────────────────────────────────
 
-    /** Сглаживание точек (экспоненциальное скользящее среднее) */
     applySmoothing(points, smoothingPercent) {
         if (points.length <= 1 || smoothingPercent === 0) return points;
         const factor = smoothingPercent / 100;
@@ -216,7 +171,6 @@ class MelodyEngine {
         return result;
     }
 
-    /** Выбирает количество нот на такт с учётом вероятностей и BPM */
     selectNotesPerBeat(bpm) {
         let options;
         if (bpm >= 120) {
@@ -234,120 +188,6 @@ class MelodyEngine {
         }
         return 1;
     }
-
-    // ─────────────────────────────────────────────
-    //  Web Audio воспроизведение
-    // ─────────────────────────────────────────────
-
-    _initCtx() {
-        if (!this.audioContext) {
-            this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
-        }
-        return this.audioContext;
-    }
-
-    /** Инициализирует простой ревербератор (цепочка задержек) */
-    _initReverb() {
-        if (this._reverbGain) return;
-        const ctx = this.audioContext;
-
-        this._reverbGain = ctx.createGain();
-        this._reverbGain.gain.value = 0.35;
-
-        const delay1 = ctx.createDelay(); delay1.delayTime.value = 0.08;
-        const delay2 = ctx.createDelay(); delay2.delayTime.value = 0.18;
-        const filter = ctx.createBiquadFilter();
-        filter.type = 'lowpass'; filter.frequency.value = 900;
-        const fb = ctx.createGain(); fb.gain.value = 0.35;
-
-        delay1.connect(filter);
-        filter.connect(delay2);
-        delay2.connect(fb);
-        fb.connect(delay1);
-        delay2.connect(this._reverbGain);
-        this._reverbGain.connect(ctx.destination);
-    }
-
-    /**
-     * Воспроизводит нотные события.
-     * @param {Array}    events           - результат buildNoteEvents().events
-     * @param {number}   totalDuration    - полная длительность (сек)
-     * @param {Function} onNotePlay       - колбэк при проигрывании каждой ноты (опционально)
-     * @param {Function} onEnd            - колбэк по окончании
-     */
-    async play(events, totalDuration, onNotePlay, onEnd) {
-        if (this.isPlaying) {
-            this.stop();
-            return;
-        }
-        if (!events || events.length === 0) return;
-
-        const ctx = this._initCtx();
-        if (ctx.state === 'suspended') await ctx.resume();
-        this._initReverb();
-
-        this.isPlaying = true;
-        this.scheduledSources = [];
-
-        const startTime = ctx.currentTime + 0.05; // небольшой буфер
-
-        for (const ev of events) {
-            const t       = startTime + ev.time;
-            const dur     = ev.duration;
-            const vol     = ev.volume;
-            const osc     = ctx.createOscillator();
-            const gainNode = ctx.createGain();
-
-            osc.type = ev.instrument;
-            osc.frequency.value = ev.freq;
-
-            // Огибающая: attack → sustain → release
-            gainNode.gain.setValueAtTime(0, t);
-            gainNode.gain.linearRampToValueAtTime(vol, t + Math.min(0.05, dur * 0.2));
-            gainNode.gain.setValueAtTime(vol, t + dur * 0.65);
-            gainNode.gain.linearRampToValueAtTime(0, t + dur);
-
-            osc.connect(gainNode);
-            gainNode.connect(ctx.destination);        // прямой сигнал
-            if (this._reverbGain) {
-                gainNode.connect(this._reverbDelay1 || this._reverbGain); // реверб
-            }
-
-            osc.start(t);
-            osc.stop(t + dur + 0.01);
-            this.scheduledSources.push(osc);
-
-            // Колбэк с задержкой через setTimeout (не блокирует)
-            if (typeof onNotePlay === 'function') {
-                const delay = ev.time * 1000;
-                const timerId = setTimeout(() => {
-                    if (this.isPlaying) onNotePlay(ev);
-                }, delay);
-                this.stopCallbacks.push(() => clearTimeout(timerId));
-            }
-        }
-
-        // Ждём конца
-        const endTimer = setTimeout(() => {
-            this.isPlaying = false;
-            this.scheduledSources = [];
-            if (typeof onEnd === 'function') onEnd();
-        }, (totalDuration + 0.5) * 1000);
-        this.stopCallbacks.push(() => clearTimeout(endTimer));
-    }
-
-    /** Останавливает воспроизведение */
-    stop() {
-        this.scheduledSources.forEach(osc => {
-            try { osc.stop(); } catch (_) {}
-        });
-        this.scheduledSources = [];
-        this.stopCallbacks.forEach(cb => cb());
-        this.stopCallbacks = [];
-        this.isPlaying = false;
-    }
-
-    getIsPlaying() { return this.isPlaying; }
 }
 
 export default MelodyEngine;

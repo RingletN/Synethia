@@ -4,6 +4,7 @@
 
 Роутеры npm install react-router-dom
 
+Библиотека для музыки npm install tone
 
 
 Установить бэкенд ларавель composer create-project laravel/laravel backend

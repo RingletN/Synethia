@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect, useCallback } from "react";
 import DrawingArea from "./components/DrawingArea";
 import ToolsPanel from "./components/ToolsPanel";
 import { useDrawing } from "./hooks/useDrawing";
+import useMelodyPlayer from './hooks/useMelodyPlayer'; 
 import { imageToSegments } from "../../utils/imageToSegments";
 import MelodyEngine from "../../engines/MelodyEngine";
 import Button from "../../components/ui/Button";
@@ -21,6 +22,7 @@ import SkipForwardIcon from "../../assets/icons/icon-skip-forward.svg";
 import VolumeHighIcon from "../../assets/icons/icon-volume-high.svg";
 import VolumeLowIcon from "../../assets/icons/icon-volume-low.svg";
 import VolumeNoIcon from "../../assets/icons/icon-volume-no.svg";
+import * as Tone from 'tone';
 
 import "./Canvas.css";
 
@@ -45,8 +47,6 @@ const Canvas = () => {
     const [isImporting, setIsImporting] = useState(false);
 
     // ── Состояние мелодии ──────────────────────────────────────────
-    const [isPlaying,    setIsPlaying]    = useState(false);
-    const [melodyReady,  setMelodyReady]  = useState(false); // есть что воспроизводить
     const [activeNote,   setActiveNote]   = useState(null);  // текущая нота (для анимации)
 
     // Параметры генерации (базовые, без UI — заложим основу)
@@ -57,8 +57,10 @@ const Canvas = () => {
         smoothing: 30,
     });
 
-    // Кэш последнего построенного списка событий
-    const noteEventsRef = useRef({ events: [], tonicMidi: 60 });
+    const [isGenerating, setIsGenerating] = useState(false);
+    const [isMelodyGenerated, setIsMelodyGenerated] = useState(false);
+    const [melodyEvents, setMelodyEvents] = useState([]);
+    const [totalDuration, setTotalDuration] = useState(8);
 
     // ── Цвет фона ──────────────────────────────────────────────────
     const [modal, setModal] = useState({
@@ -117,7 +119,6 @@ const Canvas = () => {
                 return;
             }
             engineRef.current.addSegments(segments);
-            setMelodyReady(true);
         } catch (err) {
             console.error('Ошибка обработки изображения:', err);
             showModal("Ошибка обработки фото", "Не удалось обработать изображение.", "error");
@@ -132,58 +133,76 @@ const Canvas = () => {
      * Строит нотные события из текущих сегментов холста.
      * Вызывается каждый раз перед воспроизведением (или при изменении параметров).
      */
-    const buildMelody = useCallback(() => {
-        if (!engineRef.current) return false;
-        const segments = engineRef.current.getAllSegments();
-        if (!segments || segments.length === 0) return false;
+    const handleStrokeEnd = useCallback(() => {
+        saveToHistory(bgColorRef.current);
+    }, [saveToHistory]);
 
-        noteEventsRef.current = melodyEngine.buildNoteEvents(segments, melodyParams.current);
-        return noteEventsRef.current.events.length > 0;
-    }, [engineRef]);
-
-    /** Запускает / останавливает воспроизведение */
-    const handleGenerateMelody = useCallback(() => {
-        // Если играет — остановить
-        if (melodyEngine.getIsPlaying()) {
-            melodyEngine.stop();
-            setIsPlaying(false);
-            setActiveNote(null);
-            return;
+    const handleGenerateMelody = useCallback(async () => {
+        if (!engineRef.current) {
+          showModal("Ошибка", "Движок рисования не инициализирован", "error");
+          return;
         }
-
-        // Построить события
-        const ok = buildMelody();
-        if (!ok) {
+      
+        setIsGenerating(true);
+        // Имитируем небольшую задержку, чтобы лоадер был заметен (опционально)
+        await new Promise(resolve => setTimeout(resolve, 100));
+      
+        try {
+          const segments = engineRef.current.getAllSegments();
+          if (!segments || segments.length === 0) {
             showModal(
-                "Нечего воспроизводить",
-                "Нарисуйте что-нибудь на холсте, а затем нажмите «СГЕНЕРИРОВАТЬ МЕЛОДИЮ».",
+              "Нечего генерировать",
+              "Нарисуйте что-нибудь на холсте или импортируйте изображение.",
+              "warning"
             );
             return;
+          }
+      
+          const { events, tonicMidi } = melodyEngine.buildNoteEvents(segments, melodyParams.current);
+          if (!events.length) throw new Error("Не удалось построить нотные события");
+      
+          setMelodyEvents(events);
+          setTotalDuration(melodyParams.current.duration);
+          setIsMelodyGenerated(true);
+          showModal("Успешно", "Мелодия успешно сгенерирована!", "success");
+        } catch (err) {
+          console.error(err);
+          showModal("Ошибка генерации", err.message || "Не удалось создать мелодию", "error");
+          setIsMelodyGenerated(false);
+        } finally {
+          setIsGenerating(false);
         }
+      }, [engineRef, showModal]);
 
-        const { events } = noteEventsRef.current;
-        const { duration } = melodyParams.current;
-
-        setIsPlaying(true);
-        setActiveNote(null);
-
-        melodyEngine.play(
-            events,
-            duration,
-            // колбэк на каждую ноту
-            (ev) => setActiveNote(ev),
-            // колбэк по окончании
-            () => {
-                setIsPlaying(false);
-                setActiveNote(null);
-            },
-        );
-    }, [buildMelody, showModal]);
-
-    // Обновляем melodyReady при каждом мазке
-    const handleStrokeEnd = useCallback(() => {
-        setMelodyReady(true);
-    }, []);
+// Подключим плеер
+const {
+    isPlaying,
+    currentTime,
+    volume,
+    setVolume,
+    play,
+    pause,
+    stop,
+    skip
+  } = useMelodyPlayer(melodyEvents, totalDuration, (note) => setActiveNote(note));
+  
+  // Обработчик нажатия на Play/Pause
+  const handlePlayPause = useCallback(() => {
+    if (isPlaying) pause();
+    else play();
+  }, [isPlaying, play, pause]);
+  
+  // Функция для изменения громкости (0..1)
+  const handleVolumeChange = useCallback((e) => {
+    setVolume(parseFloat(e.target.value));
+  }, [setVolume]);
+  
+  // Утилита для форматирования времени (MM:SS)
+  const formatTime = (seconds) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = Math.floor(seconds % 60);
+    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  };
 
     // ── Скачать ────────────────────────────────────────────────────
     const handleDownload = useCallback(() => {
@@ -249,7 +268,7 @@ const Canvas = () => {
         if (engineRef.current) {
             engineRef.current.onStrokeEnd = () => {
                 saveToHistory(bgColorRef.current);
-                handleStrokeEnd();
+                engineRef.current.onStrokeEnd = handleStrokeEnd;
             };
         }
     }, [initEngine, saveToHistory, engineRef, handleStrokeEnd]);
@@ -288,13 +307,11 @@ const Canvas = () => {
     const handleRedo  = useCallback(() => redo(null, setBgColor),  [redo]);
     const handleClear = useCallback(() => {
         clear(bgColorRef.current);
-        setMelodyReady(false);
-        melodyEngine.stop();
-        setIsPlaying(false);
-    }, [clear]);
-
-    // ── Текст кнопки ───────────────────────────────────────────────
-    const buttonLabel = isPlaying ? 'ОСТАНОВИТЬ' : 'СГЕНЕРИРОВАТЬ МЕЛОДИЮ';
+        setIsMelodyGenerated(false);
+        setMelodyEvents([]);
+        stop(); // останавливаем Tone.Transport
+        setActiveNote(null);
+      }, [clear, stop]);
 
     // ── Рендер ─────────────────────────────────────────────────────
     return (
@@ -389,44 +406,59 @@ const Canvas = () => {
                     <div className="settings-block" />
                 </div>
 
-                <div className="music-player" >
+            {isMelodyGenerated && (
+  <div className="music-player">
+    {/* Кнопка Play/Pause */}
+    <div className="icon" onClick={handlePlayPause}>
+      <img src={isPlaying ? PauseIcon : PlayIcon} alt={isPlaying ? "Пауза" : "Воспроизвести"} />
+    </div>
 
-                    <div className="icon skip-back-btn">
-                        <img src={SkipBackIcon} alt="Назад" />
-                    </div>
-                    <div className="icon pause-btn">
-                        <img src={PauseIcon} alt="Пауза" />
-                    </div>
+    {/* Skip назад */}
+    <div className="icon" onClick={() => skip(-5)}>
+      <img src={SkipBackIcon} alt="Назад 5 с" />
+    </div>
 
-                    <div className="icon play-btn">
-                        <img src={PlayIcon} alt="Воспроизвести" />
-                    </div>
-                    <div className="icon skip-forward-btn">
-                        <img src={SkipForwardIcon} alt="Вперед" />
-                    </div>
+    {/* Skip вперёд */}
+    <div className="icon" onClick={() => skip(5)}>
+      <img src={SkipForwardIcon} alt="Вперёд 5 с" />
+    </div>
 
-                    <div className="icon volume-high-btn">
-                        <img src={VolumeHighIcon} alt="Громко" />
-                    </div>
+    {/* Текущее время / длительность */}
+    <span className="time-display">
+      {formatTime(currentTime)} / {formatTime(totalDuration)}
+    </span>
 
-                    <div className="icon volume-low-btn">
-                        <img src={VolumeLowIcon} alt="Тихо" />
-                    </div>
-
-                    <div className="icon volume-no-btn">
-                        <img src={VolumeNoIcon} alt="Без звука" />
-                    </div>
-                </div>
+    {/* Регулятор громкости */}
+    <div className="volume-control">
+      <img
+        src={
+          volume === 0 ? VolumeNoIcon :
+          volume < 0.5 ? VolumeLowIcon : VolumeHighIcon
+        }
+        alt="Громкость"
+        className="volume-icon"
+      />
+      <input
+        type="range"
+        min="0"
+        max="1"
+        step="0.01"
+        value={volume}
+        onChange={handleVolumeChange}
+        className="volume-slider"
+      />
+    </div>
+  </div>
+)}
 </div>
                     
-                {/* Кнопка генерации / остановки */}
-                <Button
-                    variant={isPlaying ? "secondary" : "primary"}
-                    onClick={handleGenerateMelody}
-                    disabled={isImporting}
-                >
-                    {buttonLabel}
-                </Button>
+<Button
+  variant="primary"
+  onClick={handleGenerateMelody}
+  disabled={isGenerating}
+>
+  {isGenerating ? <Loader size={24} color="white" /> : "СГЕНЕРИРОВАТЬ МЕЛОДИЮ"}
+</Button>
 
 
             <Modal
