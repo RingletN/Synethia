@@ -4,6 +4,8 @@ import ToolsPanel from "./components/ToolsPanel";
 import { useDrawing } from "./hooks/useDrawing";
 import { imageToSegments } from "../../utils/imageToSegments";
 import Button from "../../components/ui/Button";
+import Loader from "../../components/ui/Loader";
+import Modal from "../../components/ui/Modal";
 
 import StarIcon from "../../assets/icons/icon-star.svg";
 import StarSelectedIcon from "../../assets/icons/icon-star-selected.svg";
@@ -11,6 +13,7 @@ import SaveIcon from "../../assets/icons/icon-save.svg";
 import DownloadIcon from "../../assets/icons/icon-download.svg";
 import TrashIcon from "../../assets/icons/icon-trash.svg";
 import QuestionIcon from "../../assets/icons/icon-question.svg";
+
 
 import "./Canvas.css";
 
@@ -29,14 +32,25 @@ const Canvas = () => {
 
     const [isBrushSelected, setIsBrushSelected] = useState(true);
     const [isStarSelected, setIsStarSelected] = useState(false);
-
+    const [brushColor, setBrushColor] = useState('#00ffd1');
+    
     // Флаг обработки фото — блокирует кнопку импорта и показывает спиннер
     const [isImporting, setIsImporting] = useState(false);
 
+        // Для модальных окон с сообщениями
+        const [modal, setModal] = useState({
+            isOpen: false,
+            title: '',
+            description: '',
+            variant: 'default', // 'default' | 'error'
+        });
+
     const [bgColor, setBgColor] = useState('#4D4DFF');
     const bgColorRef = useRef('#4D4DFF');
+    const brushColorRef = useRef('#00ffd1');
 
     useEffect(() => { bgColorRef.current = bgColor; }, [bgColor]);
+    useEffect(() => { brushColorRef.current = brushColor; }, [brushColor]);
 
     const toolsPanelRef = useRef(null);
     const canvasPanelRef = useRef(null);
@@ -53,6 +67,72 @@ const Canvas = () => {
 
     const { engineRef, initEngine, saveToHistory, undo, redo, clear, canUndo, canRedo } =
         useDrawing(8, '#4D4DFF');
+
+        // ==================== МОДАЛЬНЫЕ ОКНА ====================
+    const showModal = useCallback((title, description, variant = 'default') => {
+        setModal({
+            isOpen: true,
+            title,
+            description,
+            variant,
+        });
+    }, []);
+
+    const closeModal = useCallback(() => {
+        setModal(prev => ({ ...prev, isOpen: false }));
+    }, []);
+
+    // ==================== ОБРАБОТЧИКИ ====================
+    const handleBrushColorChange = useCallback((newColor) => {
+        setBrushColor(newColor);
+        brushColorRef.current = newColor;
+        
+        if (engineRef.current) {
+            engineRef.current.currentColor = newColor;
+        }
+    }, [engineRef]);
+    
+    const handleImportPhoto = useCallback(async (file) => {
+        if (!engineRef.current) {
+            showModal("Ошибка", "Движок рисования не инициализирован", "error");
+            return;
+        }
+
+        setIsImporting(true);
+
+        try {
+            const currentLineWidth = engineRef.current.getLineWidth?.() || 5;
+
+            const segments = await imageToSegments(file, {
+                threshold: 28,
+                maxWidth: 850,
+                color: '#00ffd1',
+                lineWidth: currentLineWidth,
+                instrument: 'sine',
+            });
+
+            if (segments.length === 0) {
+                showModal(
+                    "Контуры не найдены",
+                    "На изображении не удалось обнаружить достаточно контуров.\n\nПопробуйте другое фото или уменьшите значение threshold.",
+                    "default"
+                );
+                return;
+            }
+
+            engineRef.current.addSegments(segments);
+
+        } catch (err) {
+            console.error('Ошибка обработки изображения:', err);
+            showModal(
+                "Ошибка обработки фото",
+                "Не удалось обработать изображение. Возможно, файл повреждён или не является изображением.",
+                "error"
+            );
+        } finally {
+            setIsImporting(false);
+        }
+    }, [engineRef, showModal]);
 
     const handleDownload = useCallback(() => {
         const mainCanvas = engineRef.current?.mainCanvas;
@@ -80,33 +160,6 @@ const Canvas = () => {
      * 2. Передаём сегменты в DrawingEngine через addSegments.
      * 3. Сохраняем шаг в историю.
      */
-    const handleImportPhoto = useCallback(async (file) => {
-        if (!engineRef.current) return;
-        setIsImporting(true);
-
-        try {
-            const segments = await imageToSegments(file, {
-                threshold: 28,       // чувствительность: меньше = больше контуров
-                maxWidth: 800,       // масштаб для обработки (не влияет на холст)
-                color: '#00ffd1',    // цвет контуров = цвет инструмента sine
-                lineWidth: 1.5,
-                instrument: 'sine',
-            });
-
-            if (segments.length === 0) {
-                console.warn('imageToSegments: контуры не найдены');
-                return;
-            }
-
-            // addSegments сам вызовет onStrokeEnd → saveToHistory
-            engineRef.current.addSegments(segments);
-
-        } catch (err) {
-            console.error('Ошибка обработки изображения:', err);
-        } finally {
-            setIsImporting(false);
-        }
-    }, [engineRef]);
 
     const handleResizeMouseDown = useCallback(
         (dir) => (e) => {
@@ -221,7 +274,7 @@ const Canvas = () => {
                         className="project-title-input"
                         placeholder="Введите название проекта..."
                     />
-                    <div className="divider" />
+                    <div className="divider-project" />
                 </div>
                 <div className="canvas-header-icons">
                     <div
@@ -263,6 +316,8 @@ const Canvas = () => {
                             setIsBrushSelected={setIsBrushSelected}
                             onBackgroundColorChange={handleBgColorChange}
                             currentBgColor={bgColor}
+                            currentBrushColor={brushColor}
+                            onBrushColorChange={handleBrushColorChange}
                             onImportPhoto={handleImportPhoto}
                             isImporting={isImporting}
                         />
@@ -282,84 +337,24 @@ const Canvas = () => {
                                 onReady={handleCanvasReady}
                             />
 
-                            {/* Правый край */}
-                            <div
-                                style={{
-                                    position: "absolute",
-                                    top: 0,
-                                    right: -4,
-                                    width: 8,
-                                    height: "100%",
-                                    cursor: "ew-resize",
-                                    zIndex: 10,
-                                }}
-                                onMouseDown={handleResizeMouseDown("horizontal")}
-                            />
+                          {/* Правый край */}
+    <div className="resize-handle-horizontal"
+         onMouseDown={handleResizeMouseDown("horizontal")} />
 
-                            {/* Нижний край */}
-                            <div
-                                style={{
-                                    position: "absolute",
-                                    bottom: -4,
-                                    left: 0,
-                                    width: "100%",
-                                    height: 8,
-                                    cursor: "ns-resize",
-                                    zIndex: 10,
-                                }}
-                                onMouseDown={handleResizeMouseDown("vertical")}
-                            />
+    {/* Нижний край */}
+    <div className="resize-handle-vertical"
+         onMouseDown={handleResizeMouseDown("vertical")} />
 
-                            {/* Угол */}
-                            <div
-                                style={{
-                                    position: "absolute",
-                                    bottom: 0,
-                                    right: 0,
-                                    width: 16,
-                                    height: 16,
-                                    cursor: "nwse-resize",
-                                    zIndex: 11,
-                                }}
-                                onMouseDown={handleResizeMouseDown("both")}
-                            />
+    {/* Угол */}
+    <div className="resize-handle-corner"
+         onMouseDown={handleResizeMouseDown("both")} />
 
-                            {/* Оверлей «обработка...» */}
-                            {isImporting && (
-                                <div
-                                    style={{
-                                        position: 'absolute',
-                                        inset: 0,
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'center',
-                                        background: 'rgba(0,0,0,0.35)',
-                                        zIndex: 20,
-                                        borderRadius: 'inherit',
-                                        backdropFilter: 'blur(2px)',
-                                        color: '#00ffd1',
-                                        fontSize: '14px',
-                                        letterSpacing: '0.1em',
-                                        fontWeight: 500,
-                                        gap: '10px',
-                                        flexDirection: 'column',
-                                    }}
-                                >
-                                    <svg width="36" height="36" viewBox="0 0 36 36" fill="none">
-                                        <circle cx="18" cy="18" r="14" stroke="#00ffd1" strokeWidth="3" strokeDasharray="60 30">
-                                            <animateTransform
-                                                attributeName="transform"
-                                                type="rotate"
-                                                from="0 18 18"
-                                                to="360 18 18"
-                                                dur="0.9s"
-                                                repeatCount="indefinite"
-                                            />
-                                        </circle>
-                                    </svg>
-                                    Извлекаю контуры…
-                                </div>
-                            )}
+                            {/* Оверлей обработки фото */}
+{isImporting && (
+    <div className="import-overlay">
+        <Loader size={64} color="cyan" speed={1200} />
+    </div>
+)}
                         </div>
 
                         <div className="idk-panel" />
@@ -371,6 +366,16 @@ const Canvas = () => {
                 <div className="music-player" />
                 <Button variant="primary">СГЕНЕРИРОВАТЬ МЕЛОДИЮ</Button>
             </div>
+                        {/* Модальное окно */}
+                        <Modal
+                isOpen={modal.isOpen}
+                onClose={closeModal}
+                title={modal.title}
+                description={modal.description}
+                variant={modal.variant}
+                primaryText="ОК"
+                onPrimary={closeModal}
+            />
         </div>
     );
 };

@@ -10,6 +10,7 @@ import RedoIcon from "../../../assets/icons/icon-redo.svg";
 import RedoBlockedIcon from "../../../assets/icons/icon-redo-blocked.svg";
 import ClearCanvasIcon from "../../../assets/icons/icon-clear-canvas.svg";
 import IconCanvasBg from '../../../components/ui/IconCanvasBg';
+import IconBrushColor from "../../../components/ui/IconBrushColor";
 
 const ToolsPanel = forwardRef(({
     engine,
@@ -22,6 +23,8 @@ const ToolsPanel = forwardRef(({
     setIsBrushSelected,
     currentBgColor,
     onBackgroundColorChange,
+    currentBrushColor,
+    onBrushColorChange,
     onImportPhoto,       // новый проп: (file: File) => void
     isImporting,         // новый проп: boolean — показываем спиннер/блокируем кнопку
 }, ref) => {
@@ -101,10 +104,23 @@ const ToolsPanel = forwardRef(({
                     : <img src={ImportPhotoIcon} alt="Импортировать фото" />
                 }
             </div>
-
+            {/* === НОВАЯ ИКОНКА ЦВЕТА КИСТИ === */}
+            <div 
+                className="icon brush-color-btn"
+                ref={iconRef} // можно использовать тот же ref или новый
+                onClick={() => {
+                    // Пока просто заглушка. Позже здесь будет выбор предустановленных цветов
+                    console.log('Выбор цвета кисти (будет меню с цветами инструментов)');
+                }}
+                title="Цвет кисти"
+            >
+                <IconBrushColor color={currentBrushColor} size={52} />
+            </div>
+            
             <div className="icon" onClick={selectBrush}>
                 <img src={isBrushSelected ? BrushSelectedIcon : BrushIcon} alt="Кисть" />
             </div>
+
 
             <div className="icon" onClick={selectEraser}>
                 <img src={!isBrushSelected ? EraserSelectedIcon : EraserIcon} alt="Ластик" />

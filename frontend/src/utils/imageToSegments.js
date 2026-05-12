@@ -15,7 +15,7 @@
  */
 export async function imageToSegments(file, options = {}) {
     const {
-        threshold = 30,
+        threshold = 60,
         maxWidth = 800,
         color = '#00ffd1',
         lineWidth = 2,
