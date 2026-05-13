@@ -1,183 +1,220 @@
 // SettingsPanel.jsx
-import React from 'react';
+import React, { useState } from 'react';
+import './SettingsPanel.css'; // импорт обычного CSS
 
-// ─── Маленький компонент: слайдер с лейблом ───────────────────────────────────
-const SliderRow = ({ label, value, min, max, step = 1, onChange, unit = '', displayValue }) => (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-        <div style={{
-            display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-            fontSize: 12, color: 'rgba(255,255,255,0.55)', letterSpacing: '0.06em',
-            textTransform: 'uppercase',
-        }}>
-            <span>{label}</span>
-            <span style={{ color: 'rgba(255,255,255,0.85)', fontVariantNumeric: 'tabular-nums' }}>
-                {displayValue !== undefined ? displayValue : value}{unit}
-            </span>
-        </div>
-        <input
-            type="range"
-            min={min}
-            max={max}
-            step={step}
-            value={value}
-            onChange={e => onChange(Number(e.target.value))}
-            style={{ width: '100%', accentColor: '#00ffd1', cursor: 'pointer' }}
-        />
-    </div>
-);
+import LeftChevron from "../../../assets/icons/icon-chevron-left.svg";
+import RightChevron from "../../../assets/icons/icon-chevron-right.svg";
+import MajorBlock from "../../../assets/canvas/major-block.png";
+import MinorBlock from "../../../assets/canvas/minor-block.png";
+import IconSettings from "../../../assets/icons/icon-settings.svg";
+import IconNotes from "../../../assets/icons/icon-notes.svg";
+import IconEffects from "../../../assets/icons/icon-effects.svg";
+import IconTurtle from "../../../assets/icons/icon-turtle.svg";
+import IconHare from "../../../assets/icons/icon-hare.svg";
 
-// ─── Маленький компонент: выбор из нескольких кнопок ─────────────────────────
-const SelectRow = ({ label, options, value, onChange }) => (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-        <span style={{
-            fontSize: 12, color: 'rgba(255,255,255,0.55)',
-            letterSpacing: '0.06em', textTransform: 'uppercase',
-        }}>
-            {label}
-        </span>
-        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-            {options.map(opt => (
-                <button
-                    key={opt.value}
-                    onClick={() => onChange(opt.value)}
-                    style={{
-                        padding: '5px 12px',
-                        borderRadius: 20,
-                        border: '1.5px solid',
-                        borderColor: value === opt.value ? '#00ffd1' : 'rgba(255,255,255,0.15)',
-                        background: value === opt.value
-                            ? 'rgba(0,255,209,0.12)'
-                            : 'rgba(255,255,255,0.04)',
-                        color: value === opt.value ? '#00ffd1' : 'rgba(255,255,255,0.6)',
-                        fontSize: 12,
-                        cursor: 'pointer',
-                        transition: 'all 0.18s',
-                        letterSpacing: '0.04em',
-                    }}
-                >
-                    {opt.label}
-                </button>
-            ))}
-        </div>
-    </div>
-);
-
-// ─── Разделитель секций ────────────────────────────────────────────────────────
-const SectionTitle = ({ children }) => (
-    <div style={{
-        display: 'flex', alignItems: 'center', gap: 10, marginBottom: 2,
-    }}>
-        <span style={{
-            fontSize: 11, fontWeight: 600, letterSpacing: '0.12em',
-            textTransform: 'uppercase', color: 'rgba(255,255,255,0.35)',
-            whiteSpace: 'nowrap',
-        }}>
-            {children}
-        </span>
-        <div style={{ flex: 1, height: 1, background: 'rgba(255,255,255,0.08)', borderRadius: 1 }} />
-    </div>
-);
-
-// ─── Главный компонент ─────────────────────────────────────────────────────────
 const SettingsPanel = ({
-    // Параметры генерации
-    bpm,           onBpmChange,
-    duration,      onDurationChange,
-    scale,         onScaleChange,
-    smoothing,     onSmoothingChange,
-
-    // Эффекты (0..1 каждый)
-    effectReverb,     onReverbChange,
-    effectDelay,      onDelayChange,
-    effectDistortion, onDistortionChange,
+    bpm,
+    onBpmChange,
+    duration,
+    onDurationChange,
+    scale,
+    onScaleChange,
+    effectReverb,
+    onReverbChange,
+    effectDelay,
+    onDelayChange,
+    effectDistortion,
+    onDistortionChange,
 }) => {
+    const [expandedGeneral, setExpandedGeneral] = useState(false);
+    const [expandedEffects, setExpandedEffects] = useState(false);
+
+    const formatDuration = (sec) => {
+        const mins = Math.floor(sec / 60);
+        const remainingSec = sec % 60;
+        return `${mins.toString().padStart(2, '0')}:${remainingSec.toString().padStart(2, '0')}`;
+    };
+
+    const increaseDuration = () => {
+        if (duration + 5 <= 90) onDurationChange(duration + 5);
+    };
+    const decreaseDuration = () => {
+        if (duration - 5 >= 5) onDurationChange(duration - 5);
+    };
+
+    const nextMood = () => {
+        onScaleChange(scale === 'major' ? 'minor' : 'major');
+    };
+    const prevMood = () => {
+        onScaleChange(scale === 'major' ? 'minor' : 'major');
+    };
+    const setMajor = () => onScaleChange('major');
+    const setMinor = () => onScaleChange('minor');
+
+    const decreaseBpm = () => {
+        if (bpm - 1 >= 40) onBpmChange(bpm - 1);
+    };
+    const increaseBpm = () => {
+        if (bpm + 1 <= 180) onBpmChange(bpm + 1);
+    };
+
     return (
-        <div style={{
-            display: 'flex',
-            flexDirection: 'column',
-            gap: 22,
-            padding: '28px 24px',
-            height: '100%',
-            boxSizing: 'border-box',
-            overflowY: 'auto',
-        }}>
+        <div className="settings-panel">
+            <div className="settings-panel-header">
+                <img src={IconSettings} alt="settings" className="settings-panel-card-header-icon" />
+                <span className="settings-panel-header-title">НАСТРОЙКИ</span>
+            </div>
 
-            {/* ── Генерация ─────────────────────────────────────── */}
-            <SectionTitle>Генерация</SectionTitle>
+            {/* Блок «Общие» */}
+            <div className="settings-panel-card">
+                <div className="settings-panel-card-header" onClick={() => setExpandedGeneral(!expandedGeneral)}>
+                    <div className="settings-panel-card-header-left">
+                        <img src={IconNotes} alt="notes" className="settings-panel-card-header-icon" />
+                        <span className="settings-panel-card-header-text">ОБЩИЕ</span>
+                    </div>
+                </div>
+                {expandedGeneral && (
+                    <div className="settings-panel-card-content">
+                        {/* Длительность */}
+                        <div className="settings-panel-control-group">
+                            <div className="settings-panel-control-label">ДЛИТЕЛЬНОСТЬ</div>
+                            <div className="settings-panel-value-row">
+                                <img
+                                    src={LeftChevron}
+                                    alt="-"
+                                    className={`settings-panel-chevron ${duration <= 5 ? 'settings-panel-chevron-disabled' : ''}`}
+                                    onClick={decreaseDuration}
+                                />
+                                <span className="settings-panel-duration-text">{formatDuration(duration)}</span>
+                                <img
+                                    src={RightChevron}
+                                    alt="+"
+                                    className={`settings-panel-chevron ${duration >= 90 ? 'settings-panel-chevron-disabled' : ''}`}
+                                    onClick={increaseDuration}
+                                />
+                            </div>
+                        </div>
 
-            <SliderRow
-                label="Темп"
-                value={bpm}
-                min={40}
-                max={180}
-                step={1}
-                unit=" BPM"
-                onChange={onBpmChange}
-            />
+                        {/* Настроение */}
+                        <div className="settings-panel-control-group">
+                            <div className="settings-panel-control-label">НАСТРОЕНИЕ</div>
+                            <div className="settings-panel-value-row">
+                                <img
+                                    src={LeftChevron}
+                                    alt="prev"
+                                    className="settings-panel-chevron"
+                                    onClick={prevMood}
+                                />
+                                <div className="settings-panel-mood-images">
+                                    <img
+                                        src={MajorBlock}
+                                        alt="major"
+                                        className={`settings-panel-mood-img ${scale === 'major' ? 'settings-panel-mood-img-active' : ''}`}
+                                        onClick={setMajor}
+                                    />
+                                    <img
+                                        src={MinorBlock}
+                                        alt="minor"
+                                        className={`settings-panel-mood-img ${scale === 'minor' ? 'settings-panel-mood-img-active' : ''}`}
+                                        onClick={setMinor}
+                                    />
+                                </div>
+                                <img
+                                    src={RightChevron}
+                                    alt="next"
+                                    className="settings-panel-chevron"
+                                    onClick={nextMood}
+                                />
+                            </div>
+                        </div>
 
-            <SliderRow
-                label="Длительность"
-                value={duration}
-                min={4}
-                max={32}
-                step={1}
-                unit=" с"
-                onChange={onDurationChange}
-            />
+                        {/* Темп */}
+                        <div className="settings-panel-control-group">
+                            <div className="settings-panel-control-label">ТЕМП</div>
+                            <div className="settings-panel-tempo-row">
+                                <img
+                                    src={IconTurtle}
+                                    alt="slow"
+                                    className="settings-panel-tempo-icon"
+                                    onClick={decreaseBpm}
+                                />
+                                <span className="settings-panel-tempo-value">{bpm}</span>
+                                <img
+                                    src={IconHare}
+                                    alt="fast"
+                                    className="settings-panel-tempo-icon"
+                                    onClick={increaseBpm}
+                                />
+                            </div>
+                            <input
+                                type="range"
+                                min={40}
+                                max={180}
+                                step={1}
+                                value={bpm}
+                                onChange={(e) => onBpmChange(Number(e.target.value))}
+                                className="settings-panel-slider"
+                            />
+                        </div>
+                    </div>
+                )}
+            </div>
 
-            <SliderRow
-                label="Сглаживание"
-                value={smoothing}
-                min={0}
-                max={80}
-                step={5}
-                unit="%"
-                onChange={onSmoothingChange}
-            />
-
-            <SelectRow
-                label="Гамма"
-                value={scale}
-                onChange={onScaleChange}
-                options={[
-                    { value: 'major',      label: 'Мажор' },
-                    { value: 'minor',      label: 'Минор' },
-                ]}
-            />
-
-            {/* ── Эффекты ───────────────────────────────────────── */}
-            <SectionTitle>Эффекты</SectionTitle>
-
-            <SliderRow
-                label="Реверб"
-                value={Math.round(effectReverb * 100)}
-                min={0}
-                max={100}
-                step={1}
-                unit="%"
-                onChange={v => onReverbChange(v / 100)}
-            />
-
-            <SliderRow
-                label="Дилэй"
-                value={Math.round(effectDelay * 100)}
-                min={0}
-                max={100}
-                step={1}
-                unit="%"
-                onChange={v => onDelayChange(v / 100)}
-            />
-
-            <SliderRow
-                label="Дисторшн"
-                value={Math.round(effectDistortion * 100)}
-                min={0}
-                max={100}
-                step={1}
-                unit="%"
-                onChange={v => onDistortionChange(v / 100)}
-            />
-
+            {/* Блок «Эффекты» */}
+            <div className="settings-panel-card">
+                <div className="settings-panel-card-header" onClick={() => setExpandedEffects(!expandedEffects)}>
+                    <div className="settings-panel-card-header-left">
+                        <img src={IconEffects} alt="effects" className="settings-panel-card-header-icon" />
+                        <span className="settings-panel-card-header-text">ЭФФЕКТЫ</span>
+                    </div>
+                </div>
+                {expandedEffects && (
+                    <div className="settings-panel-card-content">
+                        <div className="settings-panel-effect-slider-row">
+                            <div className="settings-panel-effect-label-row">
+                                <span>Реверб</span>
+                                <span className="settings-panel-effect-value">{Math.round(effectReverb * 100)}%</span>
+                            </div>
+                            <input
+                                type="range"
+                                min={0}
+                                max={100}
+                                value={Math.round(effectReverb * 100)}
+                                onChange={(e) => onReverbChange(Number(e.target.value) / 100)}
+                                className="settings-panel-slider"
+                            />
+                        </div>
+                        <div className="settings-panel-effect-slider-row">
+                            <div className="settings-panel-effect-label-row">
+                                <span>Дилэй</span>
+                                <span className="settings-panel-effect-value">{Math.round(effectDelay * 100)}%</span>
+                            </div>
+                            <input
+                                type="range"
+                                min={0}
+                                max={100}
+                                value={Math.round(effectDelay * 100)}
+                                onChange={(e) => onDelayChange(Number(e.target.value) / 100)}
+                                className="settings-panel-slider"
+                            />
+                        </div>
+                        <div className="settings-panel-effect-slider-row">
+                            <div className="settings-panel-effect-label-row">
+                                <span>Дисторшн</span>
+                                <span className="settings-panel-effect-value">{Math.round(effectDistortion * 100)}%</span>
+                            </div>
+                            <input
+                                type="range"
+                                min={0}
+                                max={100}
+                                value={Math.round(effectDistortion * 100)}
+                                onChange={(e) => onDistortionChange(Number(e.target.value) / 100)}
+                                className="settings-panel-slider"
+                            />
+                        </div>
+                    </div>
+                )}
+            </div>
         </div>
     );
 };

@@ -1,0 +1,195 @@
+/* SettingsPanel.css */
+
+.settings-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    padding: 28px 24px;
+    height: 100%;
+    box-sizing: border-box;
+    overflow-y: auto;
+    background-color: #0a0a0a;
+    color: #fff;
+}
+
+/* Header */
+.settings-panel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.settings-panel-header-title {
+    font-size: 18px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, 0.9);
+}
+
+/* Cards */
+.settings-panel-card {
+    background-color: rgba(255, 255, 255, 0.2);
+    border-radius: 40px;
+    overflow: hidden;
+    transition: all 0.2s ease;
+}
+
+.settings-panel-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 15px;
+    cursor: pointer;
+    user-select: none;
+}
+
+.settings-panel-card-header-left {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.settings-panel-card-header-icon {
+    width: 24px;
+    height: 24px;
+    filter: brightness(0) invert(1);
+}
+
+.settings-panel-card-header-text {
+    font-size: 16px;
+    font-weight: 500;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: white;
+}
+
+.settings-panel-card-content {
+    padding: 0 15px 20px 15px;
+    display: flex;
+    flex-direction: column;
+    gap: 30px;
+}
+
+/* Control groups */
+.settings-panel-control-group {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+}
+
+.settings-panel-control-label {
+    font-size: 12px;
+    font-weight: 500;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, 0.7);
+    text-align: center;
+}
+
+.settings-panel-value-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 20px;
+}
+
+.settings-panel-chevron {
+    cursor: pointer;
+    width: 24px;
+    height: 24px;
+    filter: brightness(0) invert(1);
+    transition: opacity 0.2s;
+}
+
+.settings-panel-chevron-disabled {
+    opacity: 0.3;
+    cursor: default;
+}
+
+.settings-panel-duration-text {
+    font-size: 28px;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.05em;
+    color: white;
+    min-width: 100px;
+    text-align: center;
+}
+
+/* Mood images */
+.settings-panel-mood-images {
+    display: flex;
+    gap: 15px;
+    align-items: center;
+}
+
+.settings-panel-mood-img {
+    width: 48px;
+    height: 48px;
+    object-fit: contain;
+    border-radius: 12px;
+    transition: all 0.2s;
+    cursor: pointer;
+}
+
+.settings-panel-mood-img-active {
+    box-shadow: 0 0 0 2px #00ffd1;
+    transform: scale(1.02);
+}
+
+/* Tempo */
+.settings-panel-tempo-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 20px;
+    margin-bottom: 10px;
+}
+
+.settings-panel-tempo-icon {
+    width: 28px;
+    height: 28px;
+    filter: brightness(0) invert(1);
+    opacity: 0.8;
+    cursor: pointer;
+}
+
+.settings-panel-tempo-value {
+    font-size: 32px;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    color: #00ffd1;
+    min-width: 70px;
+    text-align: center;
+}
+
+/* Slider (common) */
+.settings-panel-slider {
+    width: 100%;
+    accent-color: #00ffd1;
+    cursor: pointer;
+}
+
+/* Effects sliders */
+.settings-panel-effect-slider-row {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.settings-panel-effect-label-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.55);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+}
+
+.settings-panel-effect-value {
+    color: rgba(255, 255, 255, 0.85);
+    font-variant-numeric: tabular-nums;
+}

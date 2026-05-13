@@ -3,7 +3,7 @@ import DrawingArea from "./components/DrawingArea";
 import ToolsPanel from "./components/ToolsPanel";
 import SettingsPanel from "./components/SettingsPanel";
 import { useDrawing } from "./hooks/useDrawing";
-import useMelodyPlayer from './hooks/useMelodyPlayer'; 
+import useMelodyPlayer from './hooks/useMelodyPlayer';
 import { useAudioExporter } from './hooks/useAudioExporter';
 import { imageToSegments } from "../../utils/imageToSegments";
 import MelodyEngine from "../../engines/MelodyEngine";
@@ -24,6 +24,8 @@ import SkipForwardIcon from "../../assets/icons/icon-skip-forward.svg";
 import VolumeHighIcon from "../../assets/icons/icon-volume-high.svg";
 import VolumeLowIcon from "../../assets/icons/icon-volume-low.svg";
 import VolumeNoIcon from "../../assets/icons/icon-volume-no.svg";
+
+
 import * as Tone from 'tone';
 
 import "./Canvas.css";
@@ -49,20 +51,17 @@ const Canvas = () => {
 
     const [activeNote, setActiveNote] = useState(null);
 
-    // ── Параметры генерации ────────────────────────────────────────
     const [bpm,       setBpm]       = useState(80);
     const [duration,  setDuration]  = useState(8);
     const [scale,     setScale]     = useState('major');
     const [smoothing, setSmoothing] = useState(30);
 
-    // ── Эффекты (0..1) ─────────────────────────────────────────────
     const [effectReverb,     setEffectReverb]     = useState(0);
     const [effectDelay,      setEffectDelay]      = useState(0);
     const [effectDistortion, setEffectDistortion] = useState(0);
 
     const effects = { reverb: effectReverb, delay: effectDelay, distortion: effectDistortion };
 
-    // melodyParams для генерации (не useRef, чтобы SettingsPanel управлял)
     const melodyParamsForGen = { bpm, duration, scale, smoothing };
 
     const [isGenerating, setIsGenerating] = useState(false);
@@ -71,7 +70,6 @@ const Canvas = () => {
     const [totalDuration, setTotalDuration] = useState(8);
     const { exportToWAV } = useAudioExporter(melodyEvents, totalDuration);
 
-    // ── Цвет фона ──────────────────────────────────────────────────
     const [modal, setModal] = useState({
         isOpen: false, title: '', description: '', variant: 'default',
     });
@@ -93,7 +91,6 @@ const Canvas = () => {
     const { engineRef, initEngine, saveToHistory, undo, redo, clear, canUndo, canRedo } =
         useDrawing(8, '#4D4DFF');
 
-    // ── Модальные окна ─────────────────────────────────────────────
     const showModal = useCallback((title, description, variant = 'default') => {
         setModal({ isOpen: true, title, description, variant });
     }, []);
@@ -101,7 +98,6 @@ const Canvas = () => {
         setModal(prev => ({ ...prev, isOpen: false }));
     }, []);
 
-    // ── Обработчики ────────────────────────────────────────────────
     const handleBrushColorChange = useCallback((newColor) => {
         setBrushColor(newColor);
         brushColorRef.current = newColor;
@@ -136,7 +132,6 @@ const Canvas = () => {
         }
     }, [engineRef, showModal]);
 
-    // ── Плеер (объявляем ДО handleGenerateMelody, чтобы stop был доступен) ───
     const {
         isPlaying,
         currentTime,
@@ -149,7 +144,6 @@ const Canvas = () => {
         seek,
     } = useMelodyPlayer(melodyEvents, totalDuration, (note) => setActiveNote(note), effects);
 
-    // ── Генерация мелодии ─────────────────────────────────────────
     const handleStrokeEnd = useCallback(() => {
         saveToHistory(bgColorRef.current);
     }, [saveToHistory]);
@@ -160,7 +154,6 @@ const Canvas = () => {
             return;
         }
 
-        // Останавливаем воспроизведение перед перегенерацией
         stop();
 
         setIsGenerating(true);
@@ -182,7 +175,7 @@ const Canvas = () => {
             } catch (engineErr) {
                 console.error('MelodyEngine error:', engineErr);
                 showModal("Ошибка генерации", "Не удалось обработать рисунок. Попробуйте ещё раз.", "error");
-                return; // НЕ сбрасываем isMelodyGenerated — старая мелодия остаётся
+                return;
             }
 
             if (!events || events.length === 0) {
@@ -197,11 +190,9 @@ const Canvas = () => {
         } catch (err) {
             console.error(err);
             showModal("Ошибка", err.message || "Непредвиденная ошибка", "error");
-            // Намеренно НЕ сбрасываем setIsMelodyGenerated — плеер остаётся видимым
         } finally {
             setIsGenerating(false);
         }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [engineRef, showModal, stop, bpm, duration, scale, smoothing]);
 
     const handlePlayPause = useCallback(() => {
@@ -213,7 +204,6 @@ const Canvas = () => {
         setVolume(parseFloat(e.target.value));
     }, [setVolume]);
 
-    // Клик по прогресс-бару
     const progressRef = useRef(null);
     const handleProgressClick = useCallback((e) => {
         if (!progressRef.current) return;
@@ -233,7 +223,6 @@ const Canvas = () => {
         ? Math.min(100, (currentTime / totalDuration) * 100)
         : 0;
 
-    // ── Скачать ────────────────────────────────────────────────────
     const handleDownload = useCallback((type = 'image') => {
         if (type === 'image') {
             const mainCanvas = engineRef.current?.mainCanvas;
@@ -254,7 +243,6 @@ const Canvas = () => {
         }
     }, [engineRef, bgColor, exportToWAV, showModal]);
 
-    // ── Ресайз холста ──────────────────────────────────────────────
     const handleResizeMouseDown = useCallback((dir) => (e) => {
         e.preventDefault();
         isDraggingRef.current = true;
@@ -345,7 +333,6 @@ const Canvas = () => {
         setActiveNote(null);
     }, [clear, stop]);
 
-    // ── Рендер ─────────────────────────────────────────────────────
     return (
         <div className="canvas-content">
             <div className="canvas-header">
@@ -407,8 +394,8 @@ const Canvas = () => {
                             className="canvas-panel"
                             ref={canvasPanelRef}
                             style={{
-                                width:           canvasSize.width,
-                                height:          canvasSize.height,
+                                width: canvasSize.width,
+                                height: canvasSize.height,
                                 backgroundColor: bgColor,
                             }}
                         >
@@ -439,7 +426,6 @@ const Canvas = () => {
                         <div className="idk-panel" />
                     </div>
 
-                    {/* ── Панель настроек ────────────────────────────────── */}
                     <div className="settings-block">
                         <SettingsPanel
                             bpm={bpm}                 onBpmChange={setBpm}
@@ -453,87 +439,52 @@ const Canvas = () => {
                     </div>
                 </div>
 
-                {/* ── Плеер ──────────────────────────────────────────────── */}
                 {isMelodyGenerated && (
                     <div className="music-player">
-                        {/* Skip назад */}
                         <div className="icon" onClick={() => skip(-5)} title="−5 с">
                             <img src={SkipBackIcon} alt="Назад 5 с" />
                         </div>
-
-                        {/* Play / Pause */}
                         <div className="icon" onClick={handlePlayPause}>
                             <img
                                 src={isPlaying ? PauseIcon : PlayIcon}
                                 alt={isPlaying ? "Пауза" : "Воспроизвести"}
                             />
                         </div>
-
-                        {/* Skip вперёд */}
                         <div className="icon" onClick={() => skip(5)} title="+5 с">
                             <img src={SkipForwardIcon} alt="Вперёд 5 с" />
                         </div>
 
-                        {/* Прогресс-бар */}
                         <div
                             ref={progressRef}
+                            className="progress-bar-container"
                             onClick={handleProgressClick}
-                            style={{
-                                flex: 1,
-                                height: 4,
-                                background: 'rgba(255,255,255,0.12)',
-                                borderRadius: 4,
-                                cursor: 'pointer',
-                                position: 'relative',
-                                minWidth: 60,
-                            }}
                         >
-                            <div style={{
-                                position: 'absolute',
-                                left: 0, top: 0,
-                                width: `${progressPercent}%`,
-                                height: '100%',
-                                background: 'linear-gradient(90deg, #00ffd1, #9900ff)',
-                                borderRadius: 4,
-                                transition: 'width 0.05s linear',
-                            }} />
-                            {/* Ползунок */}
-                            <div style={{
-                                position: 'absolute',
-                                top: '50%',
-                                left: `${progressPercent}%`,
-                                transform: 'translate(-50%, -50%)',
-                                width: 12,
-                                height: 12,
-                                borderRadius: '50%',
-                                background: '#fff',
-                                boxShadow: '0 0 6px rgba(0,255,209,0.6)',
-                                pointerEvents: 'none',
-                            }} />
+                            <div
+                                className="progress-fill"
+                                style={{ width: `${progressPercent}%` }}
+                            />
+                            <div
+                                className="progress-thumb"
+                                style={{ left: `${progressPercent}%` }}
+                            />
                         </div>
 
-                        {/* Время */}
-                        <span style={{
-                            fontSize: 13,
-                            color: 'rgba(255,255,255,0.7)',
-                            fontVariantNumeric: 'tabular-nums',
-                            whiteSpace: 'nowrap',
-                            letterSpacing: '0.03em',
-                        }}>
+                        <p className="time-text">
                             {formatTime(currentTime)} / {formatTime(totalDuration)}
-                        </span>
+                        </p>
 
-                        {/* Громкость */}
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <div className="volume-control">
+                            <div className="icon volume-btn">
                             <img
                                 src={
                                     volume === 0 ? VolumeNoIcon :
                                     volume < 0.5 ? VolumeLowIcon : VolumeHighIcon
                                 }
                                 alt="Громкость"
-                                style={{ width: 20, height: 20, opacity: 0.8, cursor: 'pointer' }}
+                                className="volume-icon"
                                 onClick={() => setVolume(volume === 0 ? 0.5 : 0)}
                             />
+                             </div>
                             <input
                                 type="range"
                                 min="0"
@@ -541,11 +492,7 @@ const Canvas = () => {
                                 step="0.01"
                                 value={volume}
                                 onChange={handleVolumeChange}
-                                style={{
-                                    width: 80,
-                                    accentColor: '#00ffd1',
-                                    cursor: 'pointer',
-                                }}
+                                className="volume-slider"
                             />
                         </div>
                     </div>
@@ -573,7 +520,6 @@ const Canvas = () => {
     );
 };
 
-// ─── Индикатор текущей ноты ───────────────────────────────────────────────────
 const NOTE_NAMES = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
 
 const freqToNoteName = (freq) => {
@@ -594,23 +540,10 @@ const INSTRUMENT_LABEL = {
 const ActiveNoteIndicator = ({ note }) => {
     if (!note) return null;
     return (
-        <div style={{
-            position: 'absolute', bottom: 12, right: 12,
-            background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(6px)',
-            borderRadius: 10, padding: '6px 12px',
-            color: '#fff', fontSize: 13, fontFamily: 'monospace',
-            pointerEvents: 'none', zIndex: 20,
-            display: 'flex', gap: 10, alignItems: 'center',
-        }}>
-            <span style={{ fontSize: 18, fontWeight: 700 }}>
-                {freqToNoteName(note.freq)}
-            </span>
-            <span style={{ opacity: 0.7 }}>
-                {INSTRUMENT_LABEL[note.instrument] || note.instrument}
-            </span>
-            <span style={{ opacity: 0.5 }}>
-                {Math.round(note.freq)} Гц
-            </span>
+        <div className="active-note-indicator">
+            <span className="note-name">{freqToNoteName(note.freq)}</span>
+            <span className="instrument">{INSTRUMENT_LABEL[note.instrument] || note.instrument}</span>
+            <span className="frequency">{Math.round(note.freq)} Гц</span>
         </div>
     );
 };

@@ -19,42 +19,42 @@ const SAMPLER_URLS = {
   piano: {
     baseUrl: '/samples/piano/',
     urls: {
-      A0: 'A0.mp3', C1: 'C1.mp3', 'D#1': 'Ds1.mp3', 'F#1': 'Fs1.mp3',
-      A1: 'A1.mp3', C2: 'C2.mp3', 'D#2': 'Ds2.mp3', 'F#2': 'Fs2.mp3',
-      A2: 'A2.mp3', C3: 'C3.mp3', 'D#3': 'Ds3.mp3', 'F#3': 'Fs3.mp3',
-      A3: 'A3.mp3', C4: 'C4.mp3', 'D#4': 'Ds4.mp3', 'F#4': 'Fs4.mp3',
-      A4: 'A4.mp3', C5: 'C5.mp3', 'D#5': 'Ds5.mp3', 'F#5': 'Fs5.mp3',
-      A5: 'A5.mp3', C6: 'C6.mp3', 'D#6': 'Ds6.mp3', 'F#6': 'Fs6.mp3',
-      A6: 'A6.mp3', C7: 'C7.mp3', 'D#7': 'Ds7.mp3', 'F#7': 'Fs7.mp3',
-      A7: 'A7.mp3', C8: 'C8.mp3',
+      A0: 'A0.ogg', C1: 'C1.ogg', 'D#1': 'Ds1.ogg', 'F#1': 'Fs1.ogg',
+      A1: 'A1.ogg', C2: 'C2.ogg', 'D#2': 'Ds2.ogg', 'F#2': 'Fs2.ogg',
+      A2: 'A2.ogg', C3: 'C3.ogg', 'D#3': 'Ds3.ogg', 'F#3': 'Fs3.ogg',
+      A3: 'A3.ogg', C4: 'C4.ogg', 'D#4': 'Ds4.ogg', 'F#4': 'Fs4.ogg',
+      A4: 'A4.ogg', C5: 'C5.ogg', 'D#5': 'Ds5.ogg', 'F#5': 'Fs5.ogg',
+      A5: 'A5.ogg', C6: 'C6.ogg', 'D#6': 'Ds6.ogg', 'F#6': 'Fs6.ogg',
+      A6: 'A6.ogg', C7: 'C7.ogg', 'D#7': 'Ds7.ogg', 'F#7': 'Fs7.ogg',
+      A7: 'A7.ogg', C8: 'C8.ogg',
     },
   },
   guitar: {
     baseUrl: '/samples/guitar/',
     urls: {
-      E2:  'E2.mp3',  'F#2': 'Fs2.mp3', G2:  'G2.mp3',  A2:  'A2.mp3',
-      B2:  'B2.mp3',  C3:   'C3.mp3',   D3:  'D3.mp3',   E3:  'E3.mp3',
-      'F#3': 'Fs3.mp3', G3: 'G3.mp3',  A3:  'A3.mp3',   B3:  'B3.mp3',
-      C4:  'C4.mp3',  D4:   'D4.mp3',   E4:  'E4.mp3',   'F#4': 'Fs4.mp3',
-      G4:  'G4.mp3',  A4:   'A4.mp3',   B4:  'B4.mp3',   C5:  'C5.mp3',
+      E2:  'E2.ogg',  'F#2': 'Fs2.ogg', G2:  'G2.ogg',  A2:  'A2.ogg',
+      B2:  'B2.ogg',  C3:   'C3.ogg',   D3:  'D3.ogg',   E3:  'E3.ogg',
+      'F#3': 'Fs3.ogg', G3: 'G3.ogg',  A3:  'A3.ogg',   B3:  'B3.ogg',
+      C4:  'C4.ogg',  D4:   'D4.ogg',   E4:  'E4.ogg',   'F#4': 'Fs4.ogg',
+      G4:  'G4.ogg',  A4:   'A4.ogg',   B4:  'B4.ogg',   C5:  'C5.ogg',
     },
   },
   flute: {
     baseUrl: '/samples/flute/',
     urls: {
-      A4:  'A4.mp3',  B4:   'B4.mp3',  C5:  'C5.mp3',  D5:  'D5.mp3',
-      E5:  'E5.mp3',  'F#5': 'Fs5.mp3', G5: 'G5.mp3',  A5:  'A5.mp3',
-      B5:  'B5.mp3',  C6:   'C6.mp3',  D6:  'D6.mp3',  E6:  'E6.mp3',
-      'F#6': 'Fs6.mp3', G6: 'G6.mp3', A6:  'A6.mp3',
+      A4:  'A4.ogg',  B4:   'B4.ogg',  C5:  'C5.ogg',  D5:  'D5.ogg',
+      E5:  'E5.ogg',  'F#5': 'Fs5.ogg', G5: 'G5.ogg',  A5:  'A5.ogg',
+      B5:  'B5.ogg',  C6:   'C6.ogg',  D6:  'D6.ogg',  E6:  'E6.ogg',
+      'F#6': 'Fs6.ogg', G6: 'G6.ogg', A6:  'A6.ogg',
     },
   },
   strings: {
     baseUrl: '/samples/violin/',
     urls: {
-      A3:  'A3.mp3',  B3:  'B3.mp3',  C4:  'C4.mp3',  D4:  'D4.mp3',
-      E4:  'E4.mp3',  F4:  'F4.mp3',  G4:  'G4.mp3',  A4:  'A4.mp3',
-      B4:  'B4.mp3',  C5:  'C5.mp3',  D5:  'D5.mp3',  E5:  'E5.mp3',
-      F5:  'F5.mp3',  G5:  'G5.mp3',  A5:  'A5.mp3',
+      A3:  'A3.ogg',  B3:  'B3.ogg',  C4:  'C4.ogg',  D4:  'D4.ogg',
+      E4:  'E4.ogg',  F4:  'F4.ogg',  G4:  'G4.ogg',  A4:  'A4.ogg',
+      B4:  'B4.ogg',  C5:  'C5.ogg',  D5:  'D5.ogg',  E5:  'E5.ogg',
+      F5:  'F5.ogg',  G5:  'G5.ogg',  A5:  'A5.ogg',
     },
   },
 };
@@ -208,33 +208,63 @@ const useMelodyPlayer = (
   }, [getGlobalFxChain]);
 
   // ── Загрузка семплера для инструмента ─────────────────────────────────────
+  // const loadSampler = useCallback(async (instrName) => {
+  //   if (samplersRef.current[instrName]) return samplersRef.current[instrName];
+
+  //   const cfg = SAMPLER_URLS[instrName];
+  //   if (!cfg) return null;
+
+  //   setLoadingState(prev => ({ ...prev, [instrName]: 'loading' }));
+
+  //   return new Promise((resolve) => {
+  //     const sampler = new Tone.Sampler({
+  //       urls:    cfg.urls,
+  //       baseUrl: cfg.baseUrl,
+  //       onload: () => {
+  //         // подключаем к per-instrument fx
+  //         sampler.connect(getInstrFxChain(instrName));
+  //         samplersRef.current[instrName] = sampler;
+  //         setLoadingState(prev => ({ ...prev, [instrName]: 'ready' }));
+  //         resolve(sampler);
+  //       },
+  //       onerror: (err) => {
+  //         console.warn(`[useMelodyPlayer] Семпл ${instrName} не загрузился:`, err);
+  //         setLoadingState(prev => ({ ...prev, [instrName]: 'error' }));
+  //         resolve(null); // fallback ниже
+  //       },
+  //     });
+  //   });
+  // }, [getInstrFxChain]);
   const loadSampler = useCallback(async (instrName) => {
     if (samplersRef.current[instrName]) return samplersRef.current[instrName];
 
     const cfg = SAMPLER_URLS[instrName];
     if (!cfg) return null;
 
+    console.log(`🎵 Загружаем ${instrName}... baseUrl = ${cfg.baseUrl}`);
+
     setLoadingState(prev => ({ ...prev, [instrName]: 'loading' }));
 
     return new Promise((resolve) => {
-      const sampler = new Tone.Sampler({
-        urls:    cfg.urls,
-        baseUrl: cfg.baseUrl,
-        onload: () => {
-          // подключаем к per-instrument fx
-          sampler.connect(getInstrFxChain(instrName));
-          samplersRef.current[instrName] = sampler;
-          setLoadingState(prev => ({ ...prev, [instrName]: 'ready' }));
-          resolve(sampler);
-        },
-        onerror: (err) => {
-          console.warn(`[useMelodyPlayer] Семпл ${instrName} не загрузился:`, err);
-          setLoadingState(prev => ({ ...prev, [instrName]: 'error' }));
-          resolve(null); // fallback ниже
-        },
-      });
+        const sampler = new Tone.Sampler({
+            urls:    cfg.urls,
+            baseUrl: cfg.baseUrl,
+            onload: () => {
+                console.log(`✅ ${instrName} успешно загружен!`);
+                sampler.connect(getInstrFxChain(instrName));
+                samplersRef.current[instrName] = sampler;
+                setLoadingState(prev => ({ ...prev, [instrName]: 'ready' }));
+                resolve(sampler);
+            },
+            onerror: (err) => {
+                console.error(`❌ ОШИБКА загрузки ${instrName}:`, err);
+                console.error(`   Пытался загрузить: ${cfg.baseUrl} (например A4.${instrName === 'piano' ? 'mp3' : 'ogg'})`);
+                setLoadingState(prev => ({ ...prev, [instrName]: 'error' }));
+                resolve(null);
+            },
+        });
     });
-  }, [getInstrFxChain]);
+}, [getInstrFxChain]);
 
   // ── Получить или создать семплер/синт для инструмента ─────────────────────
   const getSamplerOrSynth = useCallback(async (instrName) => {
