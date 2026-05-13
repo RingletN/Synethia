@@ -1,4 +1,4 @@
-// useMelodyPlayer.js
+// hooks/useMelodyPlayer.js
 import { useEffect, useRef, useState, useCallback } from 'react';
 import * as Tone from 'tone';
 
@@ -10,56 +10,59 @@ import * as Tone from 'tone';
 //   #ffcc00 → flute   (sawtooth)
 //   #9900ff → strings (triangle)
 //
-// Семплы берём из бесплатных CDN:
-//   - Salamander Grand Piano  (tonejs/examples)
-//   - VSCO2-rs Community Edition (nbrosowsky/tonejs-instruments)
+// Семплы из /public/samples/<instrument>/
+// ВАЖНО: все файлы должны быть в формате .mp3
+//
+// Диапазон движка: C3–C6. Tone.Sampler интерполирует (pitch-shift)
+// недостающие ноты между имеющимися сэмплами автоматически.
 //
 
 const SAMPLER_URLS = {
   piano: {
     baseUrl: '/samples/piano/',
+    // Только ноты C3 и выше — они точно в диапазоне движка (C3–C6)
+    // и не содержат проблемных файлов вроде A0.ogg
     urls: {
-      A0: 'A0.ogg', C1: 'C1.ogg', 'D#1': 'Ds1.ogg', 'F#1': 'Fs1.ogg',
-      A1: 'A1.ogg', C2: 'C2.ogg', 'D#2': 'Ds2.ogg', 'F#2': 'Fs2.ogg',
-      A2: 'A2.ogg', C3: 'C3.ogg', 'D#3': 'Ds3.ogg', 'F#3': 'Fs3.ogg',
+      C3: 'C3.ogg', 'D#3': 'Ds3.ogg', 'F#3': 'Fs3.ogg',
       A3: 'A3.ogg', C4: 'C4.ogg', 'D#4': 'Ds4.ogg', 'F#4': 'Fs4.ogg',
       A4: 'A4.ogg', C5: 'C5.ogg', 'D#5': 'Ds5.ogg', 'F#5': 'Fs5.ogg',
-      A5: 'A5.ogg', C6: 'C6.ogg', 'D#6': 'Ds6.ogg', 'F#6': 'Fs6.ogg',
-      A6: 'A6.ogg', C7: 'C7.ogg', 'D#7': 'Ds7.ogg', 'F#7': 'Fs7.ogg',
-      A7: 'A7.ogg', C8: 'C8.ogg',
+      A5: 'A5.ogg', C6: 'C6.ogg',
     },
   },
+
   guitar: {
-    baseUrl: '/samples/guitar/',
+    baseUrl: '/samples/guitar-acoustic/',
     urls: {
-      E2:  'E2.ogg',  'F#2': 'Fs2.ogg', G2:  'G2.ogg',  A2:  'A2.ogg',
-      B2:  'B2.ogg',  C3:   'C3.ogg',   D3:  'D3.ogg',   E3:  'E3.ogg',
-      'F#3': 'Fs3.ogg', G3: 'G3.ogg',  A3:  'A3.ogg',   B3:  'B3.ogg',
-      C4:  'C4.ogg',  D4:   'D4.ogg',   E4:  'E4.ogg',   'F#4': 'Fs4.ogg',
-      G4:  'G4.ogg',  A4:   'A4.ogg',   B4:  'B4.ogg',   C5:  'C5.ogg',
+      E2: 'E2.mp3', 'F#2': 'Fs2.mp3', G2: 'G2.mp3', A2: 'A2.mp3',
+      B2: 'B2.mp3', C3: 'C3.mp3',  D3: 'D3.mp3',  E3: 'E3.mp3',
+      'F#3': 'Fs3.mp3', G3: 'G3.mp3', A3: 'A3.mp3', B3: 'B3.mp3',
+      C4: 'C4.mp3', D4: 'D4.mp3',  E4: 'E4.mp3',  'F#4': 'Fs4.mp3',
+      G4: 'G4.mp3', A4: 'A4.mp3',  B4: 'B4.mp3',  C5: 'C5.mp3',
     },
   },
+
   flute: {
     baseUrl: '/samples/flute/',
+    // Убраны проблемные файлы: B4, D5, Fs5, G5, B5, D6, Fs6, G6
     urls: {
-      A4:  'A4.ogg',  B4:   'B4.ogg',  C5:  'C5.ogg',  D5:  'D5.ogg',
-      E5:  'E5.ogg',  'F#5': 'Fs5.ogg', G5: 'G5.ogg',  A5:  'A5.ogg',
-      B5:  'B5.ogg',  C6:   'C6.ogg',  D6:  'D6.ogg',  E6:  'E6.ogg',
-      'F#6': 'Fs6.ogg', G6: 'G6.ogg', A6:  'A6.ogg',
+      A4: 'A4.ogg',
+      C5: 'C5.ogg', E5: 'E5.ogg', A5: 'A5.ogg',
+      C6: 'C6.ogg', E6: 'E6.ogg', A6: 'A6.ogg',
     },
   },
+
   strings: {
     baseUrl: '/samples/violin/',
+    // Убраны проблемные файлы: B3, D4, F4, B4, D5, F5
     urls: {
-      A3:  'A3.ogg',  B3:  'B3.ogg',  C4:  'C4.ogg',  D4:  'D4.ogg',
-      E4:  'E4.ogg',  F4:  'F4.ogg',  G4:  'G4.ogg',  A4:  'A4.ogg',
-      B4:  'B4.ogg',  C5:  'C5.ogg',  D5:  'D5.ogg',  E5:  'E5.ogg',
-      F5:  'F5.ogg',  G5:  'G5.ogg',  A5:  'A5.ogg',
+      A3: 'A3.ogg',
+      C4: 'C4.ogg', E4: 'E4.ogg', G4: 'G4.ogg', A4: 'A4.ogg',
+      C5: 'C5.ogg', E5: 'E5.ogg', G5: 'G5.ogg', A5: 'A5.ogg',
     },
   },
 };
 
-// Осциллятор как запасной вариант (если семпл не загрузился)
+// Осциллятор как запасной вариант (если семпл не загрузился совсем)
 const OSC_FALLBACK = {
   piano:   'sine',
   guitar:  'square',
@@ -84,7 +87,6 @@ const LEGACY_TO_INSTRUMENT = {
 };
 
 function resolveInstrumentName(instrument) {
-  // instrument может быть 'sine'/'square'/... или 'piano'/'guitar'/...
   return LEGACY_TO_INSTRUMENT[instrument] || instrument || 'piano';
 }
 
@@ -208,90 +210,74 @@ const useMelodyPlayer = (
   }, [getGlobalFxChain]);
 
   // ── Загрузка семплера для инструмента ─────────────────────────────────────
-  // const loadSampler = useCallback(async (instrName) => {
-  //   if (samplersRef.current[instrName]) return samplersRef.current[instrName];
-
-  //   const cfg = SAMPLER_URLS[instrName];
-  //   if (!cfg) return null;
-
-  //   setLoadingState(prev => ({ ...prev, [instrName]: 'loading' }));
-
-  //   return new Promise((resolve) => {
-  //     const sampler = new Tone.Sampler({
-  //       urls:    cfg.urls,
-  //       baseUrl: cfg.baseUrl,
-  //       onload: () => {
-  //         // подключаем к per-instrument fx
-  //         sampler.connect(getInstrFxChain(instrName));
-  //         samplersRef.current[instrName] = sampler;
-  //         setLoadingState(prev => ({ ...prev, [instrName]: 'ready' }));
-  //         resolve(sampler);
-  //       },
-  //       onerror: (err) => {
-  //         console.warn(`[useMelodyPlayer] Семпл ${instrName} не загрузился:`, err);
-  //         setLoadingState(prev => ({ ...prev, [instrName]: 'error' }));
-  //         resolve(null); // fallback ниже
-  //       },
-  //     });
-  //   });
-  // }, [getInstrFxChain]);
   const loadSampler = useCallback(async (instrName) => {
-    if (samplersRef.current[instrName]) return samplersRef.current[instrName];
+    // Если уже есть и loaded — возвращаем сразу
+    const existing = samplersRef.current[instrName];
+    if (existing?.loaded) return existing;
 
     const cfg = SAMPLER_URLS[instrName];
     if (!cfg) return null;
 
-    console.log(`🎵 Загружаем ${instrName}... baseUrl = ${cfg.baseUrl}`);
+    // Если уже идёт загрузка (есть объект но ещё не loaded) — ждём через Tone.loaded()
+    if (existing && !existing.loaded) {
+      try {
+        await Tone.loaded();
+        return existing.loaded ? existing : null;
+      } catch (_) { return null; }
+    }
 
+    console.log(`🎵 Загружаем ${instrName}... baseUrl = ${cfg.baseUrl}`);
     setLoadingState(prev => ({ ...prev, [instrName]: 'loading' }));
 
-    return new Promise((resolve) => {
-        const sampler = new Tone.Sampler({
-            urls:    cfg.urls,
-            baseUrl: cfg.baseUrl,
-            onload: () => {
-                console.log(`✅ ${instrName} успешно загружен!`);
-                sampler.connect(getInstrFxChain(instrName));
-                samplersRef.current[instrName] = sampler;
-                setLoadingState(prev => ({ ...prev, [instrName]: 'ready' }));
-                resolve(sampler);
-            },
-            onerror: (err) => {
-                console.error(`❌ ОШИБКА загрузки ${instrName}:`, err);
-                console.error(`   Пытался загрузить: ${cfg.baseUrl} (например A4.${instrName === 'piano' ? 'mp3' : 'ogg'})`);
-                setLoadingState(prev => ({ ...prev, [instrName]: 'error' }));
-                resolve(null);
-            },
-        });
+    // Создаём семплер и сразу подключаем к fx-chain
+    const sampler = new Tone.Sampler({
+      urls:    cfg.urls,
+      baseUrl: cfg.baseUrl,
+      onerror: (err) => {
+        console.error(`❌ Ошибка файла семплера ${instrName}:`, err);
+        // Не фатально — Tone.Sampler продолжит с остальными нотами
+      },
     });
-}, [getInstrFxChain]);
 
-  // ── Получить или создать семплер/синт для инструмента ─────────────────────
-  const getSamplerOrSynth = useCallback(async (instrName) => {
-    // Попробуем существующий семплер
-    const existing = samplersRef.current[instrName];
-    if (existing && existing.loaded) return { node: existing, isSampler: true };
+    // Сохраняем ссылку сразу, чтобы повторные вызовы не создавали дубли
+    samplersRef.current[instrName] = sampler;
 
-    // Грузим семплер
-    const sampler = await loadSampler(instrName);
-    if (sampler && sampler.loaded) return { node: sampler, isSampler: true };
+    try {
+      // Tone.loaded() ждёт загрузки ВСЕХ буферов, созданных к этому моменту
+      await Tone.loaded();
+      sampler.connect(getInstrFxChain(instrName));
+      console.log(`✅ ${instrName} загружен, sampler.loaded =`, sampler.loaded);
+      setLoadingState(prev => ({ ...prev, [instrName]: sampler.loaded ? 'ready' : 'error' }));
+      return sampler.loaded ? sampler : null;
+    } catch (err) {
+      console.error(`❌ Tone.loaded() упал для ${instrName}:`, err);
+      setLoadingState(prev => ({ ...prev, [instrName]: 'error' }));
+      delete samplersRef.current[instrName];
+      return null;
+    }
+  }, [getInstrFxChain]);
 
-    // Fallback: осциллятор
-    const oscType = OSC_FALLBACK[instrName] || 'sine';
-    const synth = new Tone.Synth({
-      oscillator: { type: oscType },
-      envelope:   { attack: 0.02, decay: 0.1, sustain: 0.35, release: 0.2 },
-    });
-    synth.connect(getInstrFxChain(instrName));
-    return { node: synth, isSampler: false };
-  }, [loadSampler, getInstrFxChain]);
+  // ── Получить семплер (синхронно из кеша) или null ─────────────────────────
+  // Вызывается только внутри Part callback (уже после preloadSamplers)
+  const getCachedSampler = useCallback((instrName) => {
+    const s = samplersRef.current[instrName];
+    return (s?.loaded) ? s : null;
+  }, []);
 
-  // ── Предзагрузка семплеров для инструментов в текущих events ──────────────
+  // ── Предзагрузка семплеров ─────────────────────────────────────────────────
   const preloadSamplers = useCallback(async (evs) => {
     if (!evs?.length) return;
     const needed = new Set(evs.map(e => resolveInstrumentName(e.instrument)));
     await Promise.all([...needed].map(name => loadSampler(name)));
   }, [loadSampler]);
+
+  // ── АВТО-ПРЕДЗАГРУЗКА при изменении events ────────────────────────────────
+  // Запускается сразу после генерации мелодии, не ждёт нажатия Play.
+  // Tone.start() не нужен для загрузки файлов — только для воспроизведения.
+  useEffect(() => {
+    if (!events?.length) return;
+    preloadSamplers(events);
+  }, [events, preloadSamplers]);
 
   // ── Создание Part из текущих событий ──────────────────────────────────────
   const createPart = useCallback(() => {
@@ -304,30 +290,18 @@ const useMelodyPlayer = (
     const currentEvents = eventsRef.current;
     if (!currentEvents?.length) return null;
 
-    // Инициализируем глобальный fx-chain заранее
     getGlobalFxChain();
 
     const part = new Tone.Part((time, note) => {
       const { freq, duration, instrument, volume: noteVol } = note;
       const instrName = resolveInstrumentName(instrument);
 
-      const sampler = samplersRef.current[instrName];
-      if (sampler && sampler.loaded) {
-        // Используем семплер напрямую (уже подключён к fx-chain)
-        // Громкость через temporary gain
-        const gain = new Tone.Gain(noteVol * volumeRef.current * 1.5);
-        // Перенаправляем: sampler → gain → instrFxChain
-        // (sampler уже подключён к instrFxChain, поэтому создадим отдельный gainNode перед ним)
-        // Удобнее просто задать volume на самом самплере на время ноты не получится без параметра velocity
-        // — используем velocity (0..1):
+      const sampler = getCachedSampler(instrName);
+      if (sampler) {
         const velocity = Math.min(1, noteVol * volumeRef.current * 2.0);
         sampler.triggerAttackRelease(freq, duration, time, velocity);
-
-        setTimeout(() => {
-          try { gain.dispose(); } catch (_) {}
-        }, (Tone.Time(duration).toSeconds() + 1) * 1000);
       } else {
-        // Fallback-осциллятор
+        // Fallback-осциллятор (если семплер не загрузился)
         const oscType = OSC_FALLBACK[instrName] || 'sine';
         const synth = new Tone.Synth({
           oscillator: { type: oscType },
@@ -350,7 +324,7 @@ const useMelodyPlayer = (
 
     part.loop = false;
     return part;
-  }, [getGlobalFxChain, getInstrFxChain]);
+  }, [getGlobalFxChain, getInstrFxChain, getCachedSampler]);
 
   // ── Внутренняя пауза ──────────────────────────────────────────────────────
   const _stopTransport = useCallback(() => {
@@ -405,7 +379,8 @@ const useMelodyPlayer = (
     const transport = Tone.getTransport();
 
     if (!partRef.current) {
-      // Убеждаемся, что семплеры загружены
+      // Семплеры должны уже грузиться с момента генерации мелодии.
+      // Если вдруг ещё нет — ждём.
       await preloadSamplers(eventsRef.current);
 
       const newPart = createPart();
@@ -423,7 +398,7 @@ const useMelodyPlayer = (
     }, Math.max(remaining, 0));
   }, [createPart, stop, preloadSamplers]);
 
-  // Если events изменились — сбрасываем part
+  // Если events изменились — сбрасываем part (новая мелодия)
   useEffect(() => {
     if (!isPlaying && partRef.current) {
       partRef.current.dispose();
@@ -464,6 +439,7 @@ const useMelodyPlayer = (
     skip,
     seek,
     loadingState, // { piano: 'loading'|'ready'|'error', ... }
+    preloadSamplers, // экспортируем на случай ручного вызова
   };
 };
 
