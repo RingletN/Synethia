@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect, useCallback } from "react";
 import DrawingArea from "./components/DrawingArea";
 import ToolsPanel from "./components/ToolsPanel";
+import SettingsPanel from "./components/SettingsPanel";
 import { useDrawing } from "./hooks/useDrawing";
 import useMelodyPlayer from './hooks/useMelodyPlayer'; 
 import { useAudioExporter } from './hooks/useAudioExporter';
@@ -33,7 +34,6 @@ const CANVAS_MIN_SIZE    = 600;
 const INITIAL_CANVAS_WIDTH  = 750;
 const INITIAL_CANVAS_HEIGHT = 600;
 
-// Одиночный экземпляр MelodyEngine на всё время жизни компонента
 const melodyEngine = new MelodyEngine();
 
 const Canvas = () => {
@@ -47,16 +47,23 @@ const Canvas = () => {
     const [brushColor, setBrushColor] = useState('#00ffd1');
     const [isImporting, setIsImporting] = useState(false);
 
-    // ── Состояние мелодии ──────────────────────────────────────────
-    const [activeNote,   setActiveNote]   = useState(null);  // текущая нота (для анимации)
+    const [activeNote, setActiveNote] = useState(null);
 
-    // Параметры генерации (базовые, без UI — заложим основу)
-    const melodyParams = useRef({
-        bpm:      80,
-        duration: 8,
-        scale:    'major',
-        smoothing: 30,
-    });
+    // ── Параметры генерации ────────────────────────────────────────
+    const [bpm,       setBpm]       = useState(80);
+    const [duration,  setDuration]  = useState(8);
+    const [scale,     setScale]     = useState('major');
+    const [smoothing, setSmoothing] = useState(30);
+
+    // ── Эффекты (0..1) ─────────────────────────────────────────────
+    const [effectReverb,     setEffectReverb]     = useState(0);
+    const [effectDelay,      setEffectDelay]      = useState(0);
+    const [effectDistortion, setEffectDistortion] = useState(0);
+
+    const effects = { reverb: effectReverb, delay: effectDelay, distortion: effectDistortion };
+
+    // melodyParams для генерации (не useRef, чтобы SettingsPanel управлял)
+    const melodyParamsForGen = { bpm, duration, scale, smoothing };
 
     const [isGenerating, setIsGenerating] = useState(false);
     const [isMelodyGenerated, setIsMelodyGenerated] = useState(false);
@@ -129,91 +136,108 @@ const Canvas = () => {
         }
     }, [engineRef, showModal]);
 
-    // ── Генерация и воспроизведение мелодии ───────────────────────
+    // ── Плеер (объявляем ДО handleGenerateMelody, чтобы stop был доступен) ───
+    const {
+        isPlaying,
+        currentTime,
+        volume,
+        setVolume,
+        play,
+        pause,
+        stop,
+        skip,
+        seek,
+    } = useMelodyPlayer(melodyEvents, totalDuration, (note) => setActiveNote(note), effects);
 
-    /**
-     * Строит нотные события из текущих сегментов холста.
-     * Вызывается каждый раз перед воспроизведением (или при изменении параметров).
-     */
+    // ── Генерация мелодии ─────────────────────────────────────────
     const handleStrokeEnd = useCallback(() => {
         saveToHistory(bgColorRef.current);
     }, [saveToHistory]);
 
     const handleGenerateMelody = useCallback(async () => {
         if (!engineRef.current) {
-          showModal("Ошибка", "Движок рисования не инициализирован", "error");
-          return;
-        }
-      
-        setIsGenerating(true);
-        // Имитируем небольшую задержку, чтобы лоадер был заметен (опционально)
-        await new Promise(resolve => setTimeout(resolve, 100));
-      
-        try {
-          const segments = engineRef.current.getAllSegments();
-          if (!segments || segments.length === 0) {
-            showModal(
-              "Нечего генерировать",
-              "Нарисуйте что-нибудь на холсте или импортируйте изображение.",
-              "warning"
-            );
+            showModal("Ошибка", "Движок рисования не инициализирован", "error");
             return;
-          }
-      
-          const { events, tonicMidi } = melodyEngine.buildNoteEvents(segments, melodyParams.current);
-          if (!events.length) throw new Error("Не удалось построить нотные события");
-      
-          setMelodyEvents(events);
-          setTotalDuration(melodyParams.current.duration);
-          setIsMelodyGenerated(true);
-          showModal("Успешно", "Мелодия успешно сгенерирована!", "success");
-        } catch (err) {
-          console.error(err);
-          showModal("Ошибка генерации", err.message || "Не удалось создать мелодию", "error");
-          setIsMelodyGenerated(false);
-        } finally {
-          setIsGenerating(false);
         }
-      }, [engineRef, showModal]);
 
-// Подключим плеер
-const {
-    isPlaying,
-    currentTime,
-    volume,
-    setVolume,
-    play,
-    pause,
-    stop,
-    skip
-  } = useMelodyPlayer(melodyEvents, totalDuration, (note) => setActiveNote(note));
-  
-  // Обработчик нажатия на Play/Pause
-  const handlePlayPause = useCallback(() => {
-    if (isPlaying) pause();
-    else play();
-  }, [isPlaying, play, pause]);
-  
-  // Функция для изменения громкости (0..1)
-  const handleVolumeChange = useCallback((e) => {
-    setVolume(parseFloat(e.target.value));
-  }, [setVolume]);
-  
-  // Утилита для форматирования времени (MM:SS)
-  const formatTime = (seconds) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = Math.floor(seconds % 60);
-    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-  };
+        // Останавливаем воспроизведение перед перегенерацией
+        stop();
+
+        setIsGenerating(true);
+        await new Promise(resolve => setTimeout(resolve, 100));
+        try {
+            const segments = engineRef.current.getAllSegments();
+            if (!segments || segments.length === 0) {
+                showModal(
+                    "Нечего генерировать",
+                    "Нарисуйте что-нибудь на холсте или импортируйте изображение.",
+                    "warning"
+                );
+                return;
+            }
+
+            let events;
+            try {
+                ({ events } = melodyEngine.buildNoteEvents(segments, melodyParamsForGen));
+            } catch (engineErr) {
+                console.error('MelodyEngine error:', engineErr);
+                showModal("Ошибка генерации", "Не удалось обработать рисунок. Попробуйте ещё раз.", "error");
+                return; // НЕ сбрасываем isMelodyGenerated — старая мелодия остаётся
+            }
+
+            if (!events || events.length === 0) {
+                showModal("Нечего генерировать", "Не удалось извлечь ноты из рисунка.", "warning");
+                return;
+            }
+
+            setMelodyEvents(events);
+            setTotalDuration(duration);
+            setIsMelodyGenerated(true);
+            showModal("Готово", "Мелодия успешно сгенерирована!", "success");
+        } catch (err) {
+            console.error(err);
+            showModal("Ошибка", err.message || "Непредвиденная ошибка", "error");
+            // Намеренно НЕ сбрасываем setIsMelodyGenerated — плеер остаётся видимым
+        } finally {
+            setIsGenerating(false);
+        }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [engineRef, showModal, stop, bpm, duration, scale, smoothing]);
+
+    const handlePlayPause = useCallback(() => {
+        if (isPlaying) pause();
+        else play();
+    }, [isPlaying, play, pause]);
+
+    const handleVolumeChange = useCallback((e) => {
+        setVolume(parseFloat(e.target.value));
+    }, [setVolume]);
+
+    // Клик по прогресс-бару
+    const progressRef = useRef(null);
+    const handleProgressClick = useCallback((e) => {
+        if (!progressRef.current) return;
+        const rect = progressRef.current.getBoundingClientRect();
+        const ratio = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+        seek(ratio * totalDuration);
+    }, [seek, totalDuration]);
+
+    const formatTime = (seconds) => {
+        const s = Math.max(0, seconds);
+        const mins = Math.floor(s / 60);
+        const secs = Math.floor(s % 60);
+        return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    };
+
+    const progressPercent = totalDuration > 0
+        ? Math.min(100, (currentTime / totalDuration) * 100)
+        : 0;
 
     // ── Скачать ────────────────────────────────────────────────────
     const handleDownload = useCallback((type = 'image') => {
         if (type === 'image') {
             const mainCanvas = engineRef.current?.mainCanvas;
-            if (!mainCanvas) {
-                showModal("Ошибка", "Холст не найден", "error");
-                return;
-            }
+            if (!mainCanvas) { showModal("Ошибка", "Холст не найден", "error"); return; }
             const exportCanvas = document.createElement('canvas');
             exportCanvas.width  = mainCanvas.width;
             exportCanvas.height = mainCanvas.height;
@@ -221,13 +245,11 @@ const {
             ctx.fillStyle = bgColor;
             ctx.fillRect(0, 0, exportCanvas.width, exportCanvas.height);
             ctx.drawImage(mainCanvas, 0, 0);
-    
             const link = document.createElement('a');
             link.download = 'drawing.png';
             link.href = exportCanvas.toDataURL('image/png');
             link.click();
-        } 
-        else if (type === 'wav') {
+        } else if (type === 'wav') {
             exportToWAV(`melody_${new Date().toISOString().slice(0,10)}.wav`);
         }
     }, [engineRef, bgColor, exportToWAV, showModal]);
@@ -297,8 +319,8 @@ const {
     }, [saveToHistory]);
 
     const syncLayout = useCallback(() => {
-        const canvasEl   = canvasPanelRef.current;
-        const container  = drawBlockRef.current;
+        const canvasEl  = canvasPanelRef.current;
+        const container = drawBlockRef.current;
         if (!canvasEl || !container) return;
         const maxW = Math.max(
             CANVAS_MIN_SIZE,
@@ -319,9 +341,9 @@ const {
         clear(bgColorRef.current);
         setIsMelodyGenerated(false);
         setMelodyEvents([]);
-        stop(); // останавливаем Tone.Transport
+        stop();
         setActiveNote(null);
-      }, [clear, stop]);
+    }, [clear, stop]);
 
     // ── Рендер ─────────────────────────────────────────────────────
     return (
@@ -341,28 +363,16 @@ const {
                     <div className="icon save-btn">
                         <img src={SaveIcon} alt="Сохранить проект" />
                     </div>
-                    <div 
-  className="icon download-btn" 
-  onClick={() => {
-    if (!isMelodyGenerated) {
-      handleDownload('image'); // только картинка
-      return;
-    }
-    
-    // Показать выбор
-    const choice = window.confirm(
-      "Что скачать?\n\nOK — Мелодию (WAV)\nОтмена — Картинку"
-    );
-    
-    if (choice) {
-      handleDownload('wav');
-    } else {
-      handleDownload('image');
-    }
-  }}
->
-  <img src={DownloadIcon} alt="Скачать" />
-</div>
+                    <div
+                        className="icon download-btn"
+                        onClick={() => {
+                            if (!isMelodyGenerated) { handleDownload('image'); return; }
+                            const choice = window.confirm("Что скачать?\n\nOK — Мелодию (WAV)\nОтмена — Картинку");
+                            if (choice) handleDownload('wav'); else handleDownload('image');
+                        }}
+                    >
+                        <img src={DownloadIcon} alt="Скачать" />
+                    </div>
                     <div className="icon delete-btn">
                         <img src={TrashIcon} alt="Удалить проект" />
                     </div>
@@ -408,7 +418,6 @@ const {
                                 onReady={handleCanvasReady}
                             />
 
-                            {/* Ресайз-хендлы */}
                             <div className="resize-handle-horizontal"
                                  onMouseDown={handleResizeMouseDown("horizontal")} />
                             <div className="resize-handle-vertical"
@@ -416,14 +425,12 @@ const {
                             <div className="resize-handle-corner"
                                  onMouseDown={handleResizeMouseDown("both")} />
 
-                            {/* Оверлей импорта фото */}
                             {isImporting && (
                                 <div className="import-overlay">
                                     <Loader size={64} color="cyan" speed={1200} />
                                 </div>
                             )}
 
-                            {/* Индикатор активной ноты во время воспроизведения */}
                             {isPlaying && activeNote && (
                                 <ActiveNoteIndicator note={activeNote} />
                             )}
@@ -432,63 +439,126 @@ const {
                         <div className="idk-panel" />
                     </div>
 
-                    <div className="settings-block" />
+                    {/* ── Панель настроек ────────────────────────────────── */}
+                    <div className="settings-block">
+                        <SettingsPanel
+                            bpm={bpm}                 onBpmChange={setBpm}
+                            duration={duration}       onDurationChange={setDuration}
+                            scale={scale}             onScaleChange={setScale}
+                            smoothing={smoothing}     onSmoothingChange={setSmoothing}
+                            effectReverb={effectReverb}         onReverbChange={setEffectReverb}
+                            effectDelay={effectDelay}           onDelayChange={setEffectDelay}
+                            effectDistortion={effectDistortion} onDistortionChange={setEffectDistortion}
+                        />
+                    </div>
                 </div>
 
-            {isMelodyGenerated && (
-  <div className="music-player">
-    {/* Кнопка Play/Pause */}
-    <div className="icon" onClick={handlePlayPause}>
-      <img src={isPlaying ? PauseIcon : PlayIcon} alt={isPlaying ? "Пауза" : "Воспроизвести"} />
-    </div>
+                {/* ── Плеер ──────────────────────────────────────────────── */}
+                {isMelodyGenerated && (
+                    <div className="music-player">
+                        {/* Skip назад */}
+                        <div className="icon" onClick={() => skip(-5)} title="−5 с">
+                            <img src={SkipBackIcon} alt="Назад 5 с" />
+                        </div>
 
-    {/* Skip назад */}
-    <div className="icon" onClick={() => skip(-5)}>
-      <img src={SkipBackIcon} alt="Назад 5 с" />
-    </div>
+                        {/* Play / Pause */}
+                        <div className="icon" onClick={handlePlayPause}>
+                            <img
+                                src={isPlaying ? PauseIcon : PlayIcon}
+                                alt={isPlaying ? "Пауза" : "Воспроизвести"}
+                            />
+                        </div>
 
-    {/* Skip вперёд */}
-    <div className="icon" onClick={() => skip(5)}>
-      <img src={SkipForwardIcon} alt="Вперёд 5 с" />
-    </div>
+                        {/* Skip вперёд */}
+                        <div className="icon" onClick={() => skip(5)} title="+5 с">
+                            <img src={SkipForwardIcon} alt="Вперёд 5 с" />
+                        </div>
 
-    {/* Текущее время / длительность */}
-    <span className="time-display">
-      {formatTime(currentTime)} / {formatTime(totalDuration)}
-    </span>
+                        {/* Прогресс-бар */}
+                        <div
+                            ref={progressRef}
+                            onClick={handleProgressClick}
+                            style={{
+                                flex: 1,
+                                height: 4,
+                                background: 'rgba(255,255,255,0.12)',
+                                borderRadius: 4,
+                                cursor: 'pointer',
+                                position: 'relative',
+                                minWidth: 60,
+                            }}
+                        >
+                            <div style={{
+                                position: 'absolute',
+                                left: 0, top: 0,
+                                width: `${progressPercent}%`,
+                                height: '100%',
+                                background: 'linear-gradient(90deg, #00ffd1, #9900ff)',
+                                borderRadius: 4,
+                                transition: 'width 0.05s linear',
+                            }} />
+                            {/* Ползунок */}
+                            <div style={{
+                                position: 'absolute',
+                                top: '50%',
+                                left: `${progressPercent}%`,
+                                transform: 'translate(-50%, -50%)',
+                                width: 12,
+                                height: 12,
+                                borderRadius: '50%',
+                                background: '#fff',
+                                boxShadow: '0 0 6px rgba(0,255,209,0.6)',
+                                pointerEvents: 'none',
+                            }} />
+                        </div>
 
-    {/* Регулятор громкости */}
-    <div className="volume-control">
-      <img
-        src={
-          volume === 0 ? VolumeNoIcon :
-          volume < 0.5 ? VolumeLowIcon : VolumeHighIcon
-        }
-        alt="Громкость"
-        className="volume-icon"
-      />
-      <input
-        type="range"
-        min="0"
-        max="1"
-        step="0.01"
-        value={volume}
-        onChange={handleVolumeChange}
-        className="volume-slider"
-      />
-    </div>
-  </div>
-)}
-</div>
-                    
-<Button
-  variant="primary"
-  onClick={handleGenerateMelody}
-  disabled={isGenerating}
->
-  {isGenerating ? <Loader size={24} color="white" /> : "СГЕНЕРИРОВАТЬ МЕЛОДИЮ"}
-</Button>
+                        {/* Время */}
+                        <span style={{
+                            fontSize: 13,
+                            color: 'rgba(255,255,255,0.7)',
+                            fontVariantNumeric: 'tabular-nums',
+                            whiteSpace: 'nowrap',
+                            letterSpacing: '0.03em',
+                        }}>
+                            {formatTime(currentTime)} / {formatTime(totalDuration)}
+                        </span>
 
+                        {/* Громкость */}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                            <img
+                                src={
+                                    volume === 0 ? VolumeNoIcon :
+                                    volume < 0.5 ? VolumeLowIcon : VolumeHighIcon
+                                }
+                                alt="Громкость"
+                                style={{ width: 20, height: 20, opacity: 0.8, cursor: 'pointer' }}
+                                onClick={() => setVolume(volume === 0 ? 0.5 : 0)}
+                            />
+                            <input
+                                type="range"
+                                min="0"
+                                max="1"
+                                step="0.01"
+                                value={volume}
+                                onChange={handleVolumeChange}
+                                style={{
+                                    width: 80,
+                                    accentColor: '#00ffd1',
+                                    cursor: 'pointer',
+                                }}
+                            />
+                        </div>
+                    </div>
+                )}
+            </div>
+
+            <Button
+                variant="primary"
+                onClick={handleGenerateMelody}
+                disabled={isGenerating}
+            >
+                {isGenerating ? <Loader size={24} color="white" /> : "СГЕНЕРИРОВАТЬ МЕЛОДИЮ"}
+            </Button>
 
             <Modal
                 isOpen={modal.isOpen}
@@ -503,7 +573,7 @@ const {
     );
 };
 
-// ─── Маленький индикатор текущей ноты ────────────────────────────────────────
+// ─── Индикатор текущей ноты ───────────────────────────────────────────────────
 const NOTE_NAMES = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
 
 const freqToNoteName = (freq) => {
@@ -525,21 +595,12 @@ const ActiveNoteIndicator = ({ note }) => {
     if (!note) return null;
     return (
         <div style={{
-            position: 'absolute',
-            bottom: 12,
-            right: 12,
-            background: 'rgba(0,0,0,0.55)',
-            backdropFilter: 'blur(6px)',
-            borderRadius: 10,
-            padding: '6px 12px',
-            color: '#fff',
-            fontSize: 13,
-            fontFamily: 'monospace',
-            pointerEvents: 'none',
-            zIndex: 20,
-            display: 'flex',
-            gap: 10,
-            alignItems: 'center',
+            position: 'absolute', bottom: 12, right: 12,
+            background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(6px)',
+            borderRadius: 10, padding: '6px 12px',
+            color: '#fff', fontSize: 13, fontFamily: 'monospace',
+            pointerEvents: 'none', zIndex: 20,
+            display: 'flex', gap: 10, alignItems: 'center',
         }}>
             <span style={{ fontSize: 18, fontWeight: 700 }}>
                 {freqToNoteName(note.freq)}
