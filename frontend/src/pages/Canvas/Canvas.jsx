@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from "react";
+import BgCanvasLine from '../../assets/backgrounds/bg-canvas-line.png';
 import DrawingArea from "./components/DrawingArea";
 import ToolsPanel from "./components/ToolsPanel";
 import SettingsPanel from "./components/SettingsPanel";
@@ -335,6 +336,9 @@ const Canvas = () => {
 
     return (
         <div className="canvas-content">
+            <div className="canvas-bg-line">
+                <img src={BgCanvasLine} alt="фоновая линия" />
+            </div>
             <div className="canvas-header">
                 <div className="canvas-header-text">
                     <input

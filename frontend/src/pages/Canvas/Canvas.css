@@ -348,3 +348,33 @@
 .active-note-indicator .frequency {
     opacity: 0.5;
 }
+
+
+.canvas-bg-line {
+    position: absolute;
+    left: 50%;
+    top: 65px;
+    transform: translateX(-50%);
+    width: 100vw;
+    pointer-events: none;
+    z-index: 0;
+    opacity: 0;
+    animation: fadeInBg 1.2s ease-in-out forwards;
+}
+
+@keyframes fadeInBg {
+    0% {
+        opacity: 0;
+    }
+    100% {
+        opacity: 1;
+    }
+}
+
+.canvas-bg-line img {
+    width: 100%;
+    height: auto;
+    max-height:150vh;
+    max-width: none;
+    display: block;
+}

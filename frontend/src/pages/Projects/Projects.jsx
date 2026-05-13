@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-// import BgProjectsLine from '../../assets/backgrounds/bg-projects-line.png';
+import BgProjectsLine from '../../assets/backgrounds/bg-projects-line.png';
 import SortIcon from '../../assets/icons/icon-sort.svg'
 import CloseIcon from '../../assets/icons/icon-close.svg';
 import SearchPanel from './SearchPanel';
@@ -23,9 +23,9 @@ const Projects = () => {
 
     return (
         <div className="projects-content">
-            {/* <div className="projects-bg-line">
+            <div className="projects-bg-line">
                 <img src={BgProjectsLine} alt="фоновая линия" />
-            </div> */}
+            </div>
 
             <div className="projects-header">
                 <div className="projects-header-text">
