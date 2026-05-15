@@ -10,22 +10,53 @@
 .canvas-header {
     display: flex;
     justify-content: space-between;
-    align-items: center;
+    align-items: flex-start; /* выравнивание по верху, т.к. текст может быть многострочным */
 }
 
-.divider-project{
-    padding:0;
-    margin-top:6px;
-    margin-bottom:0px;
-    height: 3px;
-    background: var(--color-pale);
-    border-radius: 2px;
-}
-
-.canvas-header-icons{
+.canvas-header-icons {
     display: flex;
     gap: 22px;
     align-items: center;
+    flex-shrink: 0;    /* ← иконки не сжимаются */
+    flex-wrap: nowrap; /* ← иконки не переносятся */
+}
+
+.canvas-header-text {
+    width: 749px;
+    flex-shrink: 0;
+}
+
+.project-title-input {
+    background: transparent;
+    border: none;
+    outline: none;
+    font-family: var(--font-montserrat);
+    color: var(--color-bright);
+    font-weight: var(--font-weight-semibold);
+    font-size: var(--font-size-h2);
+    margin: 0;
+    width: 100%;
+    white-space: pre-wrap;      /* перенос текста */
+    word-break: break-word;
+    min-height: 1.2em;          /* минимум одна строка */
+    display: block;
+}
+
+/* placeholder для contenteditable */
+.project-title-input:empty::before {
+    content: attr(data-placeholder);
+    color: var(--color-pale);
+    pointer-events: none;
+}
+
+.divider-project {
+    padding: 0;
+    margin-top: 6px;
+    margin-bottom: 0;
+    height: 3px;
+    width: 749px;               /* фиксированная ширина */
+    background: var(--color-pale);
+    border-radius: 2px;
 }
 
 .workspace-area{
@@ -153,20 +184,6 @@
     background: linear-gradient(95deg, var(--color-cyan), var(--color-violet), var(--color-pink));
 }
 
-.project-title-input {
-    background: transparent;
-    border: none;
-    outline: none;
-    color: var(--color-bright);
-    font-weight: var(--font-weight-semibold);
-    letter-spacing: 0%;
-    font-size: var(--font-size-h2);
-    margin: 0;
-}
-
-.project-title-input::placeholder {
-    color: var(--color-pale);
-}
 
 /* .color-picker-popup {
     position: absolute;

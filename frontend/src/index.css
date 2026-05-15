@@ -45,6 +45,7 @@ body {
   min-height: 100vh;
   padding: 0 7vw;
   overflow-x: clip;
+  font-family: var(--font-montserrat);
 }
 
 h1 {

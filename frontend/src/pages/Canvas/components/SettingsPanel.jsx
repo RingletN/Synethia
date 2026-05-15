@@ -61,17 +61,15 @@ const SettingsPanel = ({
     return (
         <div className="settings-panel">
             <div className="settings-panel-header">
-                <img src={IconSettings} alt="settings" className="settings-panel-card-header-icon" />
-                <span className="settings-panel-header-title">НАСТРОЙКИ</span>
+                <img src={IconSettings} alt="settings" className=" icon settings-panel-card-header-icon" />
+                <h3 className="settings-panel-header-title">НАСТРОЙКИ</h3>
             </div>
 
             {/* Блок «Общие» */}
             <div className="settings-panel-card">
                 <div className="settings-panel-card-header" onClick={() => setExpandedGeneral(!expandedGeneral)}>
-                    <div className="settings-panel-card-header-left">
-                        <img src={IconNotes} alt="notes" className="settings-panel-card-header-icon" />
-                        <span className="settings-panel-card-header-text">ОБЩИЕ</span>
-                    </div>
+                        <img src={IconNotes} alt="notes" className=" icon settings-panel-card-header-icon" />
+                        <h3 className="settings-panel-card-header-text">ОБЩИЕ</h3>
                 </div>
                 {expandedGeneral && (
                     <div className="settings-panel-card-content">
@@ -163,10 +161,8 @@ const SettingsPanel = ({
             {/* Блок «Эффекты» */}
             <div className="settings-panel-card">
                 <div className="settings-panel-card-header" onClick={() => setExpandedEffects(!expandedEffects)}>
-                    <div className="settings-panel-card-header-left">
-                        <img src={IconEffects} alt="effects" className="settings-panel-card-header-icon" />
-                        <span className="settings-panel-card-header-text">ЭФФЕКТЫ</span>
-                    </div>
+                        <img src={IconEffects} alt="effects" className="icon settings-panel-card-header-icon" />
+                        <h3 className="settings-panel-card-header-text">ЭФФЕКТЫ</h3>
                 </div>
                 {expandedEffects && (
                     <div className="settings-panel-card-content">

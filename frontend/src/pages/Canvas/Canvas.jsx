@@ -340,13 +340,16 @@ const Canvas = () => {
                 <img src={BgCanvasLine} alt="фоновая линия" />
             </div>
             <div className="canvas-header">
-                <div className="canvas-header-text">
-                    <input
-                        className="project-title-input"
-                        placeholder="Введите название проекта..."
-                    />
-                    <div className="divider-project" />
-                </div>
+            <div className="canvas-header-text">
+            <div
+                    className="project-title-input"
+                    contentEditable
+                    suppressContentEditableWarning
+                    onInput={(e) => setProjectName(e.currentTarget.textContent)}
+                    data-placeholder="Введите название проекта..."
+                />
+                <div className="divider-project" />
+            </div>
                 <div className="canvas-header-icons">
                     <div className="icon favourite-btn" onClick={() => setIsStarSelected(p => !p)}>
                         <img src={isStarSelected ? StarSelectedIcon : StarIcon} alt="Избранное" />
