@@ -11,6 +11,7 @@ import IconNotes from "../../../assets/icons/icon-notes.svg";
 import IconEffects from "../../../assets/icons/icon-effects.svg";
 import IconTurtle from "../../../assets/icons/icon-turtle.svg";
 import IconHare from "../../../assets/icons/icon-hare.svg";
+import GradientSlider from "../../../components/ui/GradientSlider";
 
 const SettingsPanel = ({
     bpm,
@@ -60,9 +61,12 @@ const SettingsPanel = ({
 
     return (
         <div className="settings-panel">
-            <div className="settings-panel-header">
-                <img src={IconSettings} alt="settings" className=" icon settings-panel-card-header-icon" />
-                <h3 className="settings-panel-header-title">НАСТРОЙКИ</h3>
+            <div className="settings-panel-header-block">
+                <div className="settings-panel-header">
+                    <img src={IconSettings} alt="settings" className=" icon settings-panel-card-header-icon" />
+                    <h3 className="settings-panel-header-title">НАСТРОЙКИ</h3>
+                </div>
+                <div className="divider-settings" />
             </div>
 
             {/* Блок «Общие» */}
@@ -74,77 +78,75 @@ const SettingsPanel = ({
                 {expandedGeneral && (
                     <div className="settings-panel-card-content">
                         {/* Длительность */}
-                        <div className="settings-panel-control-group">
+                        <div className="settings-panel-control-group duration">
                             <div className="settings-panel-control-label">ДЛИТЕЛЬНОСТЬ</div>
                             <div className="settings-panel-value-row">
                                 <img
                                     src={LeftChevron}
                                     alt="-"
-                                    className={`settings-panel-chevron ${duration <= 5 ? 'settings-panel-chevron-disabled' : ''}`}
+                                    // className={`icon settings-panel-chevron ${duration <= 8 ? 'settings-panel-chevron-disabled' : ''}`}
+                                    className="icon settings-panel-chevron" 
+                                    disabled={duration <= 8}
                                     onClick={decreaseDuration}
                                 />
                                 <span className="settings-panel-duration-text">{formatDuration(duration)}</span>
                                 <img
                                     src={RightChevron}
                                     alt="+"
-                                    className={`settings-panel-chevron ${duration >= 90 ? 'settings-panel-chevron-disabled' : ''}`}
+                                    // className={`settings-panel-chevron ${duration >= 90 ? 'settings-panel-chevron-disabled' : ''}`}
+                                    className="icon settings-panel-chevron" 
+                                    disabled={duration >=90}
                                     onClick={increaseDuration}
                                 />
                             </div>
                         </div>
 
-                        {/* Настроение */}
-                        <div className="settings-panel-control-group">
-                            <div className="settings-panel-control-label">НАСТРОЕНИЕ</div>
-                            <div className="settings-panel-value-row">
-                                <img
-                                    src={LeftChevron}
-                                    alt="prev"
-                                    className="settings-panel-chevron"
-                                    onClick={prevMood}
-                                />
-                                <div className="settings-panel-mood-images">
-                                    <img
-                                        src={MajorBlock}
-                                        alt="major"
-                                        className={`settings-panel-mood-img ${scale === 'major' ? 'settings-panel-mood-img-active' : ''}`}
-                                        onClick={setMajor}
-                                    />
-                                    <img
-                                        src={MinorBlock}
-                                        alt="minor"
-                                        className={`settings-panel-mood-img ${scale === 'minor' ? 'settings-panel-mood-img-active' : ''}`}
-                                        onClick={setMinor}
-                                    />
-                                </div>
-                                <img
-                                    src={RightChevron}
-                                    alt="next"
-                                    className="settings-panel-chevron"
-                                    onClick={nextMood}
-                                />
-                            </div>
-                        </div>
+{/* Настроение */}
+<div className="settings-panel-control-group mood">
+    <div className="settings-panel-control-label">НАСТРОЕНИЕ</div>
+    <div className="settings-panel-value-row">
+        <img
+            src={LeftChevron}
+            alt="prev"
+            className=" icon settings-panel-chevron"
+            onClick={prevMood}
+        />
+        <div className="settings-panel-mood-images">
+            {/* Одна иконка, которая меняется в зависимости от scale */}
+            <img
+                src={scale === 'major' ? MajorBlock : MinorBlock}
+                alt={scale}
+                className="settings-panel-mood-img settings-panel-mood-img-active"
+            />
+        </div>
+        <img
+            src={RightChevron}
+            alt="next"
+            className="icon settings-panel-chevron"
+            onClick={nextMood}
+        />
+    </div>
+</div>
 
                         {/* Темп */}
-                        <div className="settings-panel-control-group">
+                        <div className="settings-panel-control-group temp">
                             <div className="settings-panel-control-label">ТЕМП</div>
                             <div className="settings-panel-tempo-row">
                                 <img
                                     src={IconTurtle}
                                     alt="slow"
-                                    className="settings-panel-tempo-icon"
+                                    className="icon settings-panel-tempo-icon"
                                     onClick={decreaseBpm}
                                 />
                                 <span className="settings-panel-tempo-value">{bpm}</span>
                                 <img
                                     src={IconHare}
                                     alt="fast"
-                                    className="settings-panel-tempo-icon"
+                                    className="icon settings-panel-tempo-icon"
                                     onClick={increaseBpm}
                                 />
                             </div>
-                            <input
+                            {/* <input
                                 type="range"
                                 min={40}
                                 max={180}
@@ -152,6 +154,13 @@ const SettingsPanel = ({
                                 value={bpm}
                                 onChange={(e) => onBpmChange(Number(e.target.value))}
                                 className="settings-panel-slider"
+                            /> */}
+                            <GradientSlider
+                                min={40}
+                                max={180}
+                                step={1}
+                                value={bpm}
+                                onChange={onBpmChange}
                             />
                         </div>
                     </div>
@@ -165,51 +174,55 @@ const SettingsPanel = ({
                         <h3 className="settings-panel-card-header-text">ЭФФЕКТЫ</h3>
                 </div>
                 {expandedEffects && (
-                    <div className="settings-panel-card-content">
-                        <div className="settings-panel-effect-slider-row">
-                            <div className="settings-panel-effect-label-row">
-                                <span>Реверб</span>
-                                <span className="settings-panel-effect-value">{Math.round(effectReverb * 100)}%</span>
-                            </div>
-                            <input
-                                type="range"
-                                min={0}
-                                max={100}
-                                value={Math.round(effectReverb * 100)}
-                                onChange={(e) => onReverbChange(Number(e.target.value) / 100)}
-                                className="settings-panel-slider"
-                            />
-                        </div>
-                        <div className="settings-panel-effect-slider-row">
-                            <div className="settings-panel-effect-label-row">
-                                <span>Дилэй</span>
-                                <span className="settings-panel-effect-value">{Math.round(effectDelay * 100)}%</span>
-                            </div>
-                            <input
-                                type="range"
-                                min={0}
-                                max={100}
-                                value={Math.round(effectDelay * 100)}
-                                onChange={(e) => onDelayChange(Number(e.target.value) / 100)}
-                                className="settings-panel-slider"
-                            />
-                        </div>
-                        <div className="settings-panel-effect-slider-row">
-                            <div className="settings-panel-effect-label-row">
-                                <span>Дисторшн</span>
-                                <span className="settings-panel-effect-value">{Math.round(effectDistortion * 100)}%</span>
-                            </div>
-                            <input
-                                type="range"
-                                min={0}
-                                max={100}
-                                value={Math.round(effectDistortion * 100)}
-                                onChange={(e) => onDistortionChange(Number(e.target.value) / 100)}
-                                className="settings-panel-slider"
-                            />
-                        </div>
-                    </div>
-                )}
+    <div className="settings-panel-card-content">
+
+        {/* Реверб */}
+        <div className="settings-panel-control-group temp">
+            <div className="settings-panel-control-label">РЕВЕРБ</div>
+            <div className="settings-panel-tempo-row">
+                <img src={IconTurtle} alt="min" className="icon settings-panel-tempo-icon" onClick={() => onReverbChange(Math.max(0, effectReverb - 0.05))} />
+                <span className="settings-panel-tempo-value">{Math.round(effectReverb * 100)}%</span>
+                <img src={IconHare} alt="max" className="icon settings-panel-tempo-icon" onClick={() => onReverbChange(Math.min(1, effectReverb + 0.05))} />
+            </div>
+            <GradientSlider
+                min={0} max={100} step={1}
+                value={Math.round(effectReverb * 100)}
+                onChange={(v) => onReverbChange(v / 100)}
+            />
+        </div>
+
+        {/* Дилэй */}
+        <div className="settings-panel-control-group temp">
+            <div className="settings-panel-control-label">ДИЛЭЙ</div>
+            <div className="settings-panel-tempo-row">
+                <img src={IconTurtle} alt="min" className="icon settings-panel-tempo-icon" onClick={() => onDelayChange(Math.max(0, effectDelay - 0.05))} />
+                <span className="settings-panel-tempo-value">{Math.round(effectDelay * 100)}%</span>
+                <img src={IconHare} alt="max" className="icon settings-panel-tempo-icon" onClick={() => onDelayChange(Math.min(1, effectDelay + 0.05))} />
+            </div>
+            <GradientSlider
+                min={0} max={100} step={1}
+                value={Math.round(effectDelay * 100)}
+                onChange={(v) => onDelayChange(v / 100)}
+            />
+        </div>
+
+        {/* Дисторшн */}
+        <div className="settings-panel-control-group temp">
+            <div className="settings-panel-control-label">ДИСТОРШН</div>
+            <div className="settings-panel-tempo-row">
+                <img src={IconTurtle} alt="min" className="icon settings-panel-tempo-icon" onClick={() => onDistortionChange(Math.max(0, effectDistortion - 0.05))} />
+                <span className="settings-panel-tempo-value">{Math.round(effectDistortion * 100)}%</span>
+                <img src={IconHare} alt="max" className="icon settings-panel-tempo-icon" onClick={() => onDistortionChange(Math.min(1, effectDistortion + 0.05))} />
+            </div>
+            <GradientSlider
+                min={0} max={100} step={1}
+                value={Math.round(effectDistortion * 100)}
+                onChange={(v) => onDistortionChange(v / 100)}
+            />
+        </div>
+
+    </div>
+)}
             </div>
         </div>
     );

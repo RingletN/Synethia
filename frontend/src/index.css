@@ -82,6 +82,21 @@ p {
   border-radius: 2px;
 }
 
+.icon {
+  cursor: pointer;
+  transition: transform 0.1s;
+}
+
+.icon:not(:disabled):hover {
+  transform: scale(1.1);
+}
+
+.icon:disabled {
+  cursor: default;
+  opacity: 0.5;
+}
+
+
 @media (max-width: 1120px) {
   :root {
   --font-size-h1: 38px;

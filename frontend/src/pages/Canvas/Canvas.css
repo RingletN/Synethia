@@ -319,7 +319,7 @@
 }
 
 .music-player .time-text {
-
+    font-variant-numeric: tabular-nums;
 }
 
 .music-player .volume-control {
