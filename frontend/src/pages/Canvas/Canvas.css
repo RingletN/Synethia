@@ -309,10 +309,10 @@
 .music-player .progress-thumb {
     position: absolute;
     top: 50%;
-    width: 12px;
-    height: 12px;
+    width: 18px;
+    height: 18px;
     border-radius: 50%;
-    background: #fff;
+    background: var(--color-bright);
     box-shadow: 0 0 6px rgba(0, 255, 209, 0.6);
     pointer-events: none;
     transform: translate(-50%, -50%);
