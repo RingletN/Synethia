@@ -6,6 +6,7 @@
 import * as Tone from 'tone';
 
 // ─── Те же SAMPLER_URLS, что и в useMelodyPlayer (всегда .mp3) ───────────────
+// ─── SAMPLER_URLS: точная копия useMelodyPlayer.js (только существующие файлы) ─
 const SAMPLER_URLS = {
   piano: {
     baseUrl: '/samples/piano/',
@@ -20,10 +21,10 @@ const SAMPLER_URLS = {
     baseUrl: '/samples/guitar-acoustic/',
     urls: {
       E2: 'E2.mp3', 'F#2': 'Fs2.mp3', G2: 'G2.mp3', A2: 'A2.mp3',
-      B2: 'B2.mp3', C3: 'C3.mp3',  D3: 'D3.mp3',  E3: 'E3.mp3',
+      B2: 'B2.mp3', C3: 'C3.mp3', D3: 'D3.mp3', E3: 'E3.mp3',
       'F#3': 'Fs3.mp3', G3: 'G3.mp3', A3: 'A3.mp3', B3: 'B3.mp3',
-      C4: 'C4.mp3', D4: 'D4.mp3',  E4: 'E4.mp3',  'F#4': 'Fs4.mp3',
-      G4: 'G4.mp3', A4: 'A4.mp3',  B4: 'B4.mp3',  C5: 'C5.mp3',
+      C4: 'C4.mp3', D4: 'D4.mp3', E4: 'E4.mp3', 'F#4': 'Fs4.mp3',
+      G4: 'G4.mp3', A4: 'A4.mp3', B4: 'B4.mp3', C5: 'C5.mp3',
     },
   },
   flute: {
@@ -42,6 +43,54 @@ const SAMPLER_URLS = {
       C5: 'C5.ogg', E5: 'E5.ogg', G5: 'G5.ogg', A5: 'A5.ogg',
     },
   },
+  clarinet: {
+    baseUrl: '/samples/clarinet/',
+    urls: {
+      D3: 'D3.mp3', F3: 'F3.mp3', 'A#3': 'As3.mp3',
+      D4: 'D4.mp3', F4: 'F4.mp3', 'A#4': 'As4.mp3',
+      D5: 'D5.mp3', F5: 'F5.mp3', 'A#5': 'As5.mp3',
+      D6: 'D6.mp3',
+    },
+  },
+  saxophone: {
+    baseUrl: '/samples/saxophone/',
+    urls: {
+      'A#3': 'As3.mp3', C4: 'C4.mp3', 'D#4': 'Ds4.mp3',
+      'F#4': 'Fs4.mp3', A4: 'A4.mp3', C5: 'C5.mp3',
+      'D#5': 'Ds5.mp3', 'F#5': 'Fs5.mp3', A5: 'A5.mp3',
+    },
+  },
+  'guitar-electric': {
+    baseUrl: '/samples/guitar-electric/',
+    urls: {
+      'D#3': 'Ds3.mp3', 'F#3': 'Fs3.mp3', A3: 'A3.mp3',
+      C4: 'C4.mp3', 'D#4': 'Ds4.mp3', 'F#4': 'Fs4.mp3',
+      A4: 'A4.mp3', C5: 'C5.mp3', 'D#5': 'Ds5.mp3',
+      'F#5': 'Fs5.mp3', A5: 'A5.mp3',
+    },
+  },
+  cello: {
+    baseUrl: '/samples/cello/',
+    urls: {
+      E2: 'E2.mp3', A2: 'A2.mp3', D3: 'D3.mp3',
+      G3: 'G3.mp3', C4: 'C4.mp3', E4: 'E4.mp3',
+      A4: 'A4.mp3',
+    },
+  },
+  xylophone: {
+    baseUrl: '/samples/xylophone/',
+    urls: {
+      G4: 'G4.mp3',
+      C5: 'C5.mp3', G5: 'G5.mp3', C6: 'C6.mp3', G6: 'G6.mp3',
+    },
+  },
+  harp: {
+    baseUrl: '/samples/harp/',
+    urls: {
+      C3: 'C3.mp3', G3: 'G3.mp3',
+      C5: 'C5.mp3', G5: 'G5.mp3',
+    },
+  },
 };
 
 // Маппинг legacy осциллятора → реальный инструмент
@@ -53,7 +102,8 @@ const LEGACY_TO_INSTRUMENT = {
 };
 
 function resolveInstrumentName(instrument) {
-  return LEGACY_TO_INSTRUMENT[instrument] || instrument || 'piano';
+  if (SAMPLER_URLS[instrument]) return instrument;
+  return LEGACY_TO_INSTRUMENT[instrument] || 'piano';
 }
 
 // ─── Загрузить один семплер в Offline-контексте ───────────────────────────────

@@ -11,23 +11,23 @@ import RedoIcon from "../../../assets/icons/icon-redo.svg";
 import RedoBlockedIcon from "../../../assets/icons/icon-redo-blocked.svg";
 import ClearCanvasIcon from "../../../assets/icons/icon-clear-canvas.svg";
 import IconCanvasBg from '../../../components/ui/IconCanvasBg';
+import IconBrushColor from '../../../components/ui/IconBrushColor';
 
 // ─── Маппинг: цвет → инструмент (должен совпадать с MelodyEngine и useMelodyPlayer) ──
 export const INSTRUMENT_COLORS = [
-    { color: '#00ffd1', instrument: 'sine',     label: 'Пианино',  icon: '🎹' },
-    { color: '#ff3366', instrument: 'square',   label: 'Гитара',   icon: '🎸' },
-    { color: '#ffcc00', instrument: 'sawtooth', label: 'Флейта',   icon: '🪈' },
-    { color: '#9900ff', instrument: 'triangle', label: 'Скрипка',  icon: '🎻' },
+    // Оригинальная четвёрка
+    { color: '#00ffd1', instrument: 'piano',          label: 'Пианино',  icon: '🎹' },
+    { color: '#ff3366', instrument: 'guitar',         label: 'Гитара',   icon: '🎸' },
+    { color: '#ffcc00', instrument: 'flute',          label: 'Флейта',   icon: '🪈' },
+    { color: '#9900ff', instrument: 'strings',        label: 'Скрипка',  icon: '🎻' },
+    // Новые инструменты
+    { color: '#ff6b35', instrument: 'clarinet',       label: 'Кларнет',  icon: '🎷' },
+    { color: '#00b4d8', instrument: 'saxophone',      label: 'Саксофон', icon: '🎷' },
+    { color: '#f72585', instrument: 'guitar-electric',label: 'Электрогитара', icon: '🎸' },
+    { color: '#7bed9f', instrument: 'cello',          label: 'Виолончель', icon: '🎻' },
+    { color: '#ffd60a', instrument: 'xylophone',      label: 'Ксилофон', icon: '🎶' },
+    { color: '#a855f7', instrument: 'harp',           label: 'Арфа',     icon: '🎵' },
 ];
-
-// ─── Кружок инструмента (показывает текущий цвет кисти) ──────────────────────
-const InstrumentDot = ({ color, size = 52 }) => (
-    <svg width={size} height={size} viewBox="0 0 52 52">
-        <circle cx="26" cy="26" r="14" fill={color} opacity="0.92" />
-        <circle cx="26" cy="26" r="14" fill="none" stroke={color} strokeWidth="2" opacity="0.5" />
-        <circle cx="26" cy="26" r="20" fill="none" stroke={color} strokeWidth="1.5" opacity="0.2" />
-    </svg>
-);
 
 // ─── Попап выбора инструмента/цвета ──────────────────────────────────────────
 const InstrumentPicker = ({ currentColor, onChange, onClose, anchorRef }) => {
@@ -70,8 +70,10 @@ const InstrumentPicker = ({ currentColor, onChange, onClose, anchorRef }) => {
                 boxShadow: '0 12px 48px rgba(0,0,0,0.6)',
                 display: 'flex',
                 flexDirection: 'column',
-                gap: 6,
-                minWidth: 160,
+                gap: 4,
+                minWidth: 190,
+                maxHeight: '80vh',
+                overflowY: 'auto',
             }}
         >
             <span style={{
@@ -94,7 +96,7 @@ const InstrumentPicker = ({ currentColor, onChange, onClose, anchorRef }) => {
                             display: 'flex',
                             alignItems: 'center',
                             gap: 10,
-                            padding: '8px 10px',
+                            padding: '7px 10px',
                             borderRadius: 10,
                             border: '1.5px solid',
                             borderColor: isActive ? color : 'transparent',
@@ -107,14 +109,16 @@ const InstrumentPicker = ({ currentColor, onChange, onClose, anchorRef }) => {
                             textAlign: 'left',
                         }}
                     >
-                        <span style={{
-                            width: 14, height: 14, borderRadius: '50%',
-                            background: color,
-                            display: 'inline-block',
-                            flexShrink: 0,
-                            boxShadow: isActive ? `0 0 8px ${color}80` : 'none',
-                        }} />
-                        <span style={{ fontSize: 15 }}>{icon}</span>
+                        {/* Цветной кружок через наш компонент */}
+                        <IconBrushColor
+                            color={color}
+                            size={22}
+                            style={{
+                                flexShrink: 0,
+                                filter: isActive ? `drop-shadow(0 0 4px ${color}80)` : 'none',
+                            }}
+                        />
+                        <span style={{ fontSize: 14 }}>{icon}</span>
                         <span style={{ letterSpacing: '0.03em' }}>{label}</span>
                         {isActive && (
                             <span style={{ marginLeft: 'auto', fontSize: 11, opacity: 0.7 }}>✓</span>
@@ -207,7 +211,7 @@ const ToolsPanel = forwardRef(({
         if (onImportPhoto) onImportPhoto(file);
     };
 
-    // Подсветка текущего инструмента
+    // Данные текущего инструмента для отображения
     const currentInstrData = INSTRUMENT_COLORS.find(i => i.color === currentBrushColor)
         || INSTRUMENT_COLORS[0];
 
@@ -242,7 +246,7 @@ const ToolsPanel = forwardRef(({
                 }
             </div>
 
-            {/* Выбор инструмента/цвета кисти */}
+            {/* Выбор инструмента/цвета кисти — используем IconBrushColor */}
             <div
                 ref={instrPickerAnchorRef}
                 className="icon brush-color-btn"
@@ -255,9 +259,19 @@ const ToolsPanel = forwardRef(({
                         : '2px solid transparent',
                     borderRadius: '50%',
                     transition: 'outline 0.15s',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
                 }}
             >
-                <InstrumentDot color={currentBrushColor} size={52} />
+                <IconBrushColor
+                    color={currentBrushColor}
+                    size={52}
+                    style={{
+                        filter: `drop-shadow(0 0 6px ${currentBrushColor}80)`,
+                        transition: 'filter 0.2s',
+                    }}
+                />
             </div>
 
             {/* Попап выбора инструмента */}

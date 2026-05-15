@@ -19,52 +19,54 @@ class MelodyEngine {
 
         // Лады (статья, стр. 5–6)
         this.SCALES = {
-            major: [0, 2, 4, 5, 7, 9, 11],   // I = {0,2,4,5,7,9,11}
-            minor: [0, 2, 3, 5, 7, 8, 10],   // I = {0,2,3,5,7,8,10}
+            major: [0, 2, 4, 5, 7, 9, 11],
+            minor: [0, 2, 3, 5, 7, 8, 10],
         };
 
-        // Цвет кисти → тип осциллятора
+        // Цвет кисти → ключ инструмента (совпадает с useMelodyPlayer и ToolsPanel)
         this.COLOR_TO_INSTRUMENT = {
-            '#00ffd1': 'sine',
-            '#ff3366': 'square',
-            '#ffcc00': 'sawtooth',
-            '#9900ff': 'triangle',
+            '#00ffd1': 'piano',
+            '#ff3366': 'guitar',
+            '#ffcc00': 'flute',
+            '#9900ff': 'strings',
+            '#ff6b35': 'clarinet',
+            '#00b4d8': 'saxophone',
+            '#f72585': 'guitar-electric',
+            '#7bed9f': 'cello',
+            '#ffd60a': 'xylophone',
+            '#a855f7': 'harp',
         };
 
         // Громкость 0..1 по инструменту
         this.INSTRUMENT_VOLUME = {
-            sine:     0.28,
-            square:   0.12,
-            sawtooth: 0.14,
-            triangle: 0.22,
+            piano:           0.28,
+            guitar:          0.18,
+            flute:           0.22,
+            strings:         0.22,
+            clarinet:        0.24,
+            saxophone:       0.20,
+            'guitar-electric': 0.16,
+            cello:           0.24,
+            xylophone:       0.30,
+            harp:            0.26,
         };
     }
 
-    // ─── MIDI / частоты (формула 1 из статьи) ───────────────────────────────
+    // ─── MIDI / частоты ──────────────────────────────────────────────────────
 
-    /** Произвольная частота → номер MIDI-ноты (формула 1) */
     freqToMidi(freq) {
         return this.A4_MIDI + 12 * Math.log2(freq / this.A4_FREQ);
     }
 
-    /** MIDI-номер → частота */
     midiToFreq(midi) {
         return this.A4_FREQ * Math.pow(2, (midi - this.A4_MIDI) / 12);
     }
 
-    /**
-     * Нормированная Y (0–1, 0 = верх холста) → частота в диапазоне C3–C6.
-     * Верх холста = высокие частоты, низ = низкие (статья, рис. 1).
-     */
     yNormToFreq(yNorm) {
         const t = 1 - yNorm;
         return this.MIN_FREQ * Math.pow(this.MAX_FREQ / this.MIN_FREQ, t);
     }
 
-    /**
-     * Квантование частоты в ближайшую ноту тональности (формула 2).
-     * S = { n_tonic + i | i ∈ I }
-     */
     quantizeToScale(freq, tonicMidi, scale) {
         const intervals  = this.SCALES[scale] || this.SCALES.major;
         const rawMidi    = Math.round(this.freqToMidi(freq));
@@ -83,9 +85,8 @@ class MelodyEngine {
         return this.midiToFreq(quantMidi);
     }
 
-    // ─── Определение тоники (стр. 4) ────────────────────────────────────────
+    // ─── Определение тоники ──────────────────────────────────────────────────
 
-    /** Самая левая точка рисунка → тоника */
     detectTonic(segments) {
         let leftmostPoint = null;
         let leftmostX     = Infinity;
@@ -94,69 +95,51 @@ class MelodyEngine {
                 if (pt.x < leftmostX) { leftmostX = pt.x; leftmostPoint = pt; }
             }
         }
-        if (!leftmostPoint) return Math.round(this.freqToMidi(261.63)); // C4 по умолчанию
+        if (!leftmostPoint) return Math.round(this.freqToMidi(261.63));
         return Math.round(this.freqToMidi(this.yNormToFreq(leftmostPoint.y)));
     }
 
-    // ─── Основной метод генерации (стр. 6–8) ────────────────────────────────
+    // ─── Основной метод генерации ────────────────────────────────────────────
 
-    /**
-     * Преобразует сегменты рисунка в нотные события.
-     *
-     * Алгоритм по статье:
-     *   T = BPM * t_max / (60 * 4)  — число тактов
-     *   Для каждого такта k:
-     *     - собираем все точки сегментов, чья X попадает в [k/T, (k+1)/T)
-     *     - вычисляем среднюю частоту f̄_k = mean(f(y_i))
-     *     - квантуем → опорная нота такта
-     *     - группируем по инструменту: одинаковый цвет → интервал/аккорд,
-     *       разные цвета → полифония
-     *
-     * @param {Array}  segments
-     * @param {object} options  { bpm, duration, scale, smoothing, notesPerBeat }
-     * @returns {{ events: Array<{time, freq, duration, instrument, volume}>, tonicMidi }}
-     */
     buildNoteEvents(segments, options = {}) {
         const {
             bpm       = 80,
-            duration  = 8,       // t_max в секундах
+            duration  = 8,
             scale     = 'major',
             smoothing = 30,
-            notesPerBeat = 1,    // сколько нот на такт (ритмический рисунок)
+            notesPerBeat = 1,
         } = options;
 
         if (!segments?.length) return { events: [], tonicMidi: 60 };
 
-        // Сглаживание и разметка инструментов
         const processedSegments = segments
             .filter(seg => seg.points?.length >= 2)
-            .map(seg => ({
-                ...seg,
-                points:     this.applySmoothing(seg.points, smoothing),
-                instrument: this.COLOR_TO_INSTRUMENT[seg.color] || 'sine',
-                volume:     this.INSTRUMENT_VOLUME[this.COLOR_TO_INSTRUMENT[seg.color] || 'sine'],
-            }));
+            .map(seg => {
+                const instrument = this.COLOR_TO_INSTRUMENT[seg.color] || 'piano';
+                return {
+                    ...seg,
+                    points:     this.applySmoothing(seg.points, smoothing),
+                    instrument,
+                    volume:     this.INSTRUMENT_VOLUME[instrument] || 0.22,
+                };
+            });
 
         const tonicMidi = this.detectTonic(processedSegments);
 
-        // Число тактов: T = BPM * t_max / (60 * 4)  (формула 3)
         const T = Math.max(1, Math.ceil(bpm * duration / (60 * 4)));
-        const beatDuration = duration / T;       // длительность такта в секундах
+        const beatDuration = duration / T;
 
-        // Для каждого такта k собираем точки по инструментам
-        // taktPoints[k] = Map<instrument, y[]>
         const taktPoints = [];
         for (let i = 0; i < T; i++) taktPoints.push(new Map());
 
         for (const seg of processedSegments) {
             const { points, instrument } = seg;
             for (const pt of points) {
-                // Защита: x и y должны быть числами в диапазоне [0, 1]
                 const xNorm = typeof pt.x === 'number' && isFinite(pt.x) ? pt.x : 0;
                 const yNorm = typeof pt.y === 'number' && isFinite(pt.y) ? pt.y : 0.5;
                 const k = Math.min(T - 1, Math.max(0, Math.floor(xNorm * T)));
                 const taktMap = taktPoints[k];
-                if (!taktMap) continue; // дополнительная защита
+                if (!taktMap) continue;
                 if (!taktMap.has(instrument)) taktMap.set(instrument, []);
                 taktMap.get(instrument).push(yNorm);
             }
@@ -168,30 +151,21 @@ class MelodyEngine {
             const taktMap = taktPoints[k];
             if (taktMap.size === 0) continue;
 
-            // Время начала такта
             const taktStartSec = k * beatDuration;
 
-            // Для каждого инструмента, присутствующего в такте
             for (const [instrument, yValues] of taktMap) {
                 if (yValues.length === 0) continue;
 
                 const volume = this.INSTRUMENT_VOLUME[instrument] || 0.2;
 
                 if (yValues.length === 1) {
-                    // Одна точка → одна нота
                     const rawFreq = this.yNormToFreq(yValues[0]);
                     const freq    = this.quantizeToScale(rawFreq, tonicMidi, scale);
                     events.push(this._makeEvent(taktStartSec, beatDuration, freq, instrument, volume, notesPerBeat));
                 } else {
-                    // Несколько точек одного цвета → интервал или аккорд (стр. 8)
-                    // Берём среднюю Y как опорную ноту, плюс крайние для интервала
                     const sorted = [...yValues].sort((a, b) => a - b);
-
-                    // Средняя частота (формула f̄_k)
                     const avgY   = yValues.reduce((s, y) => s + y, 0) / yValues.length;
-                    const avgFreq = this.quantizeToScale(this.yNormToFreq(avgY), tonicMidi, scale);
 
-                    // Для аккорда берём до 3 уникальных высот (минимальная, средняя, максимальная)
                     const chordYs = yValues.length >= 3
                         ? [sorted[0], avgY, sorted[sorted.length - 1]]
                         : [sorted[0], sorted[sorted.length - 1]];
@@ -209,18 +183,11 @@ class MelodyEngine {
             }
         }
 
-        // Сортируем по времени
         events.sort((a, b) => a.time - b.time);
-
         return { events, tonicMidi };
     }
 
-    /**
-     * Создаёт одно или несколько нотных событий для такта
-     * в зависимости от notesPerBeat (ритмический рисунок внутри такта).
-     */
     _makeEvent(taktStartSec, beatDuration, freq, instrument, volume, notesPerBeat) {
-        // Добавляем случайность для вариативности (стр. 7)
         const jitter = (Math.random() - 0.5) * 0.02;
         return {
             time:       Math.max(0, taktStartSec + jitter),
@@ -233,7 +200,6 @@ class MelodyEngine {
 
     // ─── Вспомогательные ─────────────────────────────────────────────────────
 
-    /** Сглаживание точек (экспоненциальное скользящее среднее по Y) */
     applySmoothing(points, smoothingPercent) {
         if (points.length <= 1 || smoothingPercent === 0) return points;
         const factor = smoothingPercent / 100;
@@ -248,23 +214,14 @@ class MelodyEngine {
         return result;
     }
 
-    /**
-     * Вспомогательный: определяет направление линии в сегменте
-     * (восходящая / нисходящая / горизонтальная).
-     * Используется для сохранения «тенденции рисунка» (стр. 8).
-     */
     getSegmentDirection(segment) {
         const pts = segment.points;
         if (pts.length < 2) return 0;
         const dy = pts[pts.length - 1].y - pts[0].y;
-        if (Math.abs(dy) < 0.05) return 0;   // горизонталь
-        return dy < 0 ? 1 : -1;              // y убывает = нота растёт (верх = высокие частоты)
+        if (Math.abs(dy) < 0.05) return 0;
+        return dy < 0 ? 1 : -1;
     }
 
-    /**
-     * Число нот на такт в зависимости от BPM (ритмический рисунок, стр. 7).
-     * Элемент случайности встроен.
-     */
     selectNotesPerBeat(bpm) {
         let options;
         if (bpm >= 120)     options = [{ n: 1, p: 0.65 }, { n: 2, p: 0.35 }];
