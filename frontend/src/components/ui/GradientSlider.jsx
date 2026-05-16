@@ -5,6 +5,7 @@ const COLORS = {
   cyan:   "#00F2FF",
   pink:   "#FF00FF",
   bright: "#ECECEC",
+  dark:   "rgba(0, 0, 0, 0.45)",
 };
 
 const STATIC_STYLE_ID = "gradient-slider-static";
@@ -17,7 +18,6 @@ const STATIC_CSS = `
     border-radius: 2px;
     outline: none;
     cursor: pointer;
-    background: linear-gradient(to right, ${COLORS.violet}, ${COLORS.cyan}, ${COLORS.pink});
     box-shadow: 0 2px 8px rgba(0,0,0,0.35), 0 1px 3px rgba(0,0,0,0.2);
   }
   .gradient-slider-track::-webkit-slider-thumb {
@@ -84,7 +84,16 @@ export default function GradientSlider({
 
   const pct = (value - min) / (max - min);
   const thumbColor = getThumbColor(pct);
-  const rightPct = (1 - pct) * 100;
+  const pctStr = `${(pct * 100).toFixed(2)}%`;
+
+  // Трек: слева — цветной градиент до позиции thumb, справа — тёмный overlay поверх градиента.
+  // Два слоя background: тёмный справа от thumb идёт поверх цветного градиента.
+  const trackBackground = [
+    // Слой 1 (верхний): затемнение правой части
+    `linear-gradient(to right, transparent ${pctStr}, ${COLORS.dark} ${pctStr})`,
+    // Слой 2 (нижний): основной цветной градиент на весь трек
+    `linear-gradient(to right, ${COLORS.violet}, ${COLORS.cyan}, ${COLORS.pink})`,
+  ].join(", ");
 
   const handleChange = useCallback(
     (e) => onChange?.(Number(e.target.value)),
@@ -102,7 +111,6 @@ export default function GradientSlider({
         ...style,
       }}
     >
-      {/* --thumb-color задаётся inline на конкретный элемент, не глобально */}
       <input
         type="range"
         min={min}
@@ -111,20 +119,9 @@ export default function GradientSlider({
         value={value}
         onChange={handleChange}
         className="gradient-slider-track"
-        style={{ "--thumb-color": thumbColor }}
-      />
-      {/* Затемнение правой части — полностью через inline стили, изолировано */}
-      <div
         style={{
-          position: "absolute",
-          top: "50%",
-          right: 0,
-          transform: "translateY(-50%)",
-          height: "4px",
-          borderRadius: "0 2px 2px 0",
-          background: "rgba(0, 0, 0, 0.4)",
-          pointerEvents: "none",
-          width: `${rightPct}%`,
+          "--thumb-color": thumbColor,
+          background: trackBackground,
         }}
       />
     </div>
