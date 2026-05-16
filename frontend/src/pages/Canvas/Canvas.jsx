@@ -4,6 +4,7 @@ import DrawingArea from "./components/DrawingArea";
 import ToolsPanel from "./components/ToolsPanel";
 import SettingsPanel from "./components/SettingsPanel";
 import { useDrawing } from "./hooks/useDrawing";
+import { useProjectSave } from './hooks/useProjectSave';
 import useMelodyPlayer from './hooks/useMelodyPlayer';
 import { useAudioExporter } from './hooks/useAudioExporter';
 import { imageToSegments } from "../../utils/imageToSegments";
@@ -25,7 +26,6 @@ import SkipForwardIcon from "../../assets/icons/icon-skip-forward.svg";
 import VolumeHighIcon from "../../assets/icons/icon-volume-high.svg";
 import VolumeLowIcon from "../../assets/icons/icon-volume-low.svg";
 import VolumeNoIcon from "../../assets/icons/icon-volume-no.svg";
-
 
 import * as Tone from 'tone';
 
@@ -49,6 +49,8 @@ const Canvas = () => {
     const [isStarSelected,  setIsStarSelected]  = useState(false);
     const [brushColor, setBrushColor] = useState('#00ffd1');
     const [isImporting, setIsImporting] = useState(false);
+
+    const [projectTitle, setProjectTitle] = useState('Без названия');
 
     const [activeNote, setActiveNote] = useState(null);
 
@@ -92,12 +94,34 @@ const Canvas = () => {
     const { engineRef, initEngine, saveToHistory, undo, redo, clear, canUndo, canRedo } =
         useDrawing(8, '#4D4DFF');
 
+    // showModal и closeModal определяем ДО useProjectSave
     const showModal = useCallback((title, description, variant = 'default') => {
         setModal({ isOpen: true, title, description, variant });
     }, []);
     const closeModal = useCallback(() => {
         setModal(prev => ({ ...prev, isOpen: false }));
     }, []);
+
+    const { save, isSaving, setProjectId } = useProjectSave({
+        engineRef,
+        bgColor,
+        canvasSize,
+        bpm,
+        duration,
+        scale,
+        smoothing,
+        effectReverb,
+        effectDelay,
+        effectDistortion,
+        melodyEvents,
+        totalDuration,
+        isMelodyGenerated,
+        showModal,
+    });
+
+    const handleSave = useCallback(() => {
+        save(projectTitle);
+    }, [save, projectTitle]);
 
     const handleBrushColorChange = useCallback((newColor) => {
         setBrushColor(newColor);
@@ -332,7 +356,9 @@ const Canvas = () => {
         setMelodyEvents([]);
         stop();
         setActiveNote(null);
-    }, [clear, stop]);
+        setProjectId(null);
+        setProjectTitle('Без названия');
+    }, [clear, stop, setProjectId]);
 
     return (
         <div className="canvas-content">
@@ -340,22 +366,25 @@ const Canvas = () => {
                 <img src={BgCanvasLine} alt="фоновая линия" />
             </div>
             <div className="canvas-header">
-            <div className="canvas-header-text">
-            <div
-                    className="project-title-input"
-                    contentEditable
-                    suppressContentEditableWarning
-                    onInput={(e) => setProjectName(e.currentTarget.textContent)}
-                    data-placeholder="Введите название проекта..."
-                />
-                <div className="divider-project" />
-            </div>
+                <div className="canvas-header-text">
+                    <div
+                        className="project-title-input"
+                        contentEditable
+                        suppressContentEditableWarning
+                        onInput={(e) => setProjectTitle(e.currentTarget.textContent)}
+                        data-placeholder="Введите название проекта..."
+                    />
+                    <div className="divider-project" />
+                </div>
                 <div className="canvas-header-icons">
                     <div className="icon favourite-btn" onClick={() => setIsStarSelected(p => !p)}>
                         <img src={isStarSelected ? StarSelectedIcon : StarIcon} alt="Избранное" />
                     </div>
-                    <div className="icon save-btn">
-                        <img src={SaveIcon} alt="Сохранить проект" />
+                    <div className="icon save-btn" onClick={isSaving ? undefined : handleSave}>
+                        {isSaving
+                            ? <Loader size={20} color="white" />
+                            : <img src={SaveIcon} alt="Сохранить проект" />
+                        }
                     </div>
                     <div
                         className="icon download-btn"
@@ -482,16 +511,16 @@ const Canvas = () => {
 
                         <div className="volume-control">
                             <div className="icon volume-btn">
-                            <img
-                                src={
-                                    volume === 0 ? VolumeNoIcon :
-                                    volume < 0.5 ? VolumeLowIcon : VolumeHighIcon
-                                }
-                                alt="Громкость"
-                                className="volume-icon"
-                                onClick={() => setVolume(volume === 0 ? 0.5 : 0)}
-                            />
-                             </div>
+                                <img
+                                    src={
+                                        volume === 0 ? VolumeNoIcon :
+                                        volume < 0.5 ? VolumeLowIcon : VolumeHighIcon
+                                    }
+                                    alt="Громкость"
+                                    className="volume-icon"
+                                    onClick={() => setVolume(volume === 0 ? 0.5 : 0)}
+                                />
+                            </div>
                             <input
                                 type="range"
                                 min="0"
