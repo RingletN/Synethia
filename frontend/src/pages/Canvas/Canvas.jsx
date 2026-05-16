@@ -144,10 +144,11 @@ const Canvas = () => {
         setIsImporting(true);
         try {
             const currentLineWidth = engineRef.current.getLineWidth?.() || 5;
-            const segments = await imageToSegments(file, {
-                threshold: 28, maxWidth: 850,
-                color: '#00ffd1', lineWidth: currentLineWidth, instrument: 'sine',
-            });
+const segments = await imageToSegments(file, {
+    threshold: 20,
+    maxWidth: 850,
+    lineWidth: currentLineWidth,
+});
             if (segments.length === 0) {
                 showModal(
                     "Контуры не найдены",
@@ -379,32 +380,58 @@ const Canvas = () => {
     }, []);
 
     useEffect(() => {
+        let rafId = null;
+
         const onMove = (e) => {
             if (!isDraggingRef.current || !canvasPanelRef.current || !engineRef.current) return;
-            const rect = canvasPanelRef.current.getBoundingClientRect();
-            const containerRect = drawBlockRef.current?.getBoundingClientRect();
-            const maxW = containerRect
-                ? containerRect.width - CANVAS_BLOCK_GAP - SETTINGS_MIN_WIDTH
-                : 2000;
-            const rawW = Math.round(e.clientX - rect.left);
-            const rawH = Math.round(e.clientY - rect.top);
-            const newW = dragDir.current !== "vertical"
-                ? Math.min(maxW, Math.max(CANVAS_MIN_SIZE, rawW))
-                : currentSizeRef.current.w;
-            const newH = dragDir.current !== "horizontal"
-                ? Math.max(CANVAS_MIN_SIZE, rawH)
-                : currentSizeRef.current.h;
-            engineRef.current.resize(newW, newH);
-            canvasPanelRef.current.style.width  = `${newW}px`;
-            canvasPanelRef.current.style.height = `${newH}px`;
-            setCanvasSize({ width: newW, height: newH });
+
+            // Берём координаты сразу — они валидны только в момент события
+            const clientX = e.clientX;
+            const clientY = e.clientY;
+
+            // Отменяем предыдущий незапущенный кадр — обрабатываем только последнюю позицию мыши
+            if (rafId !== null) cancelAnimationFrame(rafId);
+
+            rafId = requestAnimationFrame(() => {
+                rafId = null;
+                if (!isDraggingRef.current || !canvasPanelRef.current || !engineRef.current) return;
+
+                const rect = canvasPanelRef.current.getBoundingClientRect();
+                const containerRect = drawBlockRef.current?.getBoundingClientRect();
+                const maxW = containerRect
+                    ? containerRect.width - CANVAS_BLOCK_GAP - SETTINGS_MIN_WIDTH
+                    : 2000;
+                const rawW = Math.round(clientX - rect.left);
+                const rawH = Math.round(clientY - rect.top);
+                const newW = dragDir.current !== "vertical"
+                    ? Math.min(maxW, Math.max(CANVAS_MIN_SIZE, rawW))
+                    : currentSizeRef.current.w;
+                const newH = dragDir.current !== "horizontal"
+                    ? Math.max(CANVAS_MIN_SIZE, rawH)
+                    : currentSizeRef.current.h;
+
+                // resize в DrawingEngine сам батчится через RAF внутри — стили обновляем здесь
+                engineRef.current.resize(newW, newH);
+                canvasPanelRef.current.style.width  = `${newW}px`;
+                canvasPanelRef.current.style.height = `${newH}px`;
+                setCanvasSize({ width: newW, height: newH });
+            });
         };
-        const onUp = () => { isDraggingRef.current = false; };
+
+        const onUp = () => {
+            isDraggingRef.current = false;
+            if (rafId !== null) {
+                cancelAnimationFrame(rafId);
+                rafId = null;
+            }
+        };
+
         window.addEventListener("mousemove", onMove);
         window.addEventListener("mouseup",   onUp);
         return () => {
             window.removeEventListener("mousemove", onMove);
             window.removeEventListener("mouseup",   onUp);
+            if (rafId !== null) cancelAnimationFrame(rafId);
         };
     }, [engineRef]);
 

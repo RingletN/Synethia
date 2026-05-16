@@ -23,6 +23,9 @@ class DrawingEngine {
 
         this.onStrokeEnd = null;
 
+        // RAF handle для дебаунса resize во время drag
+        this._resizeRafId = null;
+
         this.initCanvases();
         this.setupEventListeners();
     }
@@ -139,16 +142,67 @@ class DrawingEngine {
         this.ctx.globalCompositeOperation = 'source-over';
     }
 
+    /**
+     * Resize без мигания: рисуем в offscreen-буфер нужного размера,
+     * меняем размер основного canvas и одним drawImage копируем результат.
+     * Так браузер никогда не показывает пустой кадр.
+     */
     resize(newWidth, newHeight) {
         if (newWidth < 100 || newHeight < 100) return;
 
-        this.mainCanvas.width = newWidth;
+        // Отменяем предыдущий ещё не выполненный RAF (дебаунс на drag)
+        if (this._resizeRafId !== null) {
+            cancelAnimationFrame(this._resizeRafId);
+        }
+
+        this._resizeRafId = requestAnimationFrame(() => {
+            this._resizeRafId = null;
+            this._doResize(newWidth, newHeight);
+        });
+    }
+
+    _doResize(newWidth, newHeight) {
+        // 1. Рисуем все сегменты в offscreen canvas нового размера
+        const offscreen = document.createElement('canvas');
+        offscreen.width  = newWidth;
+        offscreen.height = newHeight;
+        const offCtx = offscreen.getContext('2d');
+        offCtx.lineCap  = 'round';
+        offCtx.lineJoin = 'round';
+
+        this.segments.forEach(segment => {
+            if (segment.points.length < 2) return;
+
+            offCtx.lineWidth = segment.lineWidth;
+            offCtx.lineCap   = 'round';
+            offCtx.lineJoin  = 'round';
+
+            if (segment.isErase) {
+                offCtx.globalCompositeOperation = 'destination-out';
+            } else {
+                offCtx.globalCompositeOperation = 'source-over';
+                offCtx.strokeStyle = segment.color;
+            }
+
+            offCtx.beginPath();
+            segment.points.forEach((p, i) => {
+                const x = p.x * newWidth;
+                const y = p.y * newHeight;
+                i === 0 ? offCtx.moveTo(x, y) : offCtx.lineTo(x, y);
+            });
+            offCtx.stroke();
+        });
+
+        // 2. Атомарно меняем размер основного canvas и сразу копируем готовый кадр
+        this.mainCanvas.width  = newWidth;
         this.mainCanvas.height = newHeight;
 
-        this.ctx.lineCap = 'round';
+        this.ctx.lineCap  = 'round';
         this.ctx.lineJoin = 'round';
+        this.ctx.globalCompositeOperation = 'source-over';
 
-        this.redraw();
+        // drawImage — один вызов, пустого кадра не будет
+        this.ctx.drawImage(offscreen, 0, 0);
     }
 
     setInstrument(instrument) {
@@ -189,7 +243,6 @@ class DrawingEngine {
         if (!Array.isArray(newSegments) || newSegments.length === 0) return;
         this.segments.push(...JSON.parse(JSON.stringify(newSegments)));
         this.redraw();
-        // Уведомляем снаружи — сохранить в историю
         if (typeof this.onStrokeEnd === 'function') {
             this.onStrokeEnd();
         }
