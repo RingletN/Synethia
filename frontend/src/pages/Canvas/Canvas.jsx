@@ -1,4 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback } from "react";
+import { useSearchParams } from 'react-router-dom';
+import api from '../../api';
 import BgCanvasLine from '../../assets/backgrounds/bg-canvas-line.png';
 import DrawingArea from "./components/DrawingArea";
 import ToolsPanel from "./components/ToolsPanel";
@@ -94,6 +96,11 @@ const Canvas = () => {
     const { engineRef, initEngine, saveToHistory, undo, redo, clear, canUndo, canRedo } =
         useDrawing(8, '#4D4DFF');
 
+    const [searchParams] = useSearchParams();
+    const [isLoadingProject, setIsLoadingProject] = useState(false);
+    // Реф чтобы не запускать загрузку дважды
+    const projectLoadedRef = useRef(false);
+
     // showModal и closeModal определяем ДО useProjectSave
     const showModal = useCallback((title, description, variant = 'default') => {
         setModal({ isOpen: true, title, description, variant });
@@ -172,6 +179,99 @@ const Canvas = () => {
     const handleStrokeEnd = useCallback(() => {
         saveToHistory(bgColorRef.current);
     }, [saveToHistory]);
+
+    // ─── Загрузка проекта по ?project=id из URL ───────────────────────────────
+    // Запускается один раз после того как движок готов (engineRef.current появился).
+    // handleCanvasReady вызывается раньше этого эффекта, поэтому ждём engineRef.
+    const loadProjectRef = useRef(null);
+
+    loadProjectRef.current = useCallback(async (projectId) => {
+        if (projectLoadedRef.current) return;
+        projectLoadedRef.current = true;
+
+        setIsLoadingProject(true);
+        try {
+            const project = await api.get(`/api/projects/${projectId}`);
+
+            // Название
+            if (project.title) {
+                setProjectTitle(project.title);
+                // Обновляем contentEditable вручную — React не управляет его содержимым
+                const el = document.querySelector('.project-title-input');
+                if (el) el.textContent = project.title;
+            }
+
+            // Настройки
+            if (project.settings) {
+                const s = project.settings;
+                setBpm(s.bpm);
+                setDuration(s.duration);
+                setScale(s.scale);
+                setSmoothing(s.smoothing);
+                setEffectReverb(parseFloat(s.reverb));
+                setEffectDelay(parseFloat(s.delay));
+                setEffectDistortion(parseFloat(s.distortion));
+            }
+
+            // Холст — размер + сегменты
+            if (project.canvas && engineRef.current) {
+                const { segments, bg_color, width, height } = project.canvas;
+
+                // Меняем размер холста
+                const newW = width  || INITIAL_CANVAS_WIDTH;
+                const newH = height || INITIAL_CANVAS_HEIGHT;
+                setCanvasSize({ width: newW, height: newH });
+                if (canvasPanelRef.current) {
+                    canvasPanelRef.current.style.width  = `${newW}px`;
+                    canvasPanelRef.current.style.height = `${newH}px`;
+                }
+                engineRef.current.resize(newW, newH);
+
+                // Цвет фона
+                if (bg_color) {
+                    setBgColor(bg_color);
+                    bgColorRef.current = bg_color;
+                }
+
+                // Загружаем сегменты в движок
+                if (Array.isArray(segments) && segments.length > 0) {
+                    engineRef.current.loadState({ segments });
+                    saveToHistory(bg_color || bgColorRef.current);
+                }
+            }
+
+            // Мелодия
+            if (project.melody?.events?.length > 0) {
+                setMelodyEvents(project.melody.events);
+                setTotalDuration(project.melody.total_duration);
+                setIsMelodyGenerated(true);
+            }
+
+            // Запоминаем project_id — следующий Save обновит тот же проект
+            setProjectId(parseInt(projectId, 10));
+
+        } catch (err) {
+            showModal('Ошибка', `Не удалось загрузить проект: ${err.message}`, 'error');
+        } finally {
+            setIsLoadingProject(false);
+        }
+    }, [engineRef, saveToHistory, setProjectId, showModal]);
+
+    // Ждём пока движок будет готов, потом загружаем
+    useEffect(() => {
+        const urlProjectId = searchParams.get('project');
+        if (!urlProjectId || projectLoadedRef.current) return;
+
+        // Движок инициализируется в handleCanvasReady — поллим пока не появится
+        const interval = setInterval(() => {
+            if (engineRef.current) {
+                clearInterval(interval);
+                loadProjectRef.current(urlProjectId);
+            }
+        }, 50);
+
+        return () => clearInterval(interval);
+    }, [searchParams]); // eslint-disable-line react-hooks/exhaustive-deps
 
     const handleGenerateMelody = useCallback(async () => {
         if (!engineRef.current) {
@@ -362,6 +462,11 @@ const Canvas = () => {
 
     return (
         <div className="canvas-content">
+            {isLoadingProject && (
+                <div className="import-overlay" style={{ position: 'fixed', zIndex: 1000 }}>
+                    <Loader size={64} color="cyan" speed={1200} />
+                </div>
+            )}
             <div className="canvas-bg-line">
                 <img src={BgCanvasLine} alt="фоновая линия" />
             </div>
