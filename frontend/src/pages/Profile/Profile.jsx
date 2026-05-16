@@ -96,7 +96,7 @@ const Profile = () => {
     const handleLogout = () => {
         openModal({
             title: 'Выйти из аккаунта?',
-            description: 'Вы действительно хотите выйти? Несохраненные изменения будут утеряны.',
+            description: 'Вы действительно хотите выйти? Несохраненные изменения профиля будут утеряны.',
             primaryText: 'Выйти',
             cancelText: 'Отмена',
             variant: 'warning',
@@ -110,7 +110,7 @@ const Profile = () => {
     const handlePhotoReset = () => {
         openModal({
             title: 'Сбросить фото?',
-            description: 'Это действие нельзя будет отменить',
+            description: 'Вы действительно хотите сбросить фото профиля? Это действие нельзя будет отменить. ',
             primaryText: 'Сбросить',
             cancelText: 'Отмена',
             variant: 'warning',
