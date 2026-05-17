@@ -1,4 +1,3 @@
-// ProjectCard.jsx
 import React, { useRef, useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import * as Tone from 'tone';
@@ -47,14 +46,12 @@ const CanvasPreview = ({ bgColor, segments, origW = 750, origH = 600 }) => {
             ctx.lineWidth   = seg.lineWidth ?? 4;
             ctx.lineCap     = 'round';
             ctx.lineJoin    = 'round';
-            // ← координаты нормализованы (0..1), умножаем на размер canvas-элемента
             ctx.moveTo(pts[0].x * W, pts[0].y * H);
             for (let i = 1; i < pts.length; i++) {
                 ctx.lineTo(pts[i].x * W, pts[i].y * H);
             }
             ctx.stroke();
         });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [bgColor, segments, origW, origH]);
 
     return (
@@ -66,12 +63,13 @@ const CanvasPreview = ({ bgColor, segments, origW = 750, origH = 600 }) => {
         />
     );
 };
-const MiniPlayer = ({ events, totalDuration, projectId, playingId, onPlay }) => {
+
+// ─── Мини-плеер (принимает эффекты) ──────────────────────────────────────────
+const MiniPlayer = ({ events, totalDuration, projectId, playingId, onPlay, effects = {} }) => {
     const { isPlaying, currentTime, play, pause, seek, stop } = useMelodyPlayer(
-        events, totalDuration, null, {}
+        events, totalDuration, null, effects
     );
 
-    // Если другой плеер начал играть — останови этот
     useEffect(() => {
         if (playingId !== null && playingId !== projectId && isPlaying) {
             stop();
@@ -83,10 +81,8 @@ const MiniPlayer = ({ events, totalDuration, projectId, playingId, onPlay }) => 
         if (isPlaying) {
             pause();
         } else {
-            onPlay(projectId); // сообщаем родителю кто играет
-            console.log('Играем events:', events?.length, 'duration:', totalDuration);
+            onPlay(projectId);
             await play();
-             console.log('После play, isPlaying:', isPlaying);
         }
     };
 
@@ -102,7 +98,6 @@ const MiniPlayer = ({ events, totalDuration, projectId, playingId, onPlay }) => 
         const s = Math.round(Math.max(0, sec));
         return `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
     };
-
 
     return (
         <div className="mini-player" onClick={e => e.stopPropagation()}>
@@ -125,19 +120,25 @@ const MiniPlayer = ({ events, totalDuration, projectId, playingId, onPlay }) => 
 const ProjectCard = ({ project, onDelete, onToggleFavorite, playingId, onPlay }) => {
     const navigate = useNavigate();
 
-    // Полные данные с сегментами и events — грузим отдельным запросом
-   // const [fullData, setFullData] = useState(null);
-
-    // useEffect(() => {
-    //     let cancelled = false;
-    //     api.get(`/api/projects/${project.id}`)
-    //         .then(data => { if (!cancelled) setFullData(data); })
-    //         .catch(() => {}); // тихо — превью просто не покажется
-    //     return () => { cancelled = true; };
-    // }, [project.id]);
+    // Эффекты из сохранённых настроек
+const effects = {
+    reverb:     project.settings?.reverb ?? 0,
+    delay:      project.settings?.delay ?? 0,
+    distortion: project.settings?.distortion ?? 0,
+};
+    console.log('[ProjectCard] project.settings:', project.settings);
+console.log('[ProjectCard] project.melody:', project.melody);
+console.log('[ProjectCard] effects from project.settings:', effects);
+//     const effects = {
+//     reverb: 1,      // максимальная реверберация
+//     delay:  1,      // максимальная задержка
+//     distortion: 1,  // максимальные искажения
+// };
 
     const canvas     = project.canvas;
-const melodyFull = project.melody;
+    const melodyFull = project.melody;
+    const totalDur   = melodyFull?.total_duration ?? project.melody?.total_duration ?? 60;
+    const hasEvents  = Boolean(melodyFull?.events?.length);
 
     const formatDate = (dateStr) =>
         new Date(dateStr).toLocaleDateString('ru-RU', {
@@ -153,19 +154,10 @@ const melodyFull = project.melody;
     const handleDownload = (e) => e.stopPropagation();
     const handleStar     = (e) => { e.stopPropagation(); onToggleFavorite?.(project.id); };
 
-    // Данные для превью — из полного запроса
-
-    const hasEvents    = Boolean(melodyFull?.events?.length);
-    // total_duration есть и в кратком ответе
-    const totalDur     = melodyFull?.total_duration ?? project.melody?.total_duration ?? 60;
-
     return (
         <div className="project-card" onClick={handleOpen}>
-
-            {/* 1 — Название */}
             <h3 className="project-card-title">{project.title}</h3>
 
-            {/* 2 — Блок иконок */}
             <div className="project-card-actions">
                 <img
                     src={project.is_favorite ? StarSelectedIcon : StarIcon}
@@ -177,29 +169,27 @@ const melodyFull = project.melody;
                 <img src={TrashIcon}    alt="Удалить" className="icon" onClick={handleDelete} />
             </div>
 
-            {/* 3 — Превью холста + плеер поверх */}
             <div className="project-card-preview">
                 <CanvasPreview
-                key={`${project.id}-${canvas?.segments?.length ?? 0}`}
+                    key={`${project.id}-${canvas?.segments?.length ?? 0}`}
                     bgColor={canvas?.bg_color}
                     segments={canvas?.segments}
                     origW={canvas?.width  ?? 750}
                     origH={canvas?.height ?? 600}
                 />
 
-                {/* Плеер абсолютно у нижнего края превью */}
                 {(hasEvents || project.melody) && (
                     <div className="project-card-player" onClick={e => e.stopPropagation()}>
                         {hasEvents ? (
                             <MiniPlayer
                                 events={melodyFull.events}
                                 totalDuration={totalDur}
-                                 projectId={project.id}
-    playingId={playingId}
-    onPlay={onPlay}
+                                projectId={project.id}
+                                playingId={playingId}
+                                onPlay={onPlay}
+                                effects={effects}   // ← эффекты переданы
                             />
                         ) : (
-                            // Мелодия есть, но events ещё не загрузились — показываем заглушку
                             <div className="mini-player mini-player--loading">
                                 <img src={PlayIcon} alt="Play" className="icon mini-player-btn" style={{ opacity: 0.4 }} />
                                 <div className="mini-player-track">
@@ -214,7 +204,6 @@ const melodyFull = project.melody;
                 )}
             </div>
 
-            {/* 4 — Даты */}
             <div className="project-card-dates">
                 <div className="project-card-date-row">
                     <span className="project-card-date-label">Дата изменения:</span>

@@ -132,23 +132,13 @@ const DEFAULT_INSTRUMENT_EFFECTS = Object.fromEntries(
 );
 
 // ─── ГЛОБАЛЬНЫЙ КЭШ СЭМПЛЕРОВ ────────────────────────────────────────────────
-// Живёт на уровне модуля — не сбрасывается при размонтировании компонентов.
-// Сэмплеры создаются один раз и переиспользуются всеми экземплярами хука.
-// Это решает проблему "No available buffers" — сэмплер никогда не dispose'ится.
-const _samplerCache   = {};  // instrName → Tone.Sampler
-const _samplerReady   = {};  // instrName → boolean
-const _samplerPromise = {};  // instrName → Promise (защита от двойного создания)
+const _samplerCache   = {};
+const _samplerReady   = {};
+const _samplerPromise = {};
 
 async function getOrLoadSampler(instrName, getFxChain) {
-  // Уже готов
-  if (_samplerReady[instrName]) {
-    return _samplerCache[instrName];
-  }
-
-  // Уже грузится — ждём тот же промис
-  if (_samplerPromise[instrName]) {
-    return _samplerPromise[instrName];
-  }
+  if (_samplerReady[instrName]) return _samplerCache[instrName];
+  if (_samplerPromise[instrName]) return _samplerPromise[instrName];
 
   const cfg = SAMPLER_URLS[instrName];
   if (!cfg) {
@@ -173,15 +163,66 @@ async function getOrLoadSampler(instrName, getFxChain) {
         resolve(null);
       },
     });
-    // Кладём в кэш сразу (ещё не ready, но объект уже есть)
     _samplerCache[instrName] = sampler;
   });
 
   return _samplerPromise[instrName];
 }
 
-// ─── ХУК ─────────────────────────────────────────────────────────────────────
+// ─── ГЛОБАЛЬНЫЕ ЭФФЕКТЫ (СИНГЛТОНЫ) ──────────────────────────────────────────
+let _globalReverb     = null;
+let _globalDelay      = null;
+let _globalDistortion = null;
+let _currentGlobalEffects = { reverb: 0, delay: 0, distortion: 0 };
 
+function ensureGlobalFxChain() {
+  if (!_globalReverb) {
+    _globalReverb     = new Tone.Reverb({ decay: 2.5, wet: 0 }).toDestination();
+    _globalDelay      = new Tone.FeedbackDelay({ delayTime: '8n', feedback: 0.3, wet: 0 });
+    _globalDistortion = new Tone.Distortion({ distortion: 0.6, wet: 0 });
+
+    _globalDistortion.connect(_globalDelay);
+    _globalDelay.connect(_globalReverb);
+    console.log('[Player] Глобальная цепочка эффектов создана');
+  }
+  // Синхронизация с текущими сохранёнными значениями
+  _globalReverb.wet.value     = _currentGlobalEffects.reverb;
+  _globalDelay.wet.value      = _currentGlobalEffects.delay;
+  _globalDistortion.wet.value = _currentGlobalEffects.distortion;
+  return _globalDistortion;
+}
+
+function updateGlobalEffects(reverb, delay, distortion) {
+  _currentGlobalEffects = { reverb, delay, distortion };
+  if (_globalReverb) {
+    _globalReverb.wet.value     = reverb;
+    _globalDelay.wet.value      = delay;
+    _globalDistortion.wet.value = distortion;
+    console.log('[Player] Глобальные эффекты обновлены (wet):', { reverb, delay, distortion });
+  } else {
+    console.log('[Player] Глобальные эффекты сохранены, цепочка будет создана позже');
+  }
+}
+
+const _instrFxCache = {};
+
+function getInstrFxChain(instrName) {
+  if (!_instrFxCache[instrName]) {
+    const vals = DEFAULT_INSTRUMENT_EFFECTS[instrName];
+    const reverb     = new Tone.Reverb({ decay: 2.0, wet: vals.reverb ?? 0 });
+    const delay      = new Tone.FeedbackDelay({ delayTime: '8n', feedback: 0.25, wet: vals.delay ?? 0 });
+    const distortion = new Tone.Distortion({ distortion: 0.5, wet: vals.distortion ?? 0 });
+
+    distortion.connect(delay);
+    delay.connect(reverb);
+    reverb.connect(ensureGlobalFxChain());
+
+    _instrFxCache[instrName] = { reverb, delay, distortion };
+  }
+  return _instrFxCache[instrName].distortion;
+}
+
+// ─── ХУК ─────────────────────────────────────────────────────────────────────
 const useMelodyPlayer = (
   events,
   totalDuration,
@@ -205,25 +246,21 @@ const useMelodyPlayer = (
   const globalEffectsRef     = useRef(globalEffects);
   const instrumentEffectsRef = useRef(instrumentEffects);
 
-  const globalFxRef = useRef({ reverb: null, delay: null, distortion: null });
-  const instrFxRef  = useRef({});
-
   useEffect(() => { eventsRef.current        = events;        }, [events]);
   useEffect(() => { totalDurationRef.current = totalDuration; }, [totalDuration]);
   useEffect(() => { onNotePlayRef.current    = onNotePlay;    }, [onNotePlay]);
 
+  // Применяем глобальные эффекты
   useEffect(() => {
     globalEffectsRef.current = globalEffects;
-    const fx = globalFxRef.current;
     const { reverb = 0, delay = 0, distortion = 0 } = globalEffects;
-    if (fx.reverb)     fx.reverb.wet.value     = reverb;
-    if (fx.delay)      fx.delay.wet.value      = delay;
-    if (fx.distortion) fx.distortion.wet.value = distortion;
+    updateGlobalEffects(reverb, delay, distortion);
   }, [globalEffects]);
 
+  // Применяем инструментальные эффекты
   useEffect(() => {
     instrumentEffectsRef.current = instrumentEffects;
-    for (const [instr, fxNodes] of Object.entries(instrFxRef.current)) {
+    for (const [instr, fxNodes] of Object.entries(_instrFxCache)) {
       const vals = instrumentEffects[instr] || DEFAULT_INSTRUMENT_EFFECTS[instr] || {};
       if (fxNodes.reverb)     fxNodes.reverb.wet.value     = vals.reverb     ?? 0;
       if (fxNodes.delay)      fxNodes.delay.wet.value      = vals.delay      ?? 0;
@@ -239,7 +276,6 @@ const useMelodyPlayer = (
     }
   }, [volume]);
 
-  // Тикаем currentTime только если этот экземпляр плеера активен
   useEffect(() => {
     const id = setInterval(() => {
       if (isPlayingRef.current && Tone.getTransport().state === 'started') {
@@ -249,33 +285,6 @@ const useMelodyPlayer = (
     return () => clearInterval(id);
   }, []);
 
-  const getGlobalFxChain = useCallback(() => {
-    const fx = globalFxRef.current;
-    if (!fx.reverb) {
-      const { reverb = 0, delay = 0, distortion = 0 } = globalEffectsRef.current;
-      fx.reverb     = new Tone.Reverb({ decay: 2.5, wet: reverb }).toDestination();
-      fx.delay      = new Tone.FeedbackDelay({ delayTime: '8n', feedback: 0.3, wet: delay });
-      fx.distortion = new Tone.Distortion({ distortion: 0.6, wet: distortion });
-      fx.distortion.connect(fx.delay);
-      fx.delay.connect(fx.reverb);
-    }
-    return fx.distortion;
-  }, []);
-
-  const getInstrFxChain = useCallback((instrName) => {
-    if (!instrFxRef.current[instrName]) {
-      const vals = instrumentEffectsRef.current[instrName] || DEFAULT_INSTRUMENT_EFFECTS[instrName] || {};
-      const reverb     = new Tone.Reverb({ decay: 2.0, wet: vals.reverb     ?? 0 });
-      const delay      = new Tone.FeedbackDelay({ delayTime: '8n', feedback: 0.25, wet: vals.delay ?? 0 });
-      const distortion = new Tone.Distortion({ distortion: 0.5, wet: vals.distortion ?? 0 });
-      distortion.connect(delay);
-      delay.connect(reverb);
-      reverb.connect(getGlobalFxChain());
-      instrFxRef.current[instrName] = { reverb, delay, distortion };
-    }
-    return instrFxRef.current[instrName].distortion;
-  }, [getGlobalFxChain]);
-
   const preloadSamplers = useCallback(async (evs) => {
     if (!evs?.length) return;
     const needed = new Set(evs.map(e => resolveInstrumentName(e.instrument)));
@@ -284,7 +293,7 @@ const useMelodyPlayer = (
       const s = await getOrLoadSampler(name, getInstrFxChain);
       setLoadingState(prev => ({ ...prev, [name]: s ? 'ready' : 'error' }));
     }));
-  }, [getInstrFxChain]);
+  }, []);
 
   useEffect(() => {
     if (!events?.length) return;
@@ -300,20 +309,18 @@ const useMelodyPlayer = (
     const currentEvents = eventsRef.current;
     if (!currentEvents?.length) return null;
 
-    getGlobalFxChain();
+    ensureGlobalFxChain();
 
     const part = new Tone.Part((time, note) => {
       const { freq, duration, instrument, volume: noteVol } = note;
       const instrName = resolveInstrumentName(instrument);
 
-      // Берём из глобального кэша — он никогда не dispose'ится между рендерами
       const sampler = _samplerReady[instrName] ? _samplerCache[instrName] : null;
 
       if (sampler) {
         const velocity = Math.min(1, noteVol * volumeRef.current * 2.0);
         sampler.triggerAttackRelease(freq, duration, time, velocity);
       } else {
-        // Фоллбэк на осциллятор если сэмплер ещё не готов
         const oscType = OSC_FALLBACK[instrName] || 'sine';
         const synth = new Tone.Synth({
           oscillator: { type: oscType },
@@ -335,7 +342,7 @@ const useMelodyPlayer = (
 
     part.loop = false;
     return part;
-  }, [getGlobalFxChain, getInstrFxChain]);
+  }, []);
 
   const _stopTransport = useCallback(() => {
     if (endTimerRef.current) {
@@ -386,10 +393,15 @@ const useMelodyPlayer = (
     Tone.getDestination().volume.value =
       volumeRef.current === 0 ? -Infinity : 20 * Math.log10(volumeRef.current);
 
+    // ⭐ ПРИНУДИТЕЛЬНАЯ СИНХРОНИЗАЦИЯ ЭФФЕКТОВ ПЕРЕД ВОСПРОИЗВЕДЕНИЕМ
+    const { reverb = 0, delay = 0, distortion = 0 } = globalEffectsRef.current;
+    updateGlobalEffects(reverb, delay, distortion);
+    // Также убедимся, что цепочка создана
+    ensureGlobalFxChain();
+
     const transport = Tone.getTransport();
 
     if (!partRef.current) {
-      // Ждём загрузки через глобальный кэш — onload гарантирует готовность буферов
       await preloadSamplers(eventsRef.current);
       const newPart = createPart();
       if (!newPart) return;
@@ -412,25 +424,17 @@ const useMelodyPlayer = (
       try { partRef.current.dispose(); } catch (_) {}
       partRef.current = null;
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [events]);
+  }, [isPlaying]);
 
-  // Cleanup при размонтировании — НЕ трогаем глобальный кэш сэмплеров!
   useEffect(() => {
     return () => {
       if (endTimerRef.current) clearTimeout(endTimerRef.current);
       if (partRef.current) {
         try { partRef.current.stop(); partRef.current.dispose(); } catch (_) {}
       }
-      for (const fxNodes of Object.values(instrFxRef.current)) {
-        try { fxNodes.reverb.dispose(); fxNodes.delay.dispose(); fxNodes.distortion.dispose(); } catch (_) {}
-      }
-      const gfx = globalFxRef.current;
-      try { gfx.reverb?.dispose(); gfx.delay?.dispose(); gfx.distortion?.dispose(); } catch (_) {}
       isPlayingRef.current = false;
       Tone.getTransport().stop();
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return {
