@@ -7,7 +7,7 @@ const SearchPanel = ({ value, onChange, onClear, placeholder }) => {
   return (
     <div className="search-block">
       <div className="search-panel">
-        <img src={SearchIcon} alt="Поиск" />
+        <img src={SearchIcon} alt="Поиск" className='icon' />
         <input
           type="text"
           placeholder={placeholder || "Поиск по названию проекта ..."}
@@ -19,7 +19,7 @@ const SearchPanel = ({ value, onChange, onClear, placeholder }) => {
         <img
           src={CloseIcon}
           alt="Очистить"
-          className="search-clear"
+          className="icon search-clear"
           onClick={onClear}
         />
       )}

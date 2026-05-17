@@ -135,3 +135,90 @@
     max-width: none;
     display: block;
 }
+
+/* ─── Добавить в конец Projects.css ──────────────────────────────────────────
+   Сетка карточек (590px + gap 56px) и пагинация.                              */
+
+/* ══════════════════════════════════════════════════════════
+   СЕТКА КАРТОЧЕК
+   Ширина карточки = 590px, gap = 56px.
+   Число колонок считается JS-хуком и прокидывается как CSS-переменная --cols.
+   ══════════════════════════════════════════════════════════ */
+.project-cards-grid {
+    display: grid;
+    grid-template-columns: repeat(var(--cols, 2), 590px);
+    gap: var(--card-gap, 56px);
+    /* Центрируем сетку, если карточки не занимают всю ширину */
+    justify-content: start;
+}
+
+/* Фолбэк без JS (CSS-only): 2 колонки по умолчанию */
+@supports not (grid-template-columns: repeat(var(--cols, 2), 590px)) {
+    .project-cards-grid {
+        grid-template-columns: repeat(2, 590px);
+        gap: 56px;
+    }
+}
+
+/* ══════════════════════════════════════════════════════════
+   ПАГИНАЦИЯ
+   ══════════════════════════════════════════════════════════ */
+.projects-pagination {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    margin-top: 12px;
+    padding-bottom: 32px;
+}
+
+/* Бейдж «1 / 5» — тот же стиль что у SearchPanel */
+.pagination-badge {
+    background: rgba(var(--color-dark-rgb), 0.45);
+    border-radius: 40px;
+    padding: 12px 32px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    position: relative;
+    overflow: hidden;
+}
+
+.pagination-badge::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 40px;
+    padding: 2px;
+    background: linear-gradient(95deg, var(--color-cyan), var(--color-violet), var(--color-pink));
+    mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    mask-composite: exclude;
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    pointer-events: none;
+    z-index: 1;
+}
+
+.pagination-current,
+.pagination-sep,
+.pagination-total {
+    font-family: var(--font-montserrat);
+    font-weight: var(--font-weight-bold);
+    font-size: 22px;
+    color: var(--color-bright);
+    line-height: 1;
+}
+.pagination-sep { color: var(--color-pale); }
+
+.pagination-chevron {
+    width: 36px;
+    height: 36px;
+}
+
+.pagination-chevron--disabled {
+    opacity: 0.3;
+    cursor: default !important;
+}
+.pagination-chevron--disabled:hover {
+    transform: none !important;
+}

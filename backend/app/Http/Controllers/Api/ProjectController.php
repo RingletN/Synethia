@@ -21,9 +21,11 @@ class ProjectController extends Controller
     {
         $projects = Project::where('user_id', $request->user()->id)
             ->with([
-                'canvas:id,project_id,bg_color,width,height',  // без segments
+                //'canvas:id,project_id,bg_color,width,height',  // без segments
+                'canvas',
                 'settings',
-                'melody:id,project_id,total_duration,generated_at',
+                'melody', 
+                //'melody:id,project_id,total_duration,generated_at',
             ])
             ->orderBy('updated_at', 'desc')
             ->get();

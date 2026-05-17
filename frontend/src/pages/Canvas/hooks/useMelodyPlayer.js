@@ -3,22 +3,6 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 import * as Tone from 'tone';
 
 // ─── Сэмплеры для всех 10 инструментов ──────────────────────────────────────
-//
-// Цвет → инструмент (совпадает с MelodyEngine.COLOR_TO_INSTRUMENT):
-//   #00ffd1 → piano
-//   #ff3366 → guitar         (guitar-acoustic)
-//   #ffcc00 → flute
-//   #9900ff → strings        (violin)
-//   #ff6b35 → clarinet
-//   #00b4d8 → saxophone
-//   #f72585 → guitar-electric
-//   #7bed9f → cello
-//   #ffd60a → xylophone
-//   #a855f7 → harp
-//
-// Все сэмплы из /public/samples/<folder>/
-// Диапазон движка: C3–C6. Tone.Sampler интерполирует недостающие ноты.
-
 const SAMPLER_URLS = {
   piano: {
     baseUrl: '/samples/piano/',
@@ -29,7 +13,6 @@ const SAMPLER_URLS = {
       A5: 'A5.ogg', C6: 'C6.ogg',
     },
   },
-
   guitar: {
     baseUrl: '/samples/guitar-acoustic/',
     urls: {
@@ -40,7 +23,6 @@ const SAMPLER_URLS = {
       G4: 'G4.mp3', A4: 'A4.mp3', B4: 'B4.mp3', C5: 'C5.mp3',
     },
   },
-
   flute: {
     baseUrl: '/samples/flute/',
     urls: {
@@ -49,7 +31,6 @@ const SAMPLER_URLS = {
       C6: 'C6.ogg', E6: 'E6.ogg', A6: 'A6.ogg',
     },
   },
-
   strings: {
     baseUrl: '/samples/violin/',
     urls: {
@@ -58,9 +39,6 @@ const SAMPLER_URLS = {
       C5: 'C5.ogg', E5: 'E5.ogg', G5: 'G5.ogg', A5: 'A5.ogg',
     },
   },
-
-  // ── Новые инструменты ───────────────────────────────────────────────────────
-
   clarinet: {
     baseUrl: '/samples/clarinet/',
     urls: {
@@ -70,7 +48,6 @@ const SAMPLER_URLS = {
       D6: 'D6.mp3',
     },
   },
-
   saxophone: {
     baseUrl: '/samples/saxophone/',
     urls: {
@@ -79,7 +56,6 @@ const SAMPLER_URLS = {
       'D#5': 'Ds5.mp3', 'F#5': 'Fs5.mp3', A5: 'A5.mp3',
     },
   },
-
   'guitar-electric': {
     baseUrl: '/samples/guitar-electric/',
     urls: {
@@ -89,7 +65,6 @@ const SAMPLER_URLS = {
       'F#5': 'Fs5.mp3', A5: 'A5.mp3',
     },
   },
-
   cello: {
     baseUrl: '/samples/cello/',
     urls: {
@@ -98,7 +73,6 @@ const SAMPLER_URLS = {
       A4: 'A4.mp3',
     },
   },
-
   xylophone: {
     baseUrl: '/samples/xylophone/',
     urls: {
@@ -106,7 +80,6 @@ const SAMPLER_URLS = {
       C5: 'C5.mp3', G5: 'G5.mp3', C6: 'C6.mp3', G6: 'G6.mp3',
     },
   },
-
   harp: {
     baseUrl: '/samples/harp/',
     urls: {
@@ -116,21 +89,19 @@ const SAMPLER_URLS = {
   },
 };
 
-// Фоллбэк-осциллятор для каждого инструмента
 const OSC_FALLBACK = {
-  piano:           'sine',
-  guitar:          'square',
-  flute:           'sawtooth',
-  strings:         'triangle',
-  clarinet:        'sine',
-  saxophone:       'sawtooth',
+  piano:             'sine',
+  guitar:            'square',
+  flute:             'sawtooth',
+  strings:           'triangle',
+  clarinet:          'sine',
+  saxophone:         'sawtooth',
   'guitar-electric': 'square',
-  cello:           'triangle',
-  xylophone:       'sine',
-  harp:            'sine',
+  cello:             'triangle',
+  xylophone:         'sine',
+  harp:              'sine',
 };
 
-// COLOR → instrument name (зеркалит MelodyEngine)
 export const COLOR_TO_INSTRUMENT_NAME = {
   '#00ffd1': 'piano',
   '#ff3366': 'guitar',
@@ -144,7 +115,6 @@ export const COLOR_TO_INSTRUMENT_NAME = {
   '#a855f7': 'harp',
 };
 
-// legacy oscillator key → instrument (для обратной совместимости со старыми events)
 const LEGACY_TO_INSTRUMENT = {
   sine:     'piano',
   square:   'guitar',
@@ -153,24 +123,65 @@ const LEGACY_TO_INSTRUMENT = {
 };
 
 function resolveInstrumentName(instrument) {
-  // Если это уже нормальное имя инструмента — возвращаем как есть
   if (SAMPLER_URLS[instrument]) return instrument;
-  // Иначе пробуем legacy-маппинг
   return LEGACY_TO_INSTRUMENT[instrument] || 'piano';
 }
 
-// Дефолтные эффекты на инструмент
 const DEFAULT_INSTRUMENT_EFFECTS = Object.fromEntries(
   Object.keys(SAMPLER_URLS).map(k => [k, { reverb: 0, delay: 0, distortion: 0 }])
 );
 
-/**
- * @param {Array}    events              — нотные события из MelodyEngine
- * @param {number}   totalDuration       — длина мелодии в секундах
- * @param {Function} onNotePlay          — колбэк при воспроизведении ноты
- * @param {object}   globalEffects       — { reverb, delay, distortion } 0..1 для всей мелодии
- * @param {object}   instrumentEffects   — per-instrument эффекты
- */
+// ─── ГЛОБАЛЬНЫЙ КЭШ СЭМПЛЕРОВ ────────────────────────────────────────────────
+// Живёт на уровне модуля — не сбрасывается при размонтировании компонентов.
+// Сэмплеры создаются один раз и переиспользуются всеми экземплярами хука.
+// Это решает проблему "No available buffers" — сэмплер никогда не dispose'ится.
+const _samplerCache   = {};  // instrName → Tone.Sampler
+const _samplerReady   = {};  // instrName → boolean
+const _samplerPromise = {};  // instrName → Promise (защита от двойного создания)
+
+async function getOrLoadSampler(instrName, getFxChain) {
+  // Уже готов
+  if (_samplerReady[instrName]) {
+    return _samplerCache[instrName];
+  }
+
+  // Уже грузится — ждём тот же промис
+  if (_samplerPromise[instrName]) {
+    return _samplerPromise[instrName];
+  }
+
+  const cfg = SAMPLER_URLS[instrName];
+  if (!cfg) {
+    console.warn(`[Player] Нет конфига для инструмента: ${instrName}`);
+    return null;
+  }
+
+  _samplerPromise[instrName] = new Promise((resolve) => {
+    const sampler = new Tone.Sampler({
+      urls:    cfg.urls,
+      baseUrl: cfg.baseUrl,
+      onload: () => {
+        _samplerReady[instrName] = true;
+        _samplerCache[instrName] = sampler;
+        sampler.connect(getFxChain(instrName));
+        console.log(`✅ ${instrName} загружен`);
+        resolve(sampler);
+      },
+      onerror: (err) => {
+        console.error(`❌ Ошибка семплера ${instrName}:`, err);
+        delete _samplerPromise[instrName];
+        resolve(null);
+      },
+    });
+    // Кладём в кэш сразу (ещё не ready, но объект уже есть)
+    _samplerCache[instrName] = sampler;
+  });
+
+  return _samplerPromise[instrName];
+}
+
+// ─── ХУК ─────────────────────────────────────────────────────────────────────
+
 const useMelodyPlayer = (
   events,
   totalDuration,
@@ -189,13 +200,13 @@ const useMelodyPlayer = (
   const onNotePlayRef    = useRef(onNotePlay);
   const volumeRef        = useRef(volume);
   const endTimerRef      = useRef(null);
+  const isPlayingRef     = useRef(false);
 
   const globalEffectsRef     = useRef(globalEffects);
   const instrumentEffectsRef = useRef(instrumentEffects);
 
   const globalFxRef = useRef({ reverb: null, delay: null, distortion: null });
   const instrFxRef  = useRef({});
-  const samplersRef = useRef({});
 
   useEffect(() => { eventsRef.current        = events;        }, [events]);
   useEffect(() => { totalDurationRef.current = totalDuration; }, [totalDuration]);
@@ -228,9 +239,10 @@ const useMelodyPlayer = (
     }
   }, [volume]);
 
+  // Тикаем currentTime только если этот экземпляр плеера активен
   useEffect(() => {
     const id = setInterval(() => {
-      if (Tone.getTransport().state === 'started') {
+      if (isPlayingRef.current && Tone.getTransport().state === 'started') {
         setCurrentTime(Tone.getTransport().seconds);
       }
     }, 50);
@@ -264,56 +276,15 @@ const useMelodyPlayer = (
     return instrFxRef.current[instrName].distortion;
   }, [getGlobalFxChain]);
 
-  const loadSampler = useCallback(async (instrName) => {
-    const existing = samplersRef.current[instrName];
-    if (existing?.loaded) {
-      setLoadingState(prev => ({ ...prev, [instrName]: 'ready' }));
-      return existing;
-    }
-    if (existing && !existing.loaded) return existing;
-
-    const cfg = SAMPLER_URLS[instrName];
-    if (!cfg) {
-      console.warn(`[Player] Нет конфига для инструмента: ${instrName}`);
-      return null;
-    }
-
-    setLoadingState(prev => ({ ...prev, [instrName]: 'loading' }));
-
-    const sampler = new Tone.Sampler({
-      urls:    cfg.urls,
-      baseUrl: cfg.baseUrl,
-      onerror: (err) => {
-        console.error(`❌ Ошибка файла семплера ${instrName}:`, err);
-      },
-    });
-
-    samplersRef.current[instrName] = sampler;
-
-    try {
-      await Tone.loaded();
-      sampler.connect(getInstrFxChain(instrName));
-      console.log(`✅ ${instrName} загружен`);
-      setLoadingState(prev => ({ ...prev, [instrName]: sampler.loaded ? 'ready' : 'error' }));
-      return sampler.loaded ? sampler : null;
-    } catch (err) {
-      console.error(`❌ Tone.loaded() упал для ${instrName}:`, err);
-      setLoadingState(prev => ({ ...prev, [instrName]: 'error' }));
-      delete samplersRef.current[instrName];
-      return null;
-    }
-  }, [getInstrFxChain]);
-
-  const getCachedSampler = useCallback((instrName) => {
-    const s = samplersRef.current[instrName];
-    return (s?.loaded) ? s : null;
-  }, []);
-
   const preloadSamplers = useCallback(async (evs) => {
     if (!evs?.length) return;
     const needed = new Set(evs.map(e => resolveInstrumentName(e.instrument)));
-    await Promise.all([...needed].map(name => loadSampler(name)));
-  }, [loadSampler]);
+    await Promise.all([...needed].map(async (name) => {
+      setLoadingState(prev => ({ ...prev, [name]: 'loading' }));
+      const s = await getOrLoadSampler(name, getInstrFxChain);
+      setLoadingState(prev => ({ ...prev, [name]: s ? 'ready' : 'error' }));
+    }));
+  }, [getInstrFxChain]);
 
   useEffect(() => {
     if (!events?.length) return;
@@ -322,8 +293,7 @@ const useMelodyPlayer = (
 
   const createPart = useCallback(() => {
     if (partRef.current) {
-      partRef.current.stop();
-      partRef.current.dispose();
+      try { partRef.current.stop(); partRef.current.dispose(); } catch (_) {}
       partRef.current = null;
     }
 
@@ -336,11 +306,14 @@ const useMelodyPlayer = (
       const { freq, duration, instrument, volume: noteVol } = note;
       const instrName = resolveInstrumentName(instrument);
 
-      const sampler = getCachedSampler(instrName);
+      // Берём из глобального кэша — он никогда не dispose'ится между рендерами
+      const sampler = _samplerReady[instrName] ? _samplerCache[instrName] : null;
+
       if (sampler) {
         const velocity = Math.min(1, noteVol * volumeRef.current * 2.0);
         sampler.triggerAttackRelease(freq, duration, time, velocity);
       } else {
+        // Фоллбэк на осциллятор если сэмплер ещё не готов
         const oscType = OSC_FALLBACK[instrName] || 'sine';
         const synth = new Tone.Synth({
           oscillator: { type: oscType },
@@ -350,7 +323,6 @@ const useMelodyPlayer = (
         synth.connect(gainNode);
         gainNode.connect(getInstrFxChain(instrName));
         synth.triggerAttackRelease(freq, duration, time);
-
         const cleanupDelay = (Tone.Time(duration).toSeconds() + 0.5) * 1000;
         setTimeout(() => {
           try { synth.dispose(); } catch (_) {}
@@ -363,7 +335,7 @@ const useMelodyPlayer = (
 
     part.loop = false;
     return part;
-  }, [getGlobalFxChain, getInstrFxChain, getCachedSampler]);
+  }, [getGlobalFxChain, getInstrFxChain]);
 
   const _stopTransport = useCallback(() => {
     if (endTimerRef.current) {
@@ -371,6 +343,7 @@ const useMelodyPlayer = (
       endTimerRef.current = null;
     }
     Tone.getTransport().pause();
+    isPlayingRef.current = false;
     setIsPlaying(false);
   }, []);
 
@@ -380,10 +353,11 @@ const useMelodyPlayer = (
       endTimerRef.current = null;
     }
     Tone.getTransport().stop();
+    isPlayingRef.current = false;
     setIsPlaying(false);
     setCurrentTime(0);
     if (partRef.current) {
-      partRef.current.dispose();
+      try { partRef.current.stop(); partRef.current.dispose(); } catch (_) {}
       partRef.current = null;
     }
   }, []);
@@ -415,6 +389,7 @@ const useMelodyPlayer = (
     const transport = Tone.getTransport();
 
     if (!partRef.current) {
+      // Ждём загрузки через глобальный кэш — onload гарантирует готовность буферов
       await preloadSamplers(eventsRef.current);
       const newPart = createPart();
       if (!newPart) return;
@@ -423,6 +398,7 @@ const useMelodyPlayer = (
     }
 
     transport.start();
+    isPlayingRef.current = true;
     setIsPlaying(true);
 
     const remaining = (totalDurationRef.current - transport.seconds) * 1000;
@@ -433,26 +409,25 @@ const useMelodyPlayer = (
 
   useEffect(() => {
     if (!isPlaying && partRef.current) {
-      partRef.current.dispose();
+      try { partRef.current.dispose(); } catch (_) {}
       partRef.current = null;
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [events]);
 
+  // Cleanup при размонтировании — НЕ трогаем глобальный кэш сэмплеров!
   useEffect(() => {
     return () => {
       if (endTimerRef.current) clearTimeout(endTimerRef.current);
       if (partRef.current) {
         try { partRef.current.stop(); partRef.current.dispose(); } catch (_) {}
       }
-      for (const s of Object.values(samplersRef.current)) {
-        try { s.dispose(); } catch (_) {}
-      }
       for (const fxNodes of Object.values(instrFxRef.current)) {
         try { fxNodes.reverb.dispose(); fxNodes.delay.dispose(); fxNodes.distortion.dispose(); } catch (_) {}
       }
       const gfx = globalFxRef.current;
       try { gfx.reverb?.dispose(); gfx.delay?.dispose(); gfx.distortion?.dispose(); } catch (_) {}
+      isPlayingRef.current = false;
       Tone.getTransport().stop();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps

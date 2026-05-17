@@ -78,8 +78,8 @@ const Canvas = () => {
     const [modal, setModal] = useState({
         isOpen: false, title: '', description: '', variant: 'default',
     });
-    const [bgColor, setBgColor] = useState('#4D4DFF');
-    const bgColorRef    = useRef('#4D4DFF');
+    const [bgColor, setBgColor] = useState('#0B0B1F');
+    const bgColorRef    = useRef('#0B0B1F');
     const brushColorRef = useRef('#00ffd1');
 
     useEffect(() => { bgColorRef.current    = bgColor;    }, [bgColor]);
@@ -92,9 +92,10 @@ const Canvas = () => {
     const isDraggingRef    = useRef(false);
     const dragDir          = useRef(null);
     const currentSizeRef   = useRef({ w: INITIAL_CANVAS_WIDTH, h: INITIAL_CANVAS_HEIGHT });
+const bgColorDebounceRef = useRef(null);
 
     const { engineRef, initEngine, saveToHistory, undo, redo, clear, canUndo, canRedo } =
-        useDrawing(8, '#4D4DFF');
+        useDrawing(8, '#0B0B1F');
 
     const [searchParams] = useSearchParams();
     const [isLoadingProject, setIsLoadingProject] = useState(false);
@@ -453,10 +454,16 @@ const segments = await imageToSegments(file, {
     });
 
     const handleBgColorChange = useCallback((color) => {
-        setBgColor(color);
-        bgColorRef.current = color;
+    // Цвет применяется мгновенно — пользователь сразу видит результат
+    setBgColor(color);
+    bgColorRef.current = color;
+
+    // А в историю пишем только если пользователь "остановился" на 800 мс
+    if (bgColorDebounceRef.current) clearTimeout(bgColorDebounceRef.current);
+    bgColorDebounceRef.current = setTimeout(() => {
         saveToHistory(color);
-    }, [saveToHistory]);
+    }, 800);
+}, [saveToHistory]);
 
     const syncLayout = useCallback(() => {
         const canvasEl  = canvasPanelRef.current;
