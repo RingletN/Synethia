@@ -15,6 +15,7 @@ import MelodyEngine from "../../engines/MelodyEngine";
 import Button from "../../components/ui/Button";
 import Loader from "../../components/ui/Loader";
 import Modal from "../../components/ui/Modal";
+import { useUnsavedChanges } from '../../hooks/useUnsavedChanges';
 
 import StarIcon from "../../assets/icons/icon-star.svg";
 import StarSelectedIcon from "../../assets/icons/icon-star-selected.svg";
@@ -76,9 +77,9 @@ const Canvas = () => {
     const [totalDuration, setTotalDuration] = useState(8);
     const { exportToWAV } = useAudioExporter(melodyEvents, totalDuration);
 
-    const [modal, setModal] = useState({
-        isOpen: false, title: '', description: '', variant: 'default',
-    });
+    const [modalOpen, setModalOpen] = useState(false);
+    const [modalConfig, setModalConfig] = useState({});
+
     const [bgColor, setBgColor] = useState('#0B0B1F');
     const bgColorRef    = useRef('#0B0B1F');
     const brushColorRef = useRef('#00ffd1');
@@ -165,14 +166,23 @@ useEffect(() => {
     // Реф чтобы не запускать загрузку дважды
     const projectLoadedRef = useRef(false);
 
-    // showModal и closeModal определяем ДО useProjectSave
-    const showModal = useCallback((title, description, variant = 'default') => {
-        setModal({ isOpen: true, title, description, variant });
+    const openModal = useCallback((config) => {
+        setModalConfig(config);
+        setModalOpen(true);
     }, []);
+    
     const closeModal = useCallback(() => {
-        setModal(prev => ({ ...prev, isOpen: false }));
-    }, []);
+        setModalOpen(false);
+        if (modalConfig.onClose) modalConfig.onClose();
+    }, [modalConfig]);
+    
+    // showModal — обёртка для старых вызовов внутри Canvas
+    const showModal = useCallback((title, description, variant = 'default') => {
+        openModal({ title, description, variant, primaryText: 'ОК' });
+    }, [openModal]);
 
+    useUnsavedChanges(canUndo, openModal);
+    
     const { save, isSaving, setProjectId } = useProjectSave({
         engineRef,
         bgColor,
@@ -784,15 +794,24 @@ const segments = await imageToSegments(file, {
                 {isGenerating ? <Loader size={24} color="white" /> : "СГЕНЕРИРОВАТЬ МЕЛОДИЮ"}
             </Button>
 
-            <Modal
-                isOpen={modal.isOpen}
-                onClose={closeModal}
-                title={modal.title}
-                description={modal.description}
-                variant={modal.variant}
-                primaryText="ОК"
-                onPrimary={closeModal}
-            />
+            // СТАЛО:
+<Modal
+    isOpen={modalOpen}
+    onClose={closeModal}
+    title={modalConfig.title}
+    description={modalConfig.description}
+    variant={modalConfig.variant || 'default'}
+    primaryText={modalConfig.primaryText || 'ОК'}
+    cancelText={modalConfig.cancelText}
+    onPrimary={() => {
+        setModalOpen(false);
+        modalConfig.onPrimary?.();
+    }}
+    onCancel={() => {
+        setModalOpen(false);
+        modalConfig.onCancel?.();
+    }}
+/>
         </div>
     );
 };
