@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback } from "react";
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useLocation, useNavigate } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
 import api from '../../api';
 import BgCanvasLine from '../../assets/backgrounds/bg-canvas-line.png';
 import DrawingArea from "./components/DrawingArea";
@@ -98,6 +99,68 @@ const bgColorDebounceRef = useRef(null);
         useDrawing(8, '#0B0B1F');
 
     const [searchParams] = useSearchParams();
+
+    const { user } = useAuth();
+const location = useLocation();
+const navigate = useNavigate();
+
+const PENDING_KEY = 'pendingCanvas';
+
+const pendingSaveRef = useRef(false);
+
+useEffect(() => {
+    if (!location.state?.pendingSave) return;
+
+    const raw = sessionStorage.getItem(PENDING_KEY);
+    if (!raw) return;
+
+    const interval = setInterval(() => {
+        if (!engineRef.current) return;
+        clearInterval(interval);
+
+        try {
+            const saved = JSON.parse(raw);
+            sessionStorage.removeItem(PENDING_KEY);
+
+            if (saved.projectTitle) {
+                setProjectTitle(saved.projectTitle);
+                const el = document.querySelector('.project-title-input');
+                if (el) el.textContent = saved.projectTitle;
+            }
+            if (saved.bgColor) {
+                setBgColor(saved.bgColor);
+                bgColorRef.current = saved.bgColor;
+            }
+            if (saved.canvasSize) setCanvasSize(saved.canvasSize);
+            if (saved.bpm)       setBpm(saved.bpm);
+            if (saved.duration)  setDuration(saved.duration);
+            if (saved.scale)     setScale(saved.scale);
+            if (saved.smoothing) setSmoothing(saved.smoothing);
+            if (saved.effectReverb     !== undefined) setEffectReverb(saved.effectReverb);
+            if (saved.effectDelay      !== undefined) setEffectDelay(saved.effectDelay);
+            if (saved.effectDistortion !== undefined) setEffectDistortion(saved.effectDistortion);
+
+            if (saved.segments?.length) {
+                engineRef.current.loadState({ segments: saved.segments });
+                saveToHistory(saved.bgColor || bgColorRef.current);
+            }
+            if (saved.melodyEvents?.length) {
+                setMelodyEvents(saved.melodyEvents);
+                setTotalDuration(saved.totalDuration ?? 8);
+                setIsMelodyGenerated(true);
+            }
+
+            // Ставим флаг — сохраним после того как стейты обновятся
+            pendingSaveRef.current = saved;
+
+        } catch (e) {
+            console.error('Ошибка восстановления холста:', e);
+        }
+    }, 50);
+
+    return () => clearInterval(interval);
+}, []); // eslint-disable-line react-hooks/exhaustive-deps
+
     const [isLoadingProject, setIsLoadingProject] = useState(false);
     // Реф чтобы не запускать загрузку дважды
     const projectLoadedRef = useRef(false);
@@ -127,9 +190,48 @@ const bgColorDebounceRef = useRef(null);
         showModal,
     });
 
+    
+useEffect(() => {
+    if (!pendingSaveRef.current) return;
+    const saved = pendingSaveRef.current;
+
+    // Проверяем что стейты уже соответствуют сохранённым данным
+    const melodyReady = !saved.melodyEvents?.length || 
+        (isMelodyGenerated && melodyEvents.length === saved.melodyEvents.length);
+
+    if (!melodyReady) return; // ждём следующего рендера
+
+    pendingSaveRef.current = null;
+    save(saved.projectTitle ?? 'Без названия');
+
+}, [isMelodyGenerated, melodyEvents, save]); // срабатывает при каждом обновлении этих стейтов
+
+
     const handleSave = useCallback(() => {
+        if (!user) {
+            // Сохраняем всё состояние холста
+            sessionStorage.setItem(PENDING_KEY, JSON.stringify({
+                projectTitle,
+                bgColor,
+                canvasSize,
+                bpm,
+                duration,
+                scale,
+                smoothing,
+                effectReverb,
+                effectDelay,
+                effectDistortion,
+                melodyEvents,
+                totalDuration,
+                segments: engineRef.current?.getAllSegments?.() ?? [],
+            }));
+            navigate('/auth?redirect=/canvas&pendingSave=1');
+            return;
+        }
         save(projectTitle);
-    }, [save, projectTitle]);
+    }, [user, save, projectTitle, bgColor, canvasSize, bpm, duration, scale,
+        smoothing, effectReverb, effectDelay, effectDistortion,
+        melodyEvents, totalDuration, engineRef, navigate]);
 
     const handleBrushColorChange = useCallback((newColor) => {
         setBrushColor(newColor);

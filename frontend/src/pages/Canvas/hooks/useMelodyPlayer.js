@@ -198,9 +198,9 @@ function updateGlobalEffects(reverb, delay, distortion) {
     _globalReverb.wet.value     = reverb;
     _globalDelay.wet.value      = delay;
     _globalDistortion.wet.value = distortion;
-    console.log('[Player] Глобальные эффекты обновлены (wet):', { reverb, delay, distortion });
+    //console.log('[Player] Глобальные эффекты обновлены (wet):', { reverb, delay, distortion });
   } else {
-    console.log('[Player] Глобальные эффекты сохранены, цепочка будет создана позже');
+    //console.log('[Player] Глобальные эффекты сохранены, цепочка будет создана позже');
   }
 }
 
