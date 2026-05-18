@@ -252,10 +252,15 @@ export const useAudioExporter = (melodyEvents, totalDuration) => {
     const a   = document.createElement('a');
     a.href     = url;
     a.download = filename;
+    a.style.display = 'none';
     document.body.appendChild(a);
-    a.click();
+    
+    // Диспатчим клик минуя bubbling — хук не поймает
+    const clickEvent = new MouseEvent('click', { bubbles: false, cancelable: false });
+    a.dispatchEvent(clickEvent);
+    
     setTimeout(() => { document.body.removeChild(a); URL.revokeObjectURL(url); }, 100);
-  };
+};
 
   return { exportToWAV };
 };

@@ -54,6 +54,8 @@ export const useUnsavedChanges = (hasChanges, openModal) => {
             const href = link.getAttribute('href');
             if (!href) return;
 
+            if (href.startsWith('blob:')) return;
+
             const isExternal = href.startsWith('http') || href.startsWith('//');
             const isAnchor   = href.startsWith('#');
             const isJS       = href.startsWith('javascript');

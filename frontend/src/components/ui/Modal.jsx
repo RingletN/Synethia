@@ -36,15 +36,15 @@ const Modal = ({
                 {description && <p className="modal-description">{description}</p>}
 
                 <div className="modal-buttons">
-                    {onCancel && (
-                        <Button variant="negative" onClick={onCancel}>
-                            {cancelText}
-                        </Button>
-                    )}
-                    <Button variant="primary" onClick={onPrimary || onClose}>
-                        {primaryText}
-                    </Button>
-                </div>
+    {onCancel && (
+        <Button variant="negative" onClick={handleCancel}>
+            {cancelText}
+        </Button>
+    )}
+    <Button variant="primary" onClick={handlePrimary}>
+        {primaryText}
+    </Button>
+</div>
             </div>
         </div>,
         document.body  // ← контейнер, а не ребёнок!

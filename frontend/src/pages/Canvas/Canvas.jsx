@@ -15,6 +15,7 @@ import MelodyEngine from "../../engines/MelodyEngine";
 import Button from "../../components/ui/Button";
 import Loader from "../../components/ui/Loader";
 import Modal from "../../components/ui/Modal";
+import SaveAsModal from "../../components/ui/SaveAsModal";
 import { useUnsavedChanges } from '../../hooks/useUnsavedChanges';
 
 import StarIcon from "../../assets/icons/icon-star.svg";
@@ -56,6 +57,9 @@ const Canvas = () => {
 
     const [projectTitle, setProjectTitle] = useState('Без названия');
 
+    // ← флаг несохранённых изменений — именно его слушает useUnsavedChanges
+    const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+
     const [activeNote, setActiveNote] = useState(null);
 
     const [bpm,       setBpm]       = useState(80);
@@ -94,7 +98,7 @@ const Canvas = () => {
     const isDraggingRef    = useRef(false);
     const dragDir          = useRef(null);
     const currentSizeRef   = useRef({ w: INITIAL_CANVAS_WIDTH, h: INITIAL_CANVAS_HEIGHT });
-const bgColorDebounceRef = useRef(null);
+    const bgColorDebounceRef = useRef(null);
 
     const { engineRef, initEngine, saveToHistory, undo, redo, clear, canUndo, canRedo } =
         useDrawing(8, '#0B0B1F');
@@ -102,88 +106,97 @@ const bgColorDebounceRef = useRef(null);
     const [searchParams] = useSearchParams();
 
     const { user } = useAuth();
-const location = useLocation();
-const navigate = useNavigate();
+    const location = useLocation();
+    const navigate = useNavigate();
 
-const PENDING_KEY = 'pendingCanvas';
+    const PENDING_KEY = 'pendingCanvas';
+    const pendingSaveRef = useRef(false);
 
-const pendingSaveRef = useRef(false);
+    useEffect(() => {
+        if (!location.state?.pendingSave) return;
 
-useEffect(() => {
-    if (!location.state?.pendingSave) return;
+        const raw = sessionStorage.getItem(PENDING_KEY);
+        if (!raw) return;
 
-    const raw = sessionStorage.getItem(PENDING_KEY);
-    if (!raw) return;
+        const interval = setInterval(() => {
+            if (!engineRef.current) return;
+            clearInterval(interval);
 
-    const interval = setInterval(() => {
-        if (!engineRef.current) return;
-        clearInterval(interval);
+            try {
+                const saved = JSON.parse(raw);
+                sessionStorage.removeItem(PENDING_KEY);
 
-        try {
-            const saved = JSON.parse(raw);
-            sessionStorage.removeItem(PENDING_KEY);
+                // Восстанавливаем название только если оно не дефолтное
+                if (saved.projectTitle && saved.projectTitle !== 'Без названия') {
+                    setProjectTitle(saved.projectTitle);
+                    const el = document.querySelector('.project-title-input');
+                    if (el) el.textContent = saved.projectTitle;
+                }
+                if (saved.bgColor) {
+                    setBgColor(saved.bgColor);
+                    bgColorRef.current = saved.bgColor;
+                }
+                if (saved.canvasSize) setCanvasSize(saved.canvasSize);
+                if (saved.bpm)       setBpm(saved.bpm);
+                if (saved.duration)  setDuration(saved.duration);
+                if (saved.scale)     setScale(saved.scale);
+                if (saved.smoothing) setSmoothing(saved.smoothing);
+                if (saved.effectReverb     !== undefined) setEffectReverb(saved.effectReverb);
+                if (saved.effectDelay      !== undefined) setEffectDelay(saved.effectDelay);
+                if (saved.effectDistortion !== undefined) setEffectDistortion(saved.effectDistortion);
 
-            if (saved.projectTitle) {
-                setProjectTitle(saved.projectTitle);
-                const el = document.querySelector('.project-title-input');
-                if (el) el.textContent = saved.projectTitle;
+                if (saved.segments?.length) {
+                    engineRef.current.loadState({ segments: saved.segments });
+                    saveToHistory(saved.bgColor || bgColorRef.current);
+                }
+                if (saved.melodyEvents?.length) {
+                    setMelodyEvents(saved.melodyEvents);
+                    setTotalDuration(saved.totalDuration ?? 8);
+                    setIsMelodyGenerated(true);
+                }
+
+                pendingSaveRef.current = saved;
+
+            } catch (e) {
+                console.error('Ошибка восстановления холста:', e);
             }
-            if (saved.bgColor) {
-                setBgColor(saved.bgColor);
-                bgColorRef.current = saved.bgColor;
-            }
-            if (saved.canvasSize) setCanvasSize(saved.canvasSize);
-            if (saved.bpm)       setBpm(saved.bpm);
-            if (saved.duration)  setDuration(saved.duration);
-            if (saved.scale)     setScale(saved.scale);
-            if (saved.smoothing) setSmoothing(saved.smoothing);
-            if (saved.effectReverb     !== undefined) setEffectReverb(saved.effectReverb);
-            if (saved.effectDelay      !== undefined) setEffectDelay(saved.effectDelay);
-            if (saved.effectDistortion !== undefined) setEffectDistortion(saved.effectDistortion);
+        }, 50);
 
-            if (saved.segments?.length) {
-                engineRef.current.loadState({ segments: saved.segments });
-                saveToHistory(saved.bgColor || bgColorRef.current);
-            }
-            if (saved.melodyEvents?.length) {
-                setMelodyEvents(saved.melodyEvents);
-                setTotalDuration(saved.totalDuration ?? 8);
-                setIsMelodyGenerated(true);
-            }
-
-            // Ставим флаг — сохраним после того как стейты обновятся
-            pendingSaveRef.current = saved;
-
-        } catch (e) {
-            console.error('Ошибка восстановления холста:', e);
-        }
-    }, 50);
-
-    return () => clearInterval(interval);
-}, []); // eslint-disable-line react-hooks/exhaustive-deps
+        return () => clearInterval(interval);
+    }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
     const [isLoadingProject, setIsLoadingProject] = useState(false);
-    // Реф чтобы не запускать загрузку дважды
     const projectLoadedRef = useRef(false);
 
     const openModal = useCallback((config) => {
         setModalConfig(config);
         setModalOpen(true);
     }, []);
-    
+
     const closeModal = useCallback(() => {
         setModalOpen(false);
         if (modalConfig.onClose) modalConfig.onClose();
     }, [modalConfig]);
-    
-    // showModal — обёртка для старых вызовов внутри Canvas
+
     const showModal = useCallback((title, description, variant = 'default') => {
         openModal({ title, description, variant, primaryText: 'ОК' });
     }, [openModal]);
 
-    useUnsavedChanges(canUndo, openModal);
-    
-    const { save, isSaving, setProjectId } = useProjectSave({
+    // ← теперь передаём hasUnsavedChanges вместо canUndo
+    useUnsavedChanges(hasUnsavedChanges, openModal);
+
+    const {
+        handleSaveClick,
+        showSaveAsModal,
+        setShowSaveAsModal,
+        handleSaveAsConfirm,
+        existingProjectNames,
+        currentTitle,
+        setCurrentTitle,
+        isSaving,
+        projectId,
+        setProjectId,
+    } = useProjectSave({
         engineRef,
         bgColor,
         canvasSize,
@@ -198,28 +211,35 @@ useEffect(() => {
         totalDuration,
         isMelodyGenerated,
         showModal,
+        onSaveSuccess: () => setHasUnsavedChanges(false), // ← сброс после сохранения
     });
 
-    
-useEffect(() => {
-    if (!pendingSaveRef.current) return;
-    const saved = pendingSaveRef.current;
+    // Синхронизируем название в шапке когда хук сохранил новый title
+    useEffect(() => {
+        if (currentTitle && currentTitle !== projectTitle) {
+            setProjectTitle(currentTitle);
+            const el = document.querySelector('.project-title-input');
+            if (el) el.textContent = currentTitle;
+        }
+    }, [currentTitle]); // eslint-disable-line react-hooks/exhaustive-deps
 
-    // Проверяем что стейты уже соответствуют сохранённым данным
-    const melodyReady = !saved.melodyEvents?.length || 
-        (isMelodyGenerated && melodyEvents.length === saved.melodyEvents.length);
+    // После авторизации — автосохранение если было pendingSave
+    useEffect(() => {
+        if (!pendingSaveRef.current) return;
+        const saved = pendingSaveRef.current;
 
-    if (!melodyReady) return; // ждём следующего рендера
+        const melodyReady = !saved.melodyEvents?.length ||
+            (isMelodyGenerated && melodyEvents.length === saved.melodyEvents.length);
 
-    pendingSaveRef.current = null;
-    save(saved.projectTitle ?? 'Без названия');
+        if (!melodyReady) return;
 
-}, [isMelodyGenerated, melodyEvents, save]); // срабатывает при каждом обновлении этих стейтов
+        pendingSaveRef.current = null;
+        handleSaveClick(saved.projectTitle ?? '');
 
+    }, [isMelodyGenerated, melodyEvents, handleSaveClick]);
 
     const handleSave = useCallback(() => {
         if (!user) {
-            // Сохраняем всё состояние холста
             sessionStorage.setItem(PENDING_KEY, JSON.stringify({
                 projectTitle,
                 bgColor,
@@ -238,8 +258,8 @@ useEffect(() => {
             navigate('/auth?redirect=/canvas&pendingSave=1');
             return;
         }
-        save(projectTitle);
-    }, [user, save, projectTitle, bgColor, canvasSize, bpm, duration, scale,
+        handleSaveClick(projectTitle);
+    }, [user, handleSaveClick, projectTitle, bgColor, canvasSize, bpm, duration, scale,
         smoothing, effectReverb, effectDelay, effectDistortion,
         melodyEvents, totalDuration, engineRef, navigate]);
 
@@ -257,11 +277,11 @@ useEffect(() => {
         setIsImporting(true);
         try {
             const currentLineWidth = engineRef.current.getLineWidth?.() || 5;
-const segments = await imageToSegments(file, {
-    threshold: 20,
-    maxWidth: 850,
-    lineWidth: currentLineWidth,
-});
+            const segments = await imageToSegments(file, {
+                threshold: 20,
+                maxWidth: 850,
+                lineWidth: currentLineWidth,
+            });
             if (segments.length === 0) {
                 showModal(
                     "Контуры не найдены",
@@ -292,11 +312,9 @@ const segments = await imageToSegments(file, {
 
     const handleStrokeEnd = useCallback(() => {
         saveToHistory(bgColorRef.current);
+        setHasUnsavedChanges(true); // ← помечаем что есть несохранённые изменения
     }, [saveToHistory]);
 
-    // ─── Загрузка проекта по ?project=id из URL ───────────────────────────────
-    // Запускается один раз после того как движок готов (engineRef.current появился).
-    // handleCanvasReady вызывается раньше этого эффекта, поэтому ждём engineRef.
     const loadProjectRef = useRef(null);
 
     loadProjectRef.current = useCallback(async (projectId) => {
@@ -307,15 +325,13 @@ const segments = await imageToSegments(file, {
         try {
             const project = await api.get(`/api/projects/${projectId}`);
 
-            // Название
             if (project.title) {
                 setProjectTitle(project.title);
-                // Обновляем contentEditable вручную — React не управляет его содержимым
+                setCurrentTitle(project.title);
                 const el = document.querySelector('.project-title-input');
                 if (el) el.textContent = project.title;
             }
 
-            // Настройки
             if (project.settings) {
                 const s = project.settings;
                 setBpm(s.bpm);
@@ -327,11 +343,9 @@ const segments = await imageToSegments(file, {
                 setEffectDistortion(parseFloat(s.distortion));
             }
 
-            // Холст — размер + сегменты
             if (project.canvas && engineRef.current) {
                 const { segments, bg_color, width, height } = project.canvas;
 
-                // Меняем размер холста
                 const newW = width  || INITIAL_CANVAS_WIDTH;
                 const newH = height || INITIAL_CANVAS_HEIGHT;
                 setCanvasSize({ width: newW, height: newH });
@@ -341,42 +355,38 @@ const segments = await imageToSegments(file, {
                 }
                 engineRef.current.resize(newW, newH);
 
-                // Цвет фона
                 if (bg_color) {
                     setBgColor(bg_color);
                     bgColorRef.current = bg_color;
                 }
 
-                // Загружаем сегменты в движок
                 if (Array.isArray(segments) && segments.length > 0) {
                     engineRef.current.loadState({ segments });
                     saveToHistory(bg_color || bgColorRef.current);
                 }
             }
 
-            // Мелодия
             if (project.melody?.events?.length > 0) {
                 setMelodyEvents(project.melody.events);
                 setTotalDuration(project.melody.total_duration);
                 setIsMelodyGenerated(true);
             }
 
-            // Запоминаем project_id — следующий Save обновит тот же проект
             setProjectId(parseInt(projectId, 10));
+            // После загрузки проекта изменений нет
+            setHasUnsavedChanges(false);
 
         } catch (err) {
             showModal('Ошибка', `Не удалось загрузить проект: ${err.message}`, 'error');
         } finally {
             setIsLoadingProject(false);
         }
-    }, [engineRef, saveToHistory, setProjectId, showModal]);
+    }, [engineRef, saveToHistory, setProjectId, setCurrentTitle, showModal]);
 
-    // Ждём пока движок будет готов, потом загружаем
     useEffect(() => {
         const urlProjectId = searchParams.get('project');
         if (!urlProjectId || projectLoadedRef.current) return;
 
-        // Движок инициализируется в handleCanvasReady — поллим пока не появится
         const interval = setInterval(() => {
             if (engineRef.current) {
                 clearInterval(interval);
@@ -425,6 +435,7 @@ const segments = await imageToSegments(file, {
             setMelodyEvents(events);
             setTotalDuration(duration);
             setIsMelodyGenerated(true);
+            setHasUnsavedChanges(true); // ← мелодия сгенерирована — тоже несохранённое изменение
             showModal("Готово", "Мелодия успешно сгенерирована!", "success");
         } catch (err) {
             console.error(err);
@@ -498,11 +509,9 @@ const segments = await imageToSegments(file, {
         const onMove = (e) => {
             if (!isDraggingRef.current || !canvasPanelRef.current || !engineRef.current) return;
 
-            // Берём координаты сразу — они валидны только в момент события
             const clientX = e.clientX;
             const clientY = e.clientY;
 
-            // Отменяем предыдущий незапущенный кадр — обрабатываем только последнюю позицию мыши
             if (rafId !== null) cancelAnimationFrame(rafId);
 
             rafId = requestAnimationFrame(() => {
@@ -523,7 +532,6 @@ const segments = await imageToSegments(file, {
                     ? Math.max(CANVAS_MIN_SIZE, rawH)
                     : currentSizeRef.current.h;
 
-                // resize в DrawingEngine сам батчится через RAF внутри — стили обновляем здесь
                 engineRef.current.resize(newW, newH);
                 canvasPanelRef.current.style.width  = `${newW}px`;
                 canvasPanelRef.current.style.height = `${newH}px`;
@@ -553,6 +561,7 @@ const segments = await imageToSegments(file, {
         if (engineRef.current) {
             engineRef.current.onStrokeEnd = () => {
                 saveToHistory(bgColorRef.current);
+                setHasUnsavedChanges(true);
                 engineRef.current.onStrokeEnd = handleStrokeEnd;
             };
         }
@@ -566,16 +575,15 @@ const segments = await imageToSegments(file, {
     });
 
     const handleBgColorChange = useCallback((color) => {
-    // Цвет применяется мгновенно — пользователь сразу видит результат
-    setBgColor(color);
-    bgColorRef.current = color;
+        setBgColor(color);
+        bgColorRef.current = color;
 
-    // А в историю пишем только если пользователь "остановился" на 800 мс
-    if (bgColorDebounceRef.current) clearTimeout(bgColorDebounceRef.current);
-    bgColorDebounceRef.current = setTimeout(() => {
-        saveToHistory(color);
-    }, 800);
-}, [saveToHistory]);
+        if (bgColorDebounceRef.current) clearTimeout(bgColorDebounceRef.current);
+        bgColorDebounceRef.current = setTimeout(() => {
+            saveToHistory(color);
+            setHasUnsavedChanges(true); // ← смена фона тоже изменение
+        }, 800);
+    }, [saveToHistory]);
 
     const syncLayout = useCallback(() => {
         const canvasEl  = canvasPanelRef.current;
@@ -604,7 +612,11 @@ const segments = await imageToSegments(file, {
         setActiveNote(null);
         setProjectId(null);
         setProjectTitle('Без названия');
-    }, [clear, stop, setProjectId]);
+        setCurrentTitle('');
+        setHasUnsavedChanges(false); // ← очистка = чистое состояние
+        const el = document.querySelector('.project-title-input');
+        if (el) el.textContent = 'Без названия';
+    }, [clear, stop, setProjectId, setCurrentTitle]);
 
     return (
         <div className="canvas-content">
@@ -641,8 +653,15 @@ const segments = await imageToSegments(file, {
                         className="icon download-btn"
                         onClick={() => {
                             if (!isMelodyGenerated) { handleDownload('image'); return; }
-                            const choice = window.confirm("Что скачать?\n\nOK — Мелодию (WAV)\nОтмена — Картинку");
-                            if (choice) handleDownload('wav'); else handleDownload('image');
+                            openModal({
+                                title: 'Скачать',
+                                description: 'Выберите формат для скачивания',
+                                primaryText: 'Мелодия (WAV)',
+                                cancelText: 'Картинка (PNG)',
+                                variant: 'default',
+                                onPrimary: () => handleDownload('wav'),
+                                onCancel: () => handleDownload('image'),
+                            });
                         }}
                     >
                         <img src={DownloadIcon} alt="Скачать" />
@@ -794,24 +813,32 @@ const segments = await imageToSegments(file, {
                 {isGenerating ? <Loader size={24} color="white" /> : "СГЕНЕРИРОВАТЬ МЕЛОДИЮ"}
             </Button>
 
-            // СТАЛО:
-<Modal
-    isOpen={modalOpen}
-    onClose={closeModal}
-    title={modalConfig.title}
-    description={modalConfig.description}
-    variant={modalConfig.variant || 'default'}
-    primaryText={modalConfig.primaryText || 'ОК'}
-    cancelText={modalConfig.cancelText}
-    onPrimary={() => {
-        setModalOpen(false);
-        modalConfig.onPrimary?.();
-    }}
-    onCancel={() => {
-        setModalOpen(false);
-        modalConfig.onCancel?.();
-    }}
-/>
+            {/* Общая модалка для уведомлений и подтверждений */}
+            <Modal
+                isOpen={modalOpen}
+                onClose={closeModal}
+                title={modalConfig.title}
+                description={modalConfig.description}
+                variant={modalConfig.variant || 'default'}
+                primaryText={modalConfig.primaryText || 'ОК'}
+                cancelText={modalConfig.cancelText}
+                onPrimary={() => {
+                    setModalOpen(false);
+                    modalConfig.onPrimary?.();
+                }}
+                onCancel={() => {
+                    setModalOpen(false);
+                    modalConfig.onCancel?.();
+                }}
+            />
+
+            {/* Модалка с инпутом названия */}
+            <SaveAsModal
+                isOpen={showSaveAsModal}
+                onClose={() => setShowSaveAsModal(false)}
+                onSave={handleSaveAsConfirm}
+                existingNames={existingProjectNames}
+            />
         </div>
     );
 };

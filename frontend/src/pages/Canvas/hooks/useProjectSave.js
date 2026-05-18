@@ -1,24 +1,7 @@
 // src/pages/Canvas/hooks/useProjectSave.js
 import { useState, useCallback } from 'react';
-import api from '../../../api'; // src/api.js
+import api from '../../../api';
 
-/**
- * @param {object} params
- * @param {React.RefObject} params.engineRef       — DrawingEngine ref
- * @param {string}  params.bgColor                 — текущий цвет фона
- * @param {object}  params.canvasSize              — { width, height }
- * @param {number}  params.bpm
- * @param {number}  params.duration
- * @param {string}  params.scale
- * @param {number}  params.smoothing
- * @param {number}  params.effectReverb
- * @param {number}  params.effectDelay
- * @param {number}  params.effectDistortion
- * @param {Array}   params.melodyEvents            — [] если мелодия не генерировалась
- * @param {number}  params.totalDuration
- * @param {boolean} params.isMelodyGenerated
- * @param {Function} params.showModal              — (title, description, variant) => void
- */
 export const useProjectSave = ({
     engineRef,
     bgColor,
@@ -34,43 +17,41 @@ export const useProjectSave = ({
     totalDuration,
     isMelodyGenerated,
     showModal,
+    onSaveSuccess,        // ← новый параметр: вызывается после успешного сохранения
+    existingProjectNames = [],
 }) => {
     const [isSaving, setIsSaving] = useState(false);
-    // project_id хранится после первого сохранения — для последующих обновлений
     const [projectId, setProjectId] = useState(null);
+    const [currentTitle, setCurrentTitle] = useState('');
+    const [showSaveAsModal, setShowSaveAsModal] = useState(false);
 
-    const save = useCallback(async (title) => {
+    const _doSave = useCallback(async (title, idOverride) => {
         if (!engineRef.current) {
             showModal('Ошибка', 'Движок рисования не инициализирован', 'error');
             return;
         }
 
         const segments = engineRef.current.getAllSegments();
+        const resolvedId = idOverride !== undefined ? idOverride : projectId;
 
         const payload = {
-            // Если проект уже был сохранён — передаём id для обновления
-            ...(projectId ? { project_id: projectId } : {}),
-
-            title: title || 'Без названия',
-
+            ...(resolvedId ? { project_id: resolvedId } : {}),
+            title,
             canvas: {
                 segments,
                 bg_color: bgColor,
                 width:    canvasSize.width,
                 height:   canvasSize.height,
             },
-
             settings: {
                 bpm,
                 duration,
                 scale,
                 smoothing,
-                reverb:      effectReverb,
-                delay:       effectDelay,
-                distortion:  effectDistortion,
+                reverb:     effectReverb,
+                delay:      effectDelay,
+                distortion: effectDistortion,
             },
-
-            // Мелодию прикладываем только если она была сгенерирована
             ...(isMelodyGenerated && melodyEvents.length > 0
                 ? { melody: { events: melodyEvents, total_duration: totalDuration } }
                 : {}),
@@ -80,6 +61,8 @@ export const useProjectSave = ({
         try {
             const data = await api.post('/api/projects', payload);
             setProjectId(data.project_id);
+            setCurrentTitle(title);
+            onSaveSuccess?.(); // ← сбрасываем флаг несохранённых изменений в Canvas
             showModal('Сохранено', 'Проект успешно сохранён!', 'success');
         } catch (err) {
             showModal('Ошибка сохранения', err.message || 'Неизвестная ошибка', 'error');
@@ -89,8 +72,37 @@ export const useProjectSave = ({
     }, [
         engineRef, bgColor, canvasSize, bpm, duration, scale, smoothing,
         effectReverb, effectDelay, effectDistortion, melodyEvents, totalDuration,
-        isMelodyGenerated, showModal, projectId,
+        isMelodyGenerated, showModal, onSaveSuccess, projectId,
     ]);
 
-    return { save, isSaving, projectId, setProjectId };
+    const handleSaveClick = useCallback((projectTitle) => {
+        if (projectId) {
+            // Проект уже сохранён — перезаписываем со свежим названием из шапки
+            _doSave(projectTitle, projectId);
+        } else if (!projectTitle || projectTitle.trim() === '' || projectTitle.trim() === 'Без названия') {
+            // Названия нет — открываем модалку с инпутом
+            setShowSaveAsModal(true);
+        } else {
+            // Название есть — сохраняем как новый проект
+            _doSave(projectTitle, null);
+        }
+    }, [projectId, _doSave]);
+
+    const handleSaveAsConfirm = useCallback((title) => {
+        setShowSaveAsModal(false);
+        _doSave(title, null);
+    }, [_doSave]);
+
+    return {
+        handleSaveClick,
+        showSaveAsModal,
+        setShowSaveAsModal,
+        handleSaveAsConfirm,
+        existingProjectNames,
+        currentTitle,
+        setCurrentTitle,
+        isSaving,
+        projectId,
+        setProjectId,
+    };
 };
