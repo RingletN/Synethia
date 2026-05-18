@@ -39,6 +39,16 @@ function Register({ onSwitchToLogin }) {
     const [errorMessage, setErrorMessage] = useState('');
     const [showValidationError, setShowValidationError] = useState(false);
 
+    const params = new URLSearchParams(window.location.search);
+const fromCanvas = params.get('pendingSave') === '1';
+const redirectTarget = params.get('redirect') || '/profile';
+
+const handleSuccessClose = () => {
+    setShowSuccessModal(false);
+    navigate(redirectTarget, { state: { pendingSave: fromCanvas } });
+};
+
+
     const handleChange = (e) => {
         const { name, value } = e.target;
         setFormData(prev => ({ ...prev, [name]: value }));
@@ -252,17 +262,14 @@ const handleStep2Submit = async (e) => {
                 />
             </div>
             <Modal
-                isOpen={showSuccessModal}
-                onClose={() => {
-                    setShowSuccessModal(false);
-                    navigate('/profile');
-                }}
-                title="Регистрация успешна!"
-                description="Добро пожаловать в Synethia"
-                primaryText="Перейти в профиль"
-                onPrimary={() => navigate('/profile')}
-                variant="success"
-            />
+    isOpen={showSuccessModal}
+    onClose={handleSuccessClose}
+    title="Регистрация успешна!"
+    description={fromCanvas ? "Возвращаемся на холст, проект сохранится автоматически" : "Добро пожаловать в Synethia"}
+    primaryText={fromCanvas ? "Вернуться на холст" : "Перейти в профиль"}
+    onPrimary={handleSuccessClose}
+    variant="success"
+/>
             <Modal
                 isOpen={showValidationError}
                 onClose={() => setShowValidationError(false)}

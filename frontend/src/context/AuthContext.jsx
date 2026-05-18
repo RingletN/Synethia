@@ -202,18 +202,19 @@ export const AuthProvider = ({ children }) => {
 
   const logout = async () => {
     try {
-      await fetchWithCsrf(`${apiUrl}/api/logout`, { method: 'POST' });
+        await fetchWithCsrf(`${apiUrl}/api/logout`, { method: 'POST' });
     } catch (err) {
-      console.error("Logout error:", err);
+        console.error("Logout error:", err);
     } finally {
-      csrfInitialized.current = false;
-      setUser(null);
-      document.cookie = 'laravel_session=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
-      document.cookie = 'XSRF-TOKEN=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
-      localStorage.clear();
-      sessionStorage.clear();
+        csrfInitialized.current = false;
+        setUser(null);
+        // НЕ трогаем HttpOnly куки через JS — это бесполезно
+        // Sanctum сам инвалидирует сессию на сервере через /api/logout
+        // Просто чистим то что реально доступно:
+        localStorage.clear();
+        sessionStorage.clear();
     }
-  };
+};
 
   const updateUser = async (data) => {
     try {

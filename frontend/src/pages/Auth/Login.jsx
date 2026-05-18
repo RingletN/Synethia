@@ -24,6 +24,9 @@ function Login({ onSwitchToRegister, onForgotPassword }) {
     const [errorMessage, setErrorMessage] = useState('');
     const [showValidationError, setShowValidationError] = useState(false);
 
+    const params = new URLSearchParams(window.location.search);
+const fromCanvas = params.get('pendingSave') === '1';
+
  const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -58,10 +61,15 @@ function Login({ onSwitchToRegister, onForgotPassword }) {
     }
 };
 
-    const handleSuccessClose = () => {
-        setShowSuccessModal(false);
+const handleSuccessClose = () => {
+    setShowSuccessModal(false);
+    const redirect = params.get('redirect');
+    if (redirect) {
+        navigate(redirect, { state: { pendingSave: fromCanvas } });
+    } else {
         navigate('/profile');
-    };
+    }
+};
 
     const handleChange = (e) => {
         const { name, value } = e.target;
@@ -175,15 +183,16 @@ function Login({ onSwitchToRegister, onForgotPassword }) {
             </div>
 
             {/* Модалки */}
-            <Modal
-                isOpen={showSuccessModal}
-                onClose={handleSuccessClose}
-                title="Успешный вход!"
-                description="Добро пожаловать обратно в Synethia"
-                primaryText="Перейти в профиль"
-                onPrimary={handleSuccessClose}
-                variant="success"
-            />
+            // Модалка успеха:
+<Modal
+    isOpen={showSuccessModal}
+    onClose={handleSuccessClose}
+    title="Успешный вход!"
+    description={fromCanvas ? "Возвращаемся на холст, проект сохранится автоматически" : "Добро пожаловать обратно в Synethia"}
+    primaryText={fromCanvas ? "Вернуться на холст" : "Перейти в профиль"}
+    onPrimary={handleSuccessClose}
+    variant="success"
+/>
 
             <Modal
                 isOpen={showErrorModal}

@@ -116,7 +116,13 @@ class AuthController extends Controller
 
     public function logout(Request $request)
     {
-        auth()->logout();
+        auth()->guard('web')->logout();
+        
+        if ($request->hasSession()) {
+            $request->session()->invalidate();
+            $request->session()->regenerateToken();
+        }
+        
         return response()->json(['message' => 'Вы вышли из аккаунта']);
     }
 }
