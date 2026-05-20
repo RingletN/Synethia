@@ -10,6 +10,8 @@ import Step1 from '../../assets/home/step1.svg'
 import Step2 from '../../assets/home/step2.svg'
 import Step3 from '../../assets/home/step3.svg'
 import StepsSection from './StepsSection'; 
+import Button from "../../components/ui/Button";
+
 import './Home.css'
 
 const Home = () => {
@@ -24,7 +26,10 @@ const Home = () => {
                     <h1>НАРИСУЙ СВОЙ ЗВУК</h1>
                     <p>преврати рисунок в мелодию</p>
                 </div>
-                <button>НАЧАТЬ РИСОВАТЬ</button>
+                {/* <button>НАЧАТЬ РИСОВАТЬ</button> */}
+                <Button variant="accent">
+                 НАЧАТЬ РИСОВАТЬ
+                </Button>
             </div>
 
             <div className="photo-convert-block">
@@ -49,14 +54,14 @@ const Home = () => {
                         <img src={PhotoAfter} className="photo-block" alt="Photo After" />   
                     </div>
                 </div>
-                <button>ИМПОРТИРОВАТЬ ИЗОБРАЖЕНИЕ</button>
+                <Button variant="accent">ИМПОРТИРОВАТЬ ИЗОБРАЖЕНИЕ</Button>
             </div>
 
             <StepsSection />
 
             <div className="last-slogan-block">
                 <h1>ГОТОВ ПРЕВРАТИТЬ ХОЛСТ В МУЗЫКУ?</h1>
-                <button>НАЧАТЬ ТВОРИТЬ</button>
+                <Button variant="accent">НАЧАТЬ ТВОРИТЬ</Button>
             </div>
         </div>
     );

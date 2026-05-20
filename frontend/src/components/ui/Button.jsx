@@ -3,7 +3,7 @@ import './Button.css';
 
 const Button = ({ 
   children, 
-  variant = 'primary',  // 'primary' или 'negative'
+  variant = 'primary',   // 'primary', 'negative' или 'accent'
   onClick, 
   disabled = false,
   className = '',
@@ -17,7 +17,7 @@ const Button = ({
       disabled={disabled}
       {...rest}
     >
-      {children}
+      <span style={{ position: 'relative', zIndex: 2 }}>{children}</span>
     </button>
   );
 };

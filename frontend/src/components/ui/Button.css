@@ -80,3 +80,40 @@
 .button-negative:hover{
   box-shadow: 8px 7px 34.2px 20px  rgba(255, 0, 255, 0.2);
 }
+
+.button-accent {
+  background: linear-gradient(
+    99deg,
+    rgba(0, 242, 255, 0.8) 0%,
+    rgba(255, 0, 255, 0.8) 100%
+  );
+  transition: transform 0.2s, box-shadow 0.2s, background 0.1s;
+}
+
+.button-accent::before {
+  background: linear-gradient(
+    90deg,
+    rgba(0, 242, 255, 0.8) 0%,
+    rgba(255, 0, 255, 0.8) 100%
+  );
+}
+
+.button-accent {
+  background: linear-gradient
+  (99deg, rgba(0,242,255,0.7) 0%, rgba(255,0,255,0.7) 100%);
+}
+
+.button-accent::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(99deg, rgba(255,0,255,0.8) 0%, rgba(0,242,255,0.8) 100%);
+  opacity: 0;
+  transition: opacity 0.3s;
+  z-index: 1;
+}
+
+.button-accent:hover::after {
+  opacity: 1;
+}
