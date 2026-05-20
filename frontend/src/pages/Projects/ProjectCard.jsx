@@ -7,8 +7,8 @@ import StarIcon         from '../../assets/icons/icon-star.svg';
 import StarSelectedIcon from '../../assets/icons/icon-star-selected.svg';
 import DownloadIcon     from '../../assets/icons/icon-download.svg';
 import TrashIcon        from '../../assets/icons/icon-trash.svg';
-import PlayIcon         from '../../assets/icons/icon-play.svg';
-import PauseIcon        from '../../assets/icons/icon-pause.svg';
+import PlayIcon         from '../../assets/icons/icon-play-mini.svg';
+import PauseIcon        from '../../assets/icons/icon-pause-mini.svg';
 import './ProjectCard.css';
 import useMelodyPlayer from '../Canvas/hooks/useMelodyPlayer'; 
 

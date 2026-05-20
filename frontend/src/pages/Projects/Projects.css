@@ -146,7 +146,7 @@
    ══════════════════════════════════════════════════════════ */
 .project-cards-grid {
     display: grid;
-    grid-template-columns: repeat(var(--cols, 2), 590px);
+    grid-template-columns: repeat(var(--cols, 2), 1fr);  
     gap: var(--card-gap, 56px);
     /* Центрируем сетку, если карточки не занимают всю ширину */
     justify-content: start;

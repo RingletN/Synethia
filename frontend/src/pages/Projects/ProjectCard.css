@@ -8,10 +8,10 @@
     position: relative;
     background: rgba(var(--color-dark-rgb), 0.45);
     border-radius: 24px;
-    padding: 24px;
+    padding: 32px;
     display: flex;
     flex-direction: column;
-    gap: 16px;
+    gap: 22px;
     cursor: pointer;
     overflow: hidden;
     transition: transform 0.18s ease, box-shadow 0.18s ease;
@@ -69,10 +69,9 @@
 .project-card-create-label {
     color: var(--color-bright);
     font-family: var(--font-montserrat);
-    font-weight: var(--font-weight-semibold);
-    font-size: 24px;
+    font-weight: var(--font-weight-bold);
+    font-size: 40px;
     text-align: center;
-    line-height: 1.35;
 }
 
 /* ══════════════════════════════════════════════════════════
@@ -109,10 +108,10 @@
    ПРЕВЬЮ ХОЛСТА — position:relative, чтобы плеер лежал абсолютно
    ══════════════════════════════════════════════════════════ */
 .project-card-preview {
-    border-radius: 14px;
+    border-radius: 40px;
     overflow: hidden;
     flex-shrink: 0;
-    aspect-ratio: 16 / 9;
+    aspect-ratio: 525 / 371;
     position: relative;
     display: flex;
     align-items: stretch;
@@ -137,9 +136,10 @@
     height: 71px;
     display: flex;
     align-items: center;
-    background: #0B0B1F;
-    border-radius: 0 0 14px 14px;
-    padding: 0 18px;
+    background: rgba(11, 11, 31, 0.4);
+    border-radius: 40px;
+    padding: 5px 32px;
+    margin: 14px;
     box-sizing: border-box;
 }
 
@@ -212,8 +212,7 @@
 .project-card-date-value {
     font-family: var(--font-montserrat);
     font-weight: var(--font-weight-semibold);
-    font-size: 33px;
-    line-height: 1.2;
+    font-size: 32px;
     white-space: nowrap;
 }
 .project-card-date-label { color: var(--color-pale); }

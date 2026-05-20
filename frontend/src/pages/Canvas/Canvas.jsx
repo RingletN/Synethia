@@ -285,7 +285,7 @@ const Canvas = () => {
             if (segments.length === 0) {
                 showModal(
                     "Контуры не найдены",
-                    "На изображении не удалось обнаружить достаточно контуров.\n\nПопробуйте другое фото или уменьшите значение threshold.",
+                    "На изображении не удалось обнаружить достаточно контуров.\n\nПопробуйте другое фото",
                 );
                 return;
             }
@@ -658,7 +658,7 @@ const Canvas = () => {
                                 description: 'Выберите формат для скачивания',
                                 primaryText: 'Мелодия (WAV)',
                                 cancelText: 'Картинка (PNG)',
-                                variant: 'default',
+                                variant: 'warning',
                                 onPrimary: () => handleDownload('wav'),
                                 onCancel: () => handleDownload('image'),
                             });
