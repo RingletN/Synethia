@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 
-#[Fillable(['user_id', 'title', 'description'])]
+#[Fillable(['user_id', 'title', 'description', 'is_favorite'])]
 
 class Project extends Model
 {

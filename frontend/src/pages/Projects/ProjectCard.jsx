@@ -2,6 +2,7 @@ import React, { useRef, useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import * as Tone from 'tone';
 import api from '../../api';
+import Modal from '../../components/ui/Modal';
 import PlusIcon         from '../../assets/projects/plus.svg';
 import StarIcon         from '../../assets/icons/icon-star.svg';
 import StarSelectedIcon from '../../assets/icons/icon-star-selected.svg';
@@ -10,7 +11,8 @@ import TrashIcon        from '../../assets/icons/icon-trash.svg';
 import PlayIcon         from '../../assets/icons/icon-play-mini.svg';
 import PauseIcon        from '../../assets/icons/icon-pause-mini.svg';
 import './ProjectCard.css';
-import useMelodyPlayer from '../Canvas/hooks/useMelodyPlayer'; 
+import useMelodyPlayer from '../Canvas/hooks/useMelodyPlayer';
+import { useAudioExporter } from '../Canvas/hooks/useAudioExporter';
 
 // ─── Карточка «Создать новый проект» ─────────────────────────────────────────
 export const CreateCard = ({ onClick }) => (
@@ -64,7 +66,7 @@ const CanvasPreview = ({ bgColor, segments, origW = 750, origH = 600 }) => {
     );
 };
 
-// ─── Мини-плеер (принимает эффекты) ──────────────────────────────────────────
+// ─── Мини-плеер ──────────────────────────────────────────────────────────────
 const MiniPlayer = ({ events, totalDuration, projectId, playingId, onPlay, effects = {} }) => {
     const { isPlaying, currentTime, play, pause, seek, stop } = useMelodyPlayer(
         events, totalDuration, null, effects
@@ -120,39 +122,137 @@ const MiniPlayer = ({ events, totalDuration, projectId, playingId, onPlay, effec
 const ProjectCard = ({ project, onDelete, onToggleFavorite, playingId, onPlay }) => {
     const navigate = useNavigate();
 
-    // Эффекты из сохранённых настроек
-const effects = {
-    reverb:     project.settings?.reverb ?? 0,
-    delay:      project.settings?.delay ?? 0,
-    distortion: project.settings?.distortion ?? 0,
-};
-    console.log('[ProjectCard] project.settings:', project.settings);
-console.log('[ProjectCard] project.melody:', project.melody);
-console.log('[ProjectCard] effects from project.settings:', effects);
-//     const effects = {
-//     reverb: 1,      // максимальная реверберация
-//     delay:  1,      // максимальная задержка
-//     distortion: 1,  // максимальные искажения
-// };
+    const [modalOpen,   setModalOpen]   = useState(false);
+    const [modalConfig, setModalConfig] = useState({});
+
+    const openModal = (config) => { setModalConfig(config); setModalOpen(true); };
+    const closeModal = () => { setModalOpen(false); modalConfig.onClose?.(); };
+
+    const effects = {
+        reverb:     project.settings?.reverb     ?? 0,
+        delay:      project.settings?.delay      ?? 0,
+        distortion: project.settings?.distortion ?? 0,
+    };
 
     const canvas     = project.canvas;
     const melodyFull = project.melody;
-    const totalDur   = melodyFull?.total_duration ?? project.melody?.total_duration ?? 60;
+    const totalDur   = melodyFull?.total_duration ?? 60;
     const hasEvents  = Boolean(melodyFull?.events?.length);
+
+    // Экспорт аудио (WAV) — для кнопки скачать
+    const { exportToWAV } = useAudioExporter(
+        melodyFull?.events ?? [],
+        totalDur,
+    );
 
     const formatDate = (dateStr) =>
         new Date(dateStr).toLocaleDateString('ru-RU', {
             day: '2-digit', month: '2-digit', year: 'numeric',
         });
 
-    const handleOpen     = ()  => navigate(`/canvas?project=${project.id}`);
-    const handleDelete   = (e) => {
+    const handleOpen = () => navigate(`/canvas?project=${project.id}`);
+
+    // ── Избранное ──────────────────────────────────────────────────────────────
+    const handleStar = async (e) => {
         e.stopPropagation();
-        if (!window.confirm(`Удалить проект «${project.title}»?`)) return;
-        onDelete(project.id);
+        // Оптимистичное обновление в родителе
+        onToggleFavorite?.(project.id);
+        try {
+            await api.patch(`/api/projects/${project.id}/favorite`);
+        } catch (err) {
+            // Откат при ошибке
+            onToggleFavorite?.(project.id);
+            openModal({
+                title: 'Ошибка',
+                description: 'Не удалось обновить избранное. Попробуйте ещё раз.',
+                variant: 'error',
+                primaryText: 'ОК',
+            });
+        }
     };
-    const handleDownload = (e) => e.stopPropagation();
-    const handleStar     = (e) => { e.stopPropagation(); onToggleFavorite?.(project.id); };
+
+    // ── Удаление ───────────────────────────────────────────────────────────────
+    const handleDelete = (e) => {
+        e.stopPropagation();
+        openModal({
+            title: 'Удалить проект',
+            description: `Вы уверены, что хотите удалить проект «${project.title}»? Это действие необратимо.`,
+            variant: 'warning',
+            primaryText: 'Удалить',
+            cancelText: 'Отмена',
+            onPrimary: async () => {
+                setModalOpen(false);
+                try {
+                    await api.delete(`/api/projects/${project.id}`);
+                    onDelete(project.id);
+                } catch (err) {
+                    openModal({
+                        title: 'Ошибка',
+                        description: 'Не удалось удалить проект. Попробуйте ещё раз.',
+                        variant: 'error',
+                        primaryText: 'ОК',
+                    });
+                }
+            },
+            onCancel: () => setModalOpen(false),
+        });
+    };
+
+    // ── Скачать ────────────────────────────────────────────────────────────────
+    const handleDownloadImage = (e) => {
+        e.stopPropagation();
+        // Рисуем превью на offscreen canvas и скачиваем
+        const offscreen = document.createElement('canvas');
+        offscreen.width  = canvas?.width  ?? 750;
+        offscreen.height = canvas?.height ?? 600;
+        const ctx = offscreen.getContext('2d');
+        ctx.fillStyle = canvas?.bg_color ?? '#0B0B1F';
+        ctx.fillRect(0, 0, offscreen.width, offscreen.height);
+        const segs = canvas?.segments ?? [];
+        segs.forEach(seg => {
+            const pts = seg.points;
+            if (!pts || pts.length < 2) return;
+            ctx.beginPath();
+            ctx.strokeStyle = seg.color ?? '#ffffff';
+            ctx.lineWidth   = seg.lineWidth ?? 4;
+            ctx.lineCap     = 'round';
+            ctx.lineJoin    = 'round';
+            ctx.moveTo(pts[0].x * offscreen.width, pts[0].y * offscreen.height);
+            for (let i = 1; i < pts.length; i++) {
+                ctx.lineTo(pts[i].x * offscreen.width, pts[i].y * offscreen.height);
+            }
+            ctx.stroke();
+        });
+        const link = document.createElement('a');
+        link.download = `${project.title || 'drawing'}.png`;
+        link.href = offscreen.toDataURL('image/png');
+        link.click();
+    };
+
+    const handleDownload = (e) => {
+        e.stopPropagation();
+        if (!hasEvents) {
+            // Нет мелодии — сразу скачиваем картинку
+            handleDownloadImage(e);
+            return;
+        }
+        // Есть мелодия — предлагаем выбор
+        openModal({
+            title: 'Скачать',
+            description: 'Выберите формат для скачивания',
+            variant: 'warning',
+            primaryText: 'Мелодия (WAV)',
+            cancelText: 'Картинка (PNG)',
+            onPrimary: () => {
+                setModalOpen(false);
+                exportToWAV(`${project.title || 'melody'}_${new Date().toISOString().slice(0, 10)}.wav`);
+            },
+            onCancel: (e2) => {
+                setModalOpen(false);
+                handleDownloadImage(e);
+            },
+        });
+    };
 
     return (
         <div className="project-card" onClick={handleOpen}>
@@ -165,8 +265,18 @@ console.log('[ProjectCard] effects from project.settings:', effects);
                     className="icon"
                     onClick={handleStar}
                 />
-                <img src={DownloadIcon} alt="Скачать" className="icon" onClick={handleDownload} />
-                <img src={TrashIcon}    alt="Удалить" className="icon" onClick={handleDelete} />
+                <img
+                    src={DownloadIcon}
+                    alt="Скачать"
+                    className="icon"
+                    onClick={handleDownload}
+                />
+                <img
+                    src={TrashIcon}
+                    alt="Удалить"
+                    className="icon"
+                    onClick={handleDelete}
+                />
             </div>
 
             <div className="project-card-preview">
@@ -187,7 +297,7 @@ console.log('[ProjectCard] effects from project.settings:', effects);
                                 projectId={project.id}
                                 playingId={playingId}
                                 onPlay={onPlay}
-                                effects={effects}   // ← эффекты переданы
+                                effects={effects}
                             />
                         ) : (
                             <div className="mini-player mini-player--loading">
@@ -214,6 +324,25 @@ console.log('[ProjectCard] effects from project.settings:', effects);
                     <span className="project-card-date-value">{formatDate(project.created_at)}</span>
                 </div>
             </div>
+
+            {/* Локальная модалка карточки (удаление, скачивание, ошибки) */}
+            <Modal
+                isOpen={modalOpen}
+                onClose={closeModal}
+                title={modalConfig.title}
+                description={modalConfig.description}
+                variant={modalConfig.variant || 'default'}
+                primaryText={modalConfig.primaryText || 'ОК'}
+                cancelText={modalConfig.cancelText}
+                onPrimary={() => {
+                    setModalOpen(false);
+                    modalConfig.onPrimary?.();
+                }}
+                onCancel={() => {
+                    setModalOpen(false);
+                    modalConfig.onCancel?.();
+                }}
+            />
         </div>
     );
 };

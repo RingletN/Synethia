@@ -14,7 +14,6 @@ import api from '../../api';
 import './Projects.css';
 
 // ─── Хук: сколько колонок сейчас помещается ──────────────────────────────────
-// 590px карточка + 56px gap. Считаем по ширине контейнера.
 const CARD_WIDTH = 590;
 const CARD_GAP   = 56;
 
@@ -25,7 +24,6 @@ function useColCount(gridRef) {
         const calc = () => {
             if (!gridRef.current) return;
             const w = gridRef.current.offsetWidth;
-            // Сколько карточек влезает: (w + gap) / (cardWidth + gap)
             const n = Math.floor((w + CARD_GAP) / (CARD_WIDTH + CARD_GAP));
             setCols(Math.max(1, n));
         };
@@ -60,7 +58,6 @@ const Projects = () => {
             setIsLoading(true); setError(null);
             try {
                 const data = await api.get('/api/projects');
-                console.log('ПРОЕКТЫ:', JSON.stringify(data[0], null, 2));
                 setProjects(data);
             } catch (err) {
                 setError(err.message || 'Не удалось загрузить проекты');
@@ -74,8 +71,28 @@ const Projects = () => {
     // Сброс страницы при поиске или смене колонок
     useEffect(() => { setPage(1); }, [searchQuery, cols]);
 
-    const handleDelete = (id) =>
-        setProjects(prev => prev.filter(p => p.id !== id));
+    // ── Удаление — с коррекцией страницы ──────────────────────────────────────
+    const handleDelete = (id) => {
+        setProjects(prev => {
+            const next = prev.filter(p => p.id !== id);
+
+            // Пересчитываем максимальную страницу после удаления
+            // (используем текущие значения cols, searchQuery, sortField, sortDir)
+            const filtered = next
+                .filter(p => p.title.toLowerCase().includes(searchQuery.toLowerCase()));
+
+            const perPageFirst = cols * 2 - 1;
+            const perPageOther = cols * 2;
+            const newTotalPages = filtered.length === 0
+                ? 1
+                : 1 + Math.ceil(Math.max(0, filtered.length - perPageFirst) / perPageOther);
+
+            // Если текущая страница вышла за пределы — перекидываем на последнюю
+            setPage(p => Math.min(p, newTotalPages));
+
+            return next;
+        });
+    };
 
     const handleToggleFavorite = (id) =>
         setProjects(prev =>
@@ -101,17 +118,20 @@ const Projects = () => {
      * Страница 1: первый слот — CreateCard, остальных (cols*2 - 1) проектов.
      * Страница N (N>1): cols*2 проектов.
      */
-    const ROWS           = 2;
-    const perPageFirst   = cols * ROWS - 1; // место под CreateCard
-    const perPageOther   = cols * ROWS;
+    const ROWS         = 2;
+    const perPageFirst = cols * ROWS - 1;
+    const perPageOther = cols * ROWS;
 
     const totalPages = filtered.length === 0
         ? 1
         : 1 + Math.ceil(Math.max(0, filtered.length - perPageFirst) / perPageOther);
 
+    // Защита от устаревшей страницы (на случай если totalPages уменьшился)
+    const safePage = Math.min(page, totalPages);
+
     const getPageProjects = () => {
-        if (page === 1) return filtered.slice(0, perPageFirst);
-        const offset = perPageFirst + (page - 2) * perPageOther;
+        if (safePage === 1) return filtered.slice(0, perPageFirst);
+        const offset = perPageFirst + (safePage - 2) * perPageOther;
         return filtered.slice(offset, offset + perPageOther);
     };
 
@@ -119,6 +139,9 @@ const Projects = () => {
 
     const applySort = () => setIsSortOpen(false);
     const resetSort = () => { setSortField('updated_at'); setSortDir('desc'); setIsSortOpen(false); };
+
+    const canGoPrev = safePage > 1;
+    const canGoNext = safePage < totalPages;
 
     return (
         <div className="projects-content">
@@ -208,11 +231,11 @@ const Projects = () => {
                         ref={gridRef}
                         style={{ '--cols': cols, '--card-gap': `${CARD_GAP}px` }}
                     >
-                        {page === 1 && (
+                        {safePage === 1 && (
                             <CreateCard onClick={() => navigate('/canvas')} />
                         )}
 
-                        {pageProjects.length === 0 && page === 1 && (
+                        {pageProjects.length === 0 && safePage === 1 && (
                             <p className="projects-empty">
                                 {searchQuery ? 'Ничего не найдено' : 'У вас пока нет проектов'}
                             </p>
@@ -224,34 +247,40 @@ const Projects = () => {
                                 project={project}
                                 onDelete={handleDelete}
                                 onToggleFavorite={handleToggleFavorite}
-                                 playingId={playingId}
-    onPlay={setPlayingId}
+                                playingId={playingId}
+                                onPlay={setPlayingId}
                             />
                         ))}
                     </div>
                 )}
             </div>
 
-            {/* ── Пагинация ── */}
+            {/* ── Пагинация: шевроны скрыты когда некуда листать ── */}
             {!isLoading && !error && totalPages > 1 && (
                 <div className="projects-pagination">
-                    <img
-                        src={LeftChevron}
-                        alt="Назад"
-                        className={`icon pagination-chevron${page === 1 ? ' pagination-chevron--disabled' : ''}`}
-                        onClick={() => page > 1 && setPage(p => p - 1)}
-                    />
+                    {canGoPrev && (
+                        <img
+                            src={LeftChevron}
+                            alt="Назад"
+                            className="icon pagination-chevron"
+                            onClick={() => setPage(p => p - 1)}
+                        />
+                    )}
+
                     <div className="pagination-badge">
-                        <span className="pagination-current">{page}</span>
+                        <span className="pagination-current">{safePage}</span>
                         <span className="pagination-sep">/</span>
                         <span className="pagination-total">{totalPages}</span>
                     </div>
-                    <img
-                        src={RightChevron}
-                        alt="Вперёд"
-                        className={`icon pagination-chevron${page === totalPages ? ' pagination-chevron--disabled' : ''}`}
-                        onClick={() => page < totalPages && setPage(p => p + 1)}
-                    />
+
+                    {canGoNext && (
+                        <img
+                            src={RightChevron}
+                            alt="Вперёд"
+                            className="icon pagination-chevron"
+                            onClick={() => setPage(p => p + 1)}
+                        />
+                    )}
                 </div>
             )}
         </div>

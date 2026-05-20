@@ -76,16 +76,9 @@ export const useProjectSave = ({
     ]);
 
     const handleSaveClick = useCallback((projectTitle) => {
-        if (projectId) {
-            // Проект уже сохранён — перезаписываем со свежим названием из шапки
-            _doSave(projectTitle, projectId);
-        } else if (!projectTitle || projectTitle.trim() === '' || projectTitle.trim() === 'Без названия') {
-            // Названия нет — открываем модалку с инпутом
-            setShowSaveAsModal(true);
-        } else {
-            // Название есть — сохраняем как новый проект
-            _doSave(projectTitle, null);
-        }
+        // Canvas уже проверил что название не пустое и открыл модалку если нужно.
+        // Здесь просто сохраняем — если есть projectId, перезаписываем его, иначе создаём новый.
+        _doSave(projectTitle, projectId ?? null);
     }, [projectId, _doSave]);
 
     const handleSaveAsConfirm = useCallback((title) => {

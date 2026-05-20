@@ -1,11 +1,16 @@
 // src/components/SaveAsModal.jsx
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import Button from './Button';
+import InputField from './InputField';
 
 const SaveAsModal = ({ isOpen, onClose, onSave, existingNames = [] }) => {
     const [title, setTitle] = useState('');
     const [error, setError] = useState('');
+
+    useEffect(() => {
+        if (isOpen) { setTitle(''); setError(''); }
+    }, [isOpen]);
 
     if (!isOpen) return null;
 
@@ -28,15 +33,15 @@ const SaveAsModal = ({ isOpen, onClose, onSave, existingNames = [] }) => {
         <div className="modal-overlay" onClick={onClose}>
             <div className="modal-content" onClick={e => e.stopPropagation()}>
                 <h3 className="modal-title">Сохранить проект</h3>
-                <input
-                    className={`modal-input ${error ? 'modal-input--error' : ''}`}
-                    placeholder="Название проекта"
+                <InputField
+                    name="projectTitle"
                     value={title}
                     onChange={e => { setTitle(e.target.value); setError(''); }}
                     onKeyDown={e => e.key === 'Enter' && handleSave()}
+                    placeholder="Название проекта"
+                    error={error}
                     autoFocus
                 />
-                {error && <p className="modal-error">{error}</p>}
                 <div className="modal-buttons">
                     <Button variant="negative" onClick={onClose}>Отмена</Button>
                     <Button variant="primary" onClick={handleSave}>Сохранить</Button>

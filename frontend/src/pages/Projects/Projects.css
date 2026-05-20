@@ -167,9 +167,10 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 16px;
+    /* gap: 16px; */
     margin-top: 12px;
-    padding-bottom: 32px;
+    /* padding-bottom: 32px; */
+    height:60px;
 }
 
 /* Бейдж «1 / 5» — тот же стиль что у SearchPanel */
@@ -182,6 +183,7 @@
     gap: 8px;
     position: relative;
     overflow: hidden;
+    height:38px;
 }
 
 .pagination-badge::before {
@@ -190,7 +192,7 @@
     inset: 0;
     border-radius: 40px;
     padding: 2px;
-    background: linear-gradient(95deg, var(--color-cyan), var(--color-violet), var(--color-pink));
+    background: linear-gradient(185deg, var(--color-cyan), var(--color-violet), var(--color-pink));
     mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
     mask-composite: exclude;
     -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
@@ -210,10 +212,10 @@
 }
 .pagination-sep { color: var(--color-pale); }
 
-.pagination-chevron {
+/* .pagination-chevron {
     width: 36px;
     height: 36px;
-}
+} */
 
 .pagination-chevron--disabled {
     opacity: 0.3;

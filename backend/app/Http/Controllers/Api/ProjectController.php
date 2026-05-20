@@ -87,7 +87,7 @@ class ProjectController extends Controller
             'description'             => 'nullable|string|max:500',
 
             'canvas'                  => 'required|array',
-            'canvas.segments'         => 'required|array',
+            'canvas.segments'         => 'present|array',
             'canvas.bg_color'         => 'required|string|max:20',
             'canvas.width'            => 'required|integer|min:100',
             'canvas.height'           => 'required|integer|min:100',
@@ -187,6 +187,21 @@ class ProjectController extends Controller
                 'error'   => $e->getMessage(),
             ], 500);
         }
+    }
+
+    /**
+     * PATCH /projects/{id}/favorite
+     * Переключить флаг is_favorite.
+     */
+    public function toggleFavorite(Request $request, int $id)
+    {
+        $project = Project::where('user_id', $request->user()->id)->findOrFail($id);
+        $project->is_favorite = !$project->is_favorite;
+        $project->save();
+
+        return response()->json([
+            'is_favorite' => $project->is_favorite,
+        ]);
     }
 
     /**

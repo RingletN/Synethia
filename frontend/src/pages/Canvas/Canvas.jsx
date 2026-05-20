@@ -14,10 +14,9 @@ import { imageToSegments } from "../../utils/imageToSegments";
 import MelodyEngine from "../../engines/MelodyEngine";
 import Button from "../../components/ui/Button";
 import Loader from "../../components/ui/Loader";
-import Modal from "../../components/ui/Modal";
 import SaveAsModal from "../../components/ui/SaveAsModal";
 import { useUnsavedChanges } from '../../hooks/useUnsavedChanges';
-
+import Modal from "../../components/ui/Modal";
 import StarIcon from "../../assets/icons/icon-star.svg";
 import StarSelectedIcon from "../../assets/icons/icon-star-selected.svg";
 import SaveIcon from "../../assets/icons/icon-save.svg";
@@ -51,11 +50,11 @@ const Canvas = () => {
     });
 
     const [isBrushSelected, setIsBrushSelected] = useState(true);
-    const [isStarSelected,  setIsStarSelected]  = useState(false);
+    const [isFavorite,      setIsFavorite]      = useState(false);
     const [brushColor, setBrushColor] = useState('#00ffd1');
     const [isImporting, setIsImporting] = useState(false);
 
-    const [projectTitle, setProjectTitle] = useState('Без названия');
+    const [projectTitle, setProjectTitle] = useState('');
 
     // ← флаг несохранённых изменений — именно его слушает useUnsavedChanges
     const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
@@ -127,7 +126,7 @@ const Canvas = () => {
                 sessionStorage.removeItem(PENDING_KEY);
 
                 // Восстанавливаем название только если оно не дефолтное
-                if (saved.projectTitle && saved.projectTitle !== 'Без названия') {
+                if (saved.projectTitle) {
                     setProjectTitle(saved.projectTitle);
                     const el = document.querySelector('.project-title-input');
                     if (el) el.textContent = saved.projectTitle;
@@ -193,7 +192,6 @@ const Canvas = () => {
         existingProjectNames,
         currentTitle,
         setCurrentTitle,
-        isSaving,
         projectId,
         setProjectId,
     } = useProjectSave({
@@ -258,10 +256,21 @@ const Canvas = () => {
             navigate('/auth?redirect=/canvas&pendingSave=1');
             return;
         }
-        handleSaveClick(projectTitle);
-    }, [user, handleSaveClick, projectTitle, bgColor, canvasSize, bpm, duration, scale,
-        smoothing, effectReverb, effectDelay, effectDistortion,
+
+        const trimmed = projectTitle.trim();
+
+        if (!trimmed) {
+            // Название пустое — открываем модалку с инпутом
+            setShowSaveAsModal(true);
+            return;
+        }
+
+        // Есть название — сохраняем напрямую (и для нового, и для существующего проекта)
+        handleSaveClick(trimmed);
+    }, [user, handleSaveClick, setShowSaveAsModal, projectTitle, bgColor, canvasSize, bpm,
+        duration, scale, smoothing, effectReverb, effectDelay, effectDistortion,
         melodyEvents, totalDuration, engineRef, navigate]);
+
 
     const handleBrushColorChange = useCallback((newColor) => {
         setBrushColor(newColor);
@@ -365,6 +374,11 @@ const Canvas = () => {
                     saveToHistory(bg_color || bgColorRef.current);
                 }
             }
+
+            if (project.is_favorite !== undefined) {
+                setIsFavorite(Boolean(project.is_favorite));
+            }
+
 
             if (project.melody?.events?.length > 0) {
                 setMelodyEvents(project.melody.events);
@@ -611,12 +625,50 @@ const Canvas = () => {
         stop();
         setActiveNote(null);
         setProjectId(null);
-        setProjectTitle('Без названия');
+        setProjectTitle('');
         setCurrentTitle('');
-        setHasUnsavedChanges(false); // ← очистка = чистое состояние
+        setIsFavorite(false);
+        setHasUnsavedChanges(false);
         const el = document.querySelector('.project-title-input');
-        if (el) el.textContent = 'Без названия';
+        if (el) el.textContent = '';
     }, [clear, stop, setProjectId, setCurrentTitle]);
+
+    const handleToggleFavorite = useCallback(async () => {
+        setIsFavorite(prev => !prev);
+        if (!projectId) return;
+        try {
+            await api.patch(`/api/projects/${projectId}/favorite`);
+        } catch (err) {
+            setIsFavorite(prev => !prev);
+            showModal('Ошибка', 'Не удалось обновить избранное. Попробуйте ещё раз.', 'error');
+        }
+    }, [projectId, showModal]);
+
+    const handleDeleteProject = useCallback(() => {
+        openModal({
+            title: 'Удалить проект',
+            description: projectId
+                ? `Вы уверены, что хотите удалить проект «${projectTitle}»? Это действие необратимо.`
+                : 'Очистить холст? Несохранённые изменения будут потеряны.',
+            variant: 'warning',
+            primaryText: 'Удалить',
+            cancelText: 'Отмена',
+            onPrimary: async () => {
+                setModalOpen(false);
+                if (projectId) {
+                    try {
+                        await api.delete(`/api/projects/${projectId}`);
+                    } catch (err) {
+                        showModal('Ошибка', 'Не удалось удалить проект. Попробуйте ещё раз.', 'error');
+                        return;
+                    }
+                }
+                handleClear();
+                setIsFavorite(false);
+            },
+            onCancel: () => setModalOpen(false),
+        });
+    }, [projectId, projectTitle, openModal, showModal, handleClear]);
 
     return (
         <div className="canvas-content">
@@ -634,20 +686,20 @@ const Canvas = () => {
                         className="project-title-input"
                         contentEditable
                         suppressContentEditableWarning
-                        onInput={(e) => setProjectTitle(e.currentTarget.textContent)}
+                        onInput={(e) => {
+                            setProjectTitle(e.currentTarget.textContent);
+                            setCurrentTitle(e.currentTarget.textContent);
+                        }}
                         data-placeholder="Введите название проекта..."
                     />
                     <div className="divider-project" />
                 </div>
                 <div className="canvas-header-icons">
-                    <div className="icon favourite-btn" onClick={() => setIsStarSelected(p => !p)}>
-                        <img src={isStarSelected ? StarSelectedIcon : StarIcon} alt="Избранное" />
+                    <div className="icon favourite-btn" onClick={handleToggleFavorite}>
+                        <img src={isFavorite ? StarSelectedIcon : StarIcon} alt="Избранное" />
                     </div>
-                    <div className="icon save-btn" onClick={isSaving ? undefined : handleSave}>
-                        {isSaving
-                            ? <Loader size={20} color="white" />
-                            : <img src={SaveIcon} alt="Сохранить проект" />
-                        }
+                    <div className="icon save-btn" onClick={handleSave}>
+                        <img src={SaveIcon} alt="Сохранить проект" />
                     </div>
                     <div
                         className="icon download-btn"
@@ -666,7 +718,7 @@ const Canvas = () => {
                     >
                         <img src={DownloadIcon} alt="Скачать" />
                     </div>
-                    <div className="icon delete-btn">
+                    <div className="icon delete-btn" onClick={handleDeleteProject}>
                         <img src={TrashIcon} alt="Удалить проект" />
                     </div>
                     <div className="icon question-btn">
@@ -810,7 +862,7 @@ const Canvas = () => {
                 onClick={handleGenerateMelody}
                 disabled={isGenerating}
             >
-                {isGenerating ? <Loader size={24} color="white" /> : "СГЕНЕРИРОВАТЬ МЕЛОДИЮ"}
+                {isGenerating ? "ИДЁТ ГЕНЕРАЦИЯ…" : "СГЕНЕРИРОВАТЬ МЕЛОДИЮ"}
             </Button>
 
             {/* Общая модалка для уведомлений и подтверждений */}

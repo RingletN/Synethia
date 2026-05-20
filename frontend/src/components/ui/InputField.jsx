@@ -10,13 +10,15 @@ const InputField = ({
     value,
     onChange,
     onBlur,
+    onKeyDown,
     error,
     disabled = false,
     readOnly = false,
     placeholder = '',
     required = false,
     showPasswordToggle = false,
-    autoComplete,  
+    autoComplete,
+    autoFocus,
 }) => {
     const [inputType, setInputType] = useState(type);
     const [showPassword, setShowPassword] = useState(false);
@@ -46,11 +48,13 @@ const InputField = ({
                     value={value}
                     onChange={onChange}
                     onBlur={onBlur}
+                    onKeyDown={onKeyDown}
                     disabled={disabled}
                     readOnly={readOnly}
                     placeholder={placeholder}
                     required={required}
                     autoComplete={autoComplete}
+                    autoFocus={autoFocus}
                 />
                 {showPasswordToggle && type === 'password' && <EyeIcon />}
             </div>
