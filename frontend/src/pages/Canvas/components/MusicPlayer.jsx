@@ -38,11 +38,11 @@ const MusicPlayer = ({
       const rect = progressRef.current.getBoundingClientRect();
       const ratio = Math.max(
         0,
-        Math.min(1, (e.clientX - rect.left) / rect.width)
+        Math.min(1, (e.clientX - rect.left) / rect.width),
       );
       onSeek(ratio * totalDuration);
     },
-    [onSeek, totalDuration]
+    [onSeek, totalDuration],
   );
 
   const handleProgressMouseDown = useCallback(
@@ -53,11 +53,11 @@ const MusicPlayer = ({
       const rect = progressRef.current.getBoundingClientRect();
       const ratio = Math.max(
         0,
-        Math.min(1, (e.clientX - rect.left) / rect.width)
+        Math.min(1, (e.clientX - rect.left) / rect.width),
       );
       onSeek(ratio * totalDuration);
     },
-    [onSeek, totalDuration]
+    [onSeek, totalDuration],
   );
 
   const handleVolumeMouseDown = useCallback(
@@ -68,11 +68,11 @@ const MusicPlayer = ({
       const rect = volumeTrackRef.current.getBoundingClientRect();
       const ratio = Math.max(
         0,
-        Math.min(1, (e.clientX - rect.left) / rect.width)
+        Math.min(1, (e.clientX - rect.left) / rect.width),
       );
       onVolumeChange(ratio);
     },
-    [onVolumeChange]
+    [onVolumeChange],
   );
 
   useEffect(() => {
@@ -81,7 +81,7 @@ const MusicPlayer = ({
         const rect = progressRef.current.getBoundingClientRect();
         const ratio = Math.max(
           0,
-          Math.min(1, (e.clientX - rect.left) / rect.width)
+          Math.min(1, (e.clientX - rect.left) / rect.width),
         );
         onSeek(ratio * totalDuration);
       }
@@ -89,7 +89,7 @@ const MusicPlayer = ({
         const rect = volumeTrackRef.current.getBoundingClientRect();
         const ratio = Math.max(
           0,
-          Math.min(1, (e.clientX - rect.left) / rect.width)
+          Math.min(1, (e.clientX - rect.left) / rect.width),
         );
         onVolumeChange(ratio);
       }
@@ -110,11 +110,7 @@ const MusicPlayer = ({
     totalDuration > 0 ? Math.min(100, (currentTime / totalDuration) * 100) : 0;
 
   const VolumeIcon =
-    volume === 0
-      ? VolumeNoIcon
-      : volume < 0.5
-      ? VolumeLowIcon
-      : VolumeHighIcon;
+    volume === 0 ? VolumeNoIcon : volume < 0.5 ? VolumeLowIcon : VolumeHighIcon;
 
   return (
     <div className="music-player">
@@ -167,7 +163,7 @@ const MusicPlayer = ({
             const rect = e.currentTarget.getBoundingClientRect();
             const ratio = Math.max(
               0,
-              Math.min(1, (e.clientX - rect.left) / rect.width)
+              Math.min(1, (e.clientX - rect.left) / rect.width),
             );
             onVolumeChange(ratio);
           }}

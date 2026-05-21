@@ -58,7 +58,7 @@ const SaveAsModal = ({ isOpen, onClose, onSave, existingNames = [] }) => {
         </div>
       </div>
     </div>,
-    document.body
+    document.body,
   );
 };
 

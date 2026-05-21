@@ -87,7 +87,7 @@ const Projects = () => {
         const data = await api.get("/api/projects");
         setProjects(data);
         setCommittedFavorites(
-          new Set(data.filter((p) => p.is_favorite).map((p) => p.id))
+          new Set(data.filter((p) => p.is_favorite).map((p) => p.id)),
         );
       } catch (err) {
         setError(err.message || "Не удалось загрузить проекты");
@@ -102,7 +102,7 @@ const Projects = () => {
   useEffect(() => {
     setPage(1);
     setCommittedFavorites(
-      new Set(projects.filter((p) => p.is_favorite).map((p) => p.id))
+      new Set(projects.filter((p) => p.is_favorite).map((p) => p.id)),
     );
   }, [searchQuery, cols]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -144,7 +144,7 @@ const Projects = () => {
     setFavFilter(tempFavFilter);
     // Коммитим снимок избранных в момент подтверждения
     setCommittedFavorites(
-      new Set(projects.filter((p) => p.is_favorite).map((p) => p.id))
+      new Set(projects.filter((p) => p.is_favorite).map((p) => p.id)),
     );
     setPage(1);
     setIsFavOpen(false);
@@ -154,7 +154,7 @@ const Projects = () => {
     setFavFilter("favorites_first");
     setTempFavFilter("favorites_first");
     setCommittedFavorites(
-      new Set(projects.filter((p) => p.is_favorite).map((p) => p.id))
+      new Set(projects.filter((p) => p.is_favorite).map((p) => p.id)),
     );
     setPage(1);
     setIsFavOpen(false);
@@ -169,7 +169,7 @@ const Projects = () => {
       const committed = committedFavorites ?? new Set();
 
       const afterSearch = next.filter((p) =>
-        p.title.toLowerCase().includes(searchQuery.toLowerCase())
+        p.title.toLowerCase().includes(searchQuery.toLowerCase()),
       );
       const afterFav = applyFavFilter(afterSearch, favFilter, committed);
 
@@ -180,7 +180,7 @@ const Projects = () => {
           ? 1
           : 1 +
             Math.ceil(
-              Math.max(0, afterFav.length - perPageFirst) / perPageOther
+              Math.max(0, afterFav.length - perPageFirst) / perPageOther,
             );
 
       setPage((p) => Math.min(p, newTotalPages));
@@ -190,7 +190,9 @@ const Projects = () => {
 
   const handleToggleFavorite = (id) =>
     setProjects((prev) =>
-      prev.map((p) => (p.id === id ? { ...p, is_favorite: !p.is_favorite } : p))
+      prev.map((p) =>
+        p.id === id ? { ...p, is_favorite: !p.is_favorite } : p,
+      ),
     );
 
   // ── Вспомогательная функция фильтрации по избранному ─────────────────────
@@ -214,7 +216,7 @@ const Projects = () => {
   const committed = committedFavorites ?? new Set();
 
   const afterSearch = projects.filter((p) =>
-    p.title.toLowerCase().includes(searchQuery.toLowerCase())
+    p.title.toLowerCase().includes(searchQuery.toLowerCase()),
   );
 
   const sorted = [...afterSearch].sort((a, b) => {

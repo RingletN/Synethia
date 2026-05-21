@@ -42,14 +42,17 @@ const Canvas = () => {
   const [bpm, setBpm] = useState(80);
   const [duration, setDuration] = useState(8);
   const [scale, setScale] = useState("major");
-  const [smoothing, setSmoothing] = useState(30);
 
   const [effectReverb, setEffectReverb] = useState(0);
   const [effectDelay, setEffectDelay] = useState(0);
   const [effectDistortion, setEffectDistortion] = useState(0);
 
-  const effects = { reverb: effectReverb, delay: effectDelay, distortion: effectDistortion };
-  const melodyParamsForGen = { bpm, duration, scale, smoothing };
+  const effects = {
+    reverb: effectReverb,
+    delay: effectDelay,
+    distortion: effectDistortion,
+  };
+  const melodyParamsForGen = { bpm, duration, scale };
 
   const [isGenerating, setIsGenerating] = useState(false);
   const [isMelodyGenerated, setIsMelodyGenerated] = useState(false);
@@ -129,10 +132,11 @@ const Canvas = () => {
         if (saved.bpm) setBpm(saved.bpm);
         if (saved.duration) setDuration(saved.duration);
         if (saved.scale) setScale(saved.scale);
-        if (saved.smoothing) setSmoothing(saved.smoothing);
-        if (saved.effectReverb !== undefined) setEffectReverb(saved.effectReverb);
+        if (saved.effectReverb !== undefined)
+          setEffectReverb(saved.effectReverb);
         if (saved.effectDelay !== undefined) setEffectDelay(saved.effectDelay);
-        if (saved.effectDistortion !== undefined) setEffectDistortion(saved.effectDistortion);
+        if (saved.effectDistortion !== undefined)
+          setEffectDistortion(saved.effectDistortion);
         if (saved.segments?.length) {
           engineRef.current.loadState({ segments: saved.segments });
           saveToHistory(saved.bgColor || bgColorRef.current);
@@ -167,7 +171,7 @@ const Canvas = () => {
     (title, description, variant = "default") => {
       openModal({ title, description, variant, primaryText: "ОК" });
     },
-    [openModal]
+    [openModal],
   );
 
   useUnsavedChanges(hasUnsavedChanges, openModal);
@@ -189,7 +193,6 @@ const Canvas = () => {
     bpm,
     duration,
     scale,
-    smoothing,
     effectReverb,
     effectDelay,
     effectDistortion,
@@ -211,7 +214,8 @@ const Canvas = () => {
   useEffect(() => {
     if (!pendingSaveRef.current) return;
     const saved = pendingSaveRef.current;
-    const melodyReady = !saved.melodyEvents?.length ||
+    const melodyReady =
+      !saved.melodyEvents?.length ||
       (isMelodyGenerated && melodyEvents.length === saved.melodyEvents.length);
     if (!melodyReady) return;
     pendingSaveRef.current = null;
@@ -229,14 +233,13 @@ const Canvas = () => {
           bpm,
           duration,
           scale,
-          smoothing,
           effectReverb,
           effectDelay,
           effectDistortion,
           melodyEvents,
           totalDuration,
           segments: engineRef.current?.getAllSegments?.() ?? [],
-        })
+        }),
       );
       navigate("/auth?redirect=/canvas&pendingSave=1");
       return;
@@ -247,39 +250,69 @@ const Canvas = () => {
       return;
     }
     handleSaveClick(trimmed);
-  }, [user, handleSaveClick, setShowSaveAsModal, projectTitle, bgColor, canvasSize, bpm, duration, scale, smoothing, effectReverb, effectDelay, effectDistortion, melodyEvents, totalDuration, engineRef, navigate]);
+  }, [
+    user,
+    handleSaveClick,
+    setShowSaveAsModal,
+    projectTitle,
+    bgColor,
+    canvasSize,
+    bpm,
+    duration,
+    scale,
+    effectReverb,
+    effectDelay,
+    effectDistortion,
+    melodyEvents,
+    totalDuration,
+    engineRef,
+    navigate,
+  ]);
 
-  const handleBrushColorChange = useCallback((newColor) => {
-    setBrushColor(newColor);
-    brushColorRef.current = newColor;
-    if (engineRef.current) engineRef.current.currentColor = newColor;
-  }, [engineRef]);
+  const handleBrushColorChange = useCallback(
+    (newColor) => {
+      setBrushColor(newColor);
+      brushColorRef.current = newColor;
+      if (engineRef.current) engineRef.current.currentColor = newColor;
+    },
+    [engineRef],
+  );
 
-  const handleImportPhoto = useCallback(async (file) => {
-    if (!engineRef.current) {
-      showModal("Ошибка", "Движок рисования не инициализирован", "error");
-      return;
-    }
-    setIsImporting(true);
-    try {
-      const currentLineWidth = engineRef.current.getLineWidth?.() || 5;
-      const segments = await imageToSegments(file, {
-        threshold: 20,
-        maxWidth: 850,
-        lineWidth: currentLineWidth,
-      });
-      if (segments.length === 0) {
-        showModal("Контуры не найдены", "На изображении не удалось обнаружить достаточно контуров.\n\nПопробуйте другое фото");
+  const handleImportPhoto = useCallback(
+    async (file) => {
+      if (!engineRef.current) {
+        showModal("Ошибка", "Движок рисования не инициализирован", "error");
         return;
       }
-      engineRef.current.addSegments(segments);
-    } catch (err) {
-      console.error("Ошибка обработки изображения:", err);
-      showModal("Ошибка обработки фото", "Не удалось обработать изображение.", "error");
-    } finally {
-      setIsImporting(false);
-    }
-  }, [engineRef, showModal]);
+      setIsImporting(true);
+      try {
+        const currentLineWidth = engineRef.current.getLineWidth?.() || 5;
+        const segments = await imageToSegments(file, {
+          threshold: 20,
+          maxWidth: 850,
+          lineWidth: currentLineWidth,
+        });
+        if (segments.length === 0) {
+          showModal(
+            "Контуры не найдены",
+            "На изображении не удалось обнаружить достаточно контуров.\n\nПопробуйте другое фото",
+          );
+          return;
+        }
+        engineRef.current.addSegments(segments);
+      } catch (err) {
+        console.error("Ошибка обработки изображения:", err);
+        showModal(
+          "Ошибка обработки фото",
+          "Не удалось обработать изображение.",
+          "error",
+        );
+      } finally {
+        setIsImporting(false);
+      }
+    },
+    [engineRef, showModal],
+  );
 
   // useMelodyPlayer без обработчика activeNote
   const {
@@ -300,61 +333,76 @@ const Canvas = () => {
   }, [saveToHistory]);
 
   const loadProjectRef = useRef(null);
-  loadProjectRef.current = useCallback(async (projectId) => {
-    if (projectLoadedRef.current) return;
-    projectLoadedRef.current = true;
-    setIsLoadingProject(true);
-    try {
-      const project = await api.get(`/api/projects/${projectId}`);
-      if (project.title) {
-        setProjectTitle(project.title);
-        setCurrentTitle(project.title);
-        const el = document.querySelector(".project-title-input");
-        if (el) el.textContent = project.title;
-      }
-      if (project.settings) {
-        const s = project.settings;
-        setBpm(s.bpm);
-        setDuration(s.duration);
-        setScale(s.scale);
-        setSmoothing(s.smoothing);
-        setEffectReverb(parseFloat(s.reverb));
-        setEffectDelay(parseFloat(s.delay));
-        setEffectDistortion(parseFloat(s.distortion));
-      }
-      if (project.canvas && engineRef.current) {
-        const { segments, bg_color, width, height } = project.canvas;
-        const newW = width || 750;
-        const newH = height || 600;
-        setCanvasSize({ width: newW, height: newH });
-        if (canvasPanelRef.current) {
-          canvasPanelRef.current.style.width = `${newW}px`;
-          canvasPanelRef.current.style.height = `${newH}px`;
+  loadProjectRef.current = useCallback(
+    async (projectId) => {
+      if (projectLoadedRef.current) return;
+      projectLoadedRef.current = true;
+      setIsLoadingProject(true);
+      try {
+        const project = await api.get(`/api/projects/${projectId}`);
+        if (project.title) {
+          setProjectTitle(project.title);
+          setCurrentTitle(project.title);
+          const el = document.querySelector(".project-title-input");
+          if (el) el.textContent = project.title;
         }
-        engineRef.current.resize(newW, newH);
-        if (bg_color) {
-          setBgColor(bg_color);
-          bgColorRef.current = bg_color;
+        if (project.settings) {
+          const s = project.settings;
+          setBpm(s.bpm);
+          setDuration(s.duration);
+          setScale(s.scale);
+          setEffectReverb(parseFloat(s.reverb));
+          setEffectDelay(parseFloat(s.delay));
+          setEffectDistortion(parseFloat(s.distortion));
         }
-        if (Array.isArray(segments) && segments.length > 0) {
-          engineRef.current.loadState({ segments });
-          saveToHistory(bg_color || bgColorRef.current);
+        if (project.canvas && engineRef.current) {
+          const { segments, bg_color, width, height } = project.canvas;
+          const newW = width || 750;
+          const newH = height || 600;
+          setCanvasSize({ width: newW, height: newH });
+          if (canvasPanelRef.current) {
+            canvasPanelRef.current.style.width = `${newW}px`;
+            canvasPanelRef.current.style.height = `${newH}px`;
+          }
+          engineRef.current.resize(newW, newH);
+          if (bg_color) {
+            setBgColor(bg_color);
+            bgColorRef.current = bg_color;
+          }
+          if (Array.isArray(segments) && segments.length > 0) {
+            engineRef.current.loadState({ segments });
+            saveToHistory(bg_color || bgColorRef.current);
+          }
         }
+        if (project.is_favorite !== undefined)
+          setIsFavorite(Boolean(project.is_favorite));
+        if (project.melody?.events?.length > 0) {
+          setMelodyEvents(project.melody.events);
+          setTotalDuration(project.melody.total_duration);
+          setIsMelodyGenerated(true);
+        }
+        setProjectId(parseInt(projectId, 10));
+        setHasUnsavedChanges(false);
+      } catch (err) {
+        showModal(
+          "Ошибка",
+          `Не удалось загрузить проект: ${err.message}`,
+          "error",
+        );
+      } finally {
+        setIsLoadingProject(false);
       }
-      if (project.is_favorite !== undefined) setIsFavorite(Boolean(project.is_favorite));
-      if (project.melody?.events?.length > 0) {
-        setMelodyEvents(project.melody.events);
-        setTotalDuration(project.melody.total_duration);
-        setIsMelodyGenerated(true);
-      }
-      setProjectId(parseInt(projectId, 10));
-      setHasUnsavedChanges(false);
-    } catch (err) {
-      showModal("Ошибка", `Не удалось загрузить проект: ${err.message}`, "error");
-    } finally {
-      setIsLoadingProject(false);
-    }
-  }, [engineRef, saveToHistory, setProjectId, setCurrentTitle, showModal, canvasPanelRef, setCanvasSize]);
+    },
+    [
+      engineRef,
+      saveToHistory,
+      setProjectId,
+      setCurrentTitle,
+      showModal,
+      canvasPanelRef,
+      setCanvasSize,
+    ],
+  );
 
   useEffect(() => {
     const urlProjectId = searchParams.get("project");
@@ -379,19 +427,34 @@ const Canvas = () => {
     try {
       const segments = engineRef.current.getAllSegments();
       if (!segments || segments.length === 0) {
-        showModal("Нечего генерировать", "Нарисуйте что-нибудь на холсте или импортируйте изображение.", "warning");
+        showModal(
+          "Нечего генерировать",
+          "Нарисуйте что-нибудь на холсте или импортируйте изображение.",
+          "warning",
+        );
         return;
       }
       let events;
       try {
-        ({ events } = melodyEngine.buildNoteEvents(segments, melodyParamsForGen));
+        ({ events } = melodyEngine.buildNoteEvents(
+          segments,
+          melodyParamsForGen,
+        ));
       } catch (engineErr) {
         console.error("MelodyEngine error:", engineErr);
-        showModal("Ошибка генерации", "Не удалось обработать рисунок. Попробуйте ещё раз.", "error");
+        showModal(
+          "Ошибка генерации",
+          "Не удалось обработать рисунок. Попробуйте ещё раз.",
+          "error",
+        );
         return;
       }
       if (!events || events.length === 0) {
-        showModal("Нечего генерировать", "Не удалось извлечь ноты из рисунка.", "warning");
+        showModal(
+          "Нечего генерировать",
+          "Не удалось извлечь ноты из рисунка.",
+          "warning",
+        );
         return;
       }
       setMelodyEvents(events);
@@ -405,71 +468,95 @@ const Canvas = () => {
     } finally {
       setIsGenerating(false);
     }
-  }, [engineRef, showModal, stop, bpm, duration, scale, smoothing, melodyParamsForGen]);
+  }, [
+    engineRef,
+    showModal,
+    stop,
+    bpm,
+    duration,
+    scale,
+    melodyParamsForGen,
+  ]);
 
   const handlePlayPause = useCallback(() => {
     if (isPlaying) pause();
     else play();
   }, [isPlaying, play, pause]);
 
-  const handleDownload = useCallback((type = "image") => {
-    if (type === "image") {
-      const mainCanvas = engineRef.current?.mainCanvas;
-      if (!mainCanvas) {
-        showModal("Ошибка", "Холст не найден", "error");
-        return;
+  const handleDownload = useCallback(
+    (type = "image") => {
+      if (type === "image") {
+        const mainCanvas = engineRef.current?.mainCanvas;
+        if (!mainCanvas) {
+          showModal("Ошибка", "Холст не найден", "error");
+          return;
+        }
+        const exportCanvas = document.createElement("canvas");
+        exportCanvas.width = mainCanvas.width;
+        exportCanvas.height = mainCanvas.height;
+        const ctx = exportCanvas.getContext("2d");
+        ctx.fillStyle = bgColor;
+        ctx.fillRect(0, 0, exportCanvas.width, exportCanvas.height);
+        ctx.drawImage(mainCanvas, 0, 0);
+        const link = document.createElement("a");
+        link.download = "drawing.png";
+        link.href = exportCanvas.toDataURL("image/png");
+        link.click();
+      } else if (type === "wav") {
+        exportToWAV(`melody_${new Date().toISOString().slice(0, 10)}.wav`);
       }
-      const exportCanvas = document.createElement("canvas");
-      exportCanvas.width = mainCanvas.width;
-      exportCanvas.height = mainCanvas.height;
-      const ctx = exportCanvas.getContext("2d");
-      ctx.fillStyle = bgColor;
-      ctx.fillRect(0, 0, exportCanvas.width, exportCanvas.height);
-      ctx.drawImage(mainCanvas, 0, 0);
-      const link = document.createElement("a");
-      link.download = "drawing.png";
-      link.href = exportCanvas.toDataURL("image/png");
-      link.click();
-    } else if (type === "wav") {
-      exportToWAV(`melody_${new Date().toISOString().slice(0, 10)}.wav`);
-    }
-  }, [engineRef, bgColor, exportToWAV, showModal]);
+    },
+    [engineRef, bgColor, exportToWAV, showModal],
+  );
 
-  const handleCanvasReady = useCallback((canvases) => {
-    initEngine(canvases);
-    if (engineRef.current) {
-      engineRef.current.onStrokeEnd = () => {
-        saveToHistory(bgColorRef.current);
+  const handleCanvasReady = useCallback(
+    (canvases) => {
+      initEngine(canvases);
+      if (engineRef.current) {
+        engineRef.current.onStrokeEnd = () => {
+          saveToHistory(bgColorRef.current);
+          setHasUnsavedChanges(true);
+          engineRef.current.onStrokeEnd = handleStrokeEnd;
+        };
+      }
+      const raw = sessionStorage.getItem("pendingImportFile");
+      if (raw && location.state?.autoImport) {
+        sessionStorage.removeItem("pendingImportFile");
+        try {
+          const { name, type, data } = JSON.parse(raw);
+          fetch(data)
+            .then((r) => r.blob())
+            .then((blob) => {
+              const file = new File([blob], name, { type });
+              handleImportPhoto(file);
+            });
+        } catch (e) {
+          console.error("Ошибка автоимпорта:", e);
+        }
+      }
+    },
+    [
+      initEngine,
+      saveToHistory,
+      engineRef,
+      handleStrokeEnd,
+      handleImportPhoto,
+      location.state,
+    ],
+  );
+
+  const handleBgColorChange = useCallback(
+    (color) => {
+      setBgColor(color);
+      bgColorRef.current = color;
+      if (bgColorDebounceRef.current) clearTimeout(bgColorDebounceRef.current);
+      bgColorDebounceRef.current = setTimeout(() => {
+        saveToHistory(color);
         setHasUnsavedChanges(true);
-        engineRef.current.onStrokeEnd = handleStrokeEnd;
-      };
-    }
-    const raw = sessionStorage.getItem("pendingImportFile");
-    if (raw && location.state?.autoImport) {
-      sessionStorage.removeItem("pendingImportFile");
-      try {
-        const { name, type, data } = JSON.parse(raw);
-        fetch(data)
-          .then((r) => r.blob())
-          .then((blob) => {
-            const file = new File([blob], name, { type });
-            handleImportPhoto(file);
-          });
-      } catch (e) {
-        console.error("Ошибка автоимпорта:", e);
-      }
-    }
-  }, [initEngine, saveToHistory, engineRef, handleStrokeEnd, handleImportPhoto, location.state]);
-
-  const handleBgColorChange = useCallback((color) => {
-    setBgColor(color);
-    bgColorRef.current = color;
-    if (bgColorDebounceRef.current) clearTimeout(bgColorDebounceRef.current);
-    bgColorDebounceRef.current = setTimeout(() => {
-      saveToHistory(color);
-      setHasUnsavedChanges(true);
-    }, 800);
-  }, [saveToHistory]);
+      }, 800);
+    },
+    [saveToHistory],
+  );
 
   const handleUndo = useCallback(() => undo(null, setBgColor), [undo]);
   const handleRedo = useCallback(() => redo(null, setBgColor), [redo]);
@@ -494,7 +581,11 @@ const Canvas = () => {
       await api.patch(`/api/projects/${projectId}/favorite`);
     } catch (err) {
       setIsFavorite((prev) => !prev);
-      showModal("Ошибка", "Не удалось обновить избранное. Попробуйте ещё раз.", "error");
+      showModal(
+        "Ошибка",
+        "Не удалось обновить избранное. Попробуйте ещё раз.",
+        "error",
+      );
     }
   }, [projectId, showModal]);
 
@@ -513,7 +604,11 @@ const Canvas = () => {
           try {
             await api.delete(`/api/projects/${projectId}`);
           } catch (err) {
-            showModal("Ошибка", "Не удалось удалить проект. Попробуйте ещё раз.", "error");
+            showModal(
+              "Ошибка",
+              "Не удалось удалить проект. Попробуйте ещё раз.",
+              "error",
+            );
             return;
           }
         }
@@ -534,7 +629,10 @@ const Canvas = () => {
   return (
     <div className="canvas-content">
       {isLoadingProject && (
-        <div className="import-overlay" style={{ position: "fixed", zIndex: 1000 }}>
+        <div
+          className="import-overlay"
+          style={{ position: "fixed", zIndex: 1000 }}
+        >
           <Loader size={64} color="cyan" speed={1200} />
         </div>
       )}
@@ -557,7 +655,10 @@ const Canvas = () => {
         </div>
         <div className="canvas-header-icons">
           <div className="icon favourite-btn" onClick={handleToggleFavorite}>
-            <img src={isFavorite ? StarSelectedIcon : StarIcon} alt="Избранное" />
+            <img
+              src={isFavorite ? StarSelectedIcon : StarIcon}
+              alt="Избранное"
+            />
           </div>
           <div className="icon save-btn" onClick={handleSave}>
             <img src={SaveIcon} alt="Сохранить проект" />
@@ -621,11 +722,24 @@ const Canvas = () => {
                 backgroundColor: bgColor,
               }}
             >
-              <DrawingArea width={canvasSize.width} height={canvasSize.height} onReady={handleCanvasReady} />
+              <DrawingArea
+                width={canvasSize.width}
+                height={canvasSize.height}
+                onReady={handleCanvasReady}
+              />
 
-              <div className="resize-handle-horizontal" onMouseDown={handleResizeMouseDown("horizontal")} />
-              <div className="resize-handle-vertical" onMouseDown={handleResizeMouseDown("vertical")} />
-              <div className="resize-handle-corner" onMouseDown={handleResizeMouseDown("both")} />
+              <div
+                className="resize-handle-horizontal"
+                onMouseDown={handleResizeMouseDown("horizontal")}
+              />
+              <div
+                className="resize-handle-vertical"
+                onMouseDown={handleResizeMouseDown("vertical")}
+              />
+              <div
+                className="resize-handle-corner"
+                onMouseDown={handleResizeMouseDown("both")}
+              />
 
               {isImporting && (
                 <div className="import-overlay">
@@ -644,8 +758,6 @@ const Canvas = () => {
               onDurationChange={setDuration}
               scale={scale}
               onScaleChange={setScale}
-              smoothing={smoothing}
-              onSmoothingChange={setSmoothing}
               effectReverb={effectReverb}
               onReverbChange={setEffectReverb}
               effectDelay={effectDelay}
@@ -670,7 +782,11 @@ const Canvas = () => {
         )}
       </div>
 
-      <Button variant="accent" onClick={handleGenerateMelody} disabled={isGenerating}>
+      <Button
+        variant="accent"
+        onClick={handleGenerateMelody}
+        disabled={isGenerating}
+      >
         {isGenerating ? "ИДЁТ ГЕНЕРАЦИЯ…" : "СГЕНЕРИРОВАТЬ МЕЛОДИЮ"}
       </Button>
 

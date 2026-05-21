@@ -19,9 +19,6 @@ return new class extends Migration
             // 'major' или 'minor'
             $table->string('scale', 10)->default('major');
 
-            // Smoothing (0–100)
-            $table->unsignedSmallInteger('smoothing')->default(30);
-
             // Эффекты (0.00–1.00)
             $table->decimal('reverb', 4, 2)->default(0.00);
             $table->decimal('delay', 4, 2)->default(0.00);

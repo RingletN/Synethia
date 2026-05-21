@@ -38,7 +38,7 @@ const Home = () => {
           name: file.name,
           type: file.type,
           data: reader.result, // base64 data URL
-        })
+        }),
       );
       navigate("/canvas", { state: { autoImport: true } });
     };

@@ -30,7 +30,7 @@ export const useCanvasResize = (engineRef, canvasPanelRef, drawBlockRef) => {
         h: canvasPanelRef.current?.clientHeight ?? INITIAL_CANVAS_HEIGHT,
       };
     },
-    [canvasPanelRef]
+    [canvasPanelRef],
   );
 
   // Эффект для отслеживания движения мыши при ресайзе
@@ -105,7 +105,7 @@ export const useCanvasResize = (engineRef, canvasPanelRef, drawBlockRef) => {
     if (!canvasEl || !container) return;
     const maxW = Math.max(
       CANVAS_MIN_SIZE,
-      container.offsetWidth - CANVAS_BLOCK_GAP - SETTINGS_MIN_WIDTH
+      container.offsetWidth - CANVAS_BLOCK_GAP - SETTINGS_MIN_WIDTH,
     );
     canvasEl.style.maxWidth = `${maxW}px`;
   }, [canvasPanelRef, drawBlockRef]);

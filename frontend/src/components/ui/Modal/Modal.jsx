@@ -47,7 +47,7 @@ const Modal = ({
         </div>
       </div>
     </div>,
-    document.body // ← контейнер, а не ребёнок!
+    document.body, // ← контейнер, а не ребёнок!
   );
 };
 

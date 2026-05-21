@@ -83,7 +83,7 @@ const MiniPlayer = ({
     events,
     totalDuration,
     null,
-    effects
+    effects,
   );
 
   const trackRef = useRef(null);
@@ -101,7 +101,7 @@ const MiniPlayer = ({
       const rect = trackRef.current.getBoundingClientRect();
       const ratio = Math.max(
         0,
-        Math.min(1, (e.clientX - rect.left) / rect.width)
+        Math.min(1, (e.clientX - rect.left) / rect.width),
       );
       seek(ratio * totalDuration);
     };
@@ -134,7 +134,7 @@ const MiniPlayer = ({
     const rect = trackRef.current.getBoundingClientRect();
     const ratio = Math.max(
       0,
-      Math.min(1, (e.clientX - rect.left) / rect.width)
+      Math.min(1, (e.clientX - rect.left) / rect.width),
     );
     seek(ratio * totalDuration);
   };
@@ -145,7 +145,7 @@ const MiniPlayer = ({
     const rect = trackRef.current.getBoundingClientRect();
     const ratio = Math.max(
       0,
-      Math.min(1, (e.clientX - rect.left) / rect.width)
+      Math.min(1, (e.clientX - rect.left) / rect.width),
     );
     seek(ratio * totalDuration);
   };
@@ -318,7 +318,7 @@ const ProjectCard = ({
       onPrimary: () => {
         setModalOpen(false);
         exportToWAV(
-          `${project.title || "melody"}_${new Date().toISOString().slice(0, 10)}.wav`
+          `${project.title || "melody"}_${new Date().toISOString().slice(0, 10)}.wav`,
         );
       },
       onCancel: (e2) => {

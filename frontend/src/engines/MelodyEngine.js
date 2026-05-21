@@ -112,7 +112,6 @@ class MelodyEngine {
       bpm = 80,
       duration = 8,
       scale = "major",
-      smoothing = 30,
       notesPerBeat = 1,
     } = options;
 
@@ -124,7 +123,7 @@ class MelodyEngine {
         const instrument = this.COLOR_TO_INSTRUMENT[seg.color] || "piano";
         return {
           ...seg,
-          points: this.applySmoothing(seg.points, smoothing),
+          points: seg.points,
           instrument,
           volume: this.INSTRUMENT_VOLUME[instrument] || 0.22,
         };
@@ -236,19 +235,19 @@ class MelodyEngine {
 
   // ─── Вспомогательные ─────────────────────────────────────────────────────
 
-  applySmoothing(points, smoothingPercent) {
-    if (points.length <= 1 || smoothingPercent === 0) return points;
-    const factor = smoothingPercent / 100;
-    const result = [points[0]];
-    for (let i = 1; i < points.length; i++) {
-      const prev = result[result.length - 1];
-      result.push({
-        x: points[i].x,
-        y: prev.y * factor + points[i].y * (1 - factor),
-      });
-    }
-    return result;
-  }
+  // applySmoothing(points, smoothingPercent) {
+  //   if (points.length <= 1 || smoothingPercent === 0) return points;
+  //   const factor = smoothingPercent / 100;
+  //   const result = [points[0]];
+  //   for (let i = 1; i < points.length; i++) {
+  //     const prev = result[result.length - 1];
+  //     result.push({
+  //       x: points[i].x,
+  //       y: prev.y * factor + points[i].y * (1 - factor),
+  //     });
+  //   }
+  //   return result;
+  // }
 
   getSegmentDirection(segment) {
     const pts = segment.points;
