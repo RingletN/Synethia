@@ -325,13 +325,39 @@
 .music-player .volume-control {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 17px;
 }
 
-.music-player .volume-slider {
-    width: 80px;
-    accent-color: #00ffd1;
+.music-player .volume-slider-track {
+    width: 117px;
+    height: 4px;
+    background: rgba(255, 255, 255, 0.12);
+    border-radius: 4px;
     cursor: pointer;
+    position: relative;
+    flex-shrink: 0;
+}
+
+.music-player .volume-slider-fill {
+    position: absolute;
+    left: 0;
+    top: 0;
+    height: 100%;
+    background: linear-gradient(90deg, #00ffd1, #9900ff);
+    border-radius: 4px;
+    pointer-events: none;
+}
+
+.music-player .volume-slider-thumb {
+    position: absolute;
+    top: 50%;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: var(--color-bright);
+    box-shadow: 0 0 6px rgba(0, 255, 209, 0.6);
+    pointer-events: none;
+    transform: translate(-50%, -50%);
 }
 
 /* Индикатор активной ноты */

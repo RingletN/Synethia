@@ -72,11 +72,30 @@ const MiniPlayer = ({ events, totalDuration, projectId, playingId, onPlay, effec
         events, totalDuration, null, effects
     );
 
+    const trackRef = useRef(null);
+    const isDraggingRef = useRef(false);
+
     useEffect(() => {
         if (playingId !== null && playingId !== projectId && isPlaying) {
             stop();
         }
     }, [playingId, projectId, isPlaying, stop]);
+
+    useEffect(() => {
+        const onMove = (e) => {
+            if (!isDraggingRef.current || !trackRef.current) return;
+            const rect = trackRef.current.getBoundingClientRect();
+            const ratio = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+            seek(ratio * totalDuration);
+        };
+        const onUp = () => { isDraggingRef.current = false; };
+        window.addEventListener('mousemove', onMove);
+        window.addEventListener('mouseup', onUp);
+        return () => {
+            window.removeEventListener('mousemove', onMove);
+            window.removeEventListener('mouseup', onUp);
+        };
+    }, [seek, totalDuration]);
 
     const toggle = async (e) => {
         e.stopPropagation();
@@ -88,9 +107,20 @@ const MiniPlayer = ({ events, totalDuration, projectId, playingId, onPlay, effec
         }
     };
 
+    const handleTrackMouseDown = (e) => {
+        e.stopPropagation();
+        e.preventDefault();
+        isDraggingRef.current = true;
+        if (!trackRef.current) return;
+        const rect = trackRef.current.getBoundingClientRect();
+        const ratio = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+        seek(ratio * totalDuration);
+    };
+
     const handleTrackClick = (e) => {
         e.stopPropagation();
-        const rect = e.currentTarget.getBoundingClientRect();
+        if (!trackRef.current) return;
+        const rect = trackRef.current.getBoundingClientRect();
         const ratio = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
         seek(ratio * totalDuration);
     };
@@ -109,7 +139,12 @@ const MiniPlayer = ({ events, totalDuration, projectId, playingId, onPlay, effec
                 className="icon mini-player-btn"
                 onClick={toggle}
             />
-            <div className="mini-player-track" onClick={handleTrackClick}>
+            <div
+                ref={trackRef}
+                className="mini-player-track"
+                onClick={handleTrackClick}
+                onMouseDown={handleTrackMouseDown}
+            >
                 <div className="mini-player-fill" style={{ width: `${pct}%` }} />
                 <div className="mini-player-thumb" style={{ left: `${pct}%` }} />
             </div>

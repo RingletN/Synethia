@@ -157,17 +157,20 @@
 
 .mini-player-track {
     flex: 1;
-    height: 6px;
-    background: rgba(255, 255, 255, 0.25);
-    border-radius: 3px;
+    height: 4px;
+    background: rgba(255, 255, 255, 0.12);
+    border-radius: 4px;
     position: relative;
     cursor: pointer;
 }
 
 .mini-player-fill {
+    position: absolute;
+    left: 0;
+    top: 0;
     height: 100%;
-    background: linear-gradient(90deg, var(--color-cyan), var(--color-violet));
-    border-radius: 3px;
+    background: linear-gradient(90deg, #00ffd1, #9900ff);
+    border-radius: 4px;
     pointer-events: none;
 }
 
@@ -175,10 +178,11 @@
     position: absolute;
     top: 50%;
     transform: translate(-50%, -50%);
-    width: 14px;
-    height: 14px;
+    width: 18px;
+    height: 18px;
     border-radius: 50%;
     background: var(--color-bright);
+    box-shadow: 0 0 6px rgba(0, 255, 209, 0.6);
     pointer-events: none;
 }
 

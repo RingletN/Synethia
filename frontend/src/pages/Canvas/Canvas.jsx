@@ -586,6 +586,10 @@ const Canvas = () => {
   );
 
   const progressRef = useRef(null);
+  const isDraggingProgressRef = useRef(false);
+  const isDraggingVolumeRef = useRef(false);
+  const volumeTrackRef = useRef(null);
+
   const handleProgressClick = useCallback(
     (e) => {
       if (!progressRef.current) return;
@@ -598,6 +602,49 @@ const Canvas = () => {
     },
     [seek, totalDuration]
   );
+
+  const handleProgressMouseDown = useCallback((e) => {
+    e.preventDefault();
+    isDraggingProgressRef.current = true;
+    if (!progressRef.current) return;
+    const rect = progressRef.current.getBoundingClientRect();
+    const ratio = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+    seek(ratio * totalDuration);
+  }, [seek, totalDuration]);
+
+  const handleVolumeMouseDown = useCallback((e) => {
+    e.preventDefault();
+    isDraggingVolumeRef.current = true;
+    if (!volumeTrackRef.current) return;
+    const rect = volumeTrackRef.current.getBoundingClientRect();
+    const ratio = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+    setVolume(ratio);
+  }, [setVolume]);
+
+  useEffect(() => {
+    const onMove = (e) => {
+      if (isDraggingProgressRef.current && progressRef.current) {
+        const rect = progressRef.current.getBoundingClientRect();
+        const ratio = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+        seek(ratio * totalDuration);
+      }
+      if (isDraggingVolumeRef.current && volumeTrackRef.current) {
+        const rect = volumeTrackRef.current.getBoundingClientRect();
+        const ratio = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+        setVolume(ratio);
+      }
+    };
+    const onUp = () => {
+      isDraggingProgressRef.current = false;
+      isDraggingVolumeRef.current = false;
+    };
+    window.addEventListener("mousemove", onMove);
+    window.addEventListener("mouseup", onUp);
+    return () => {
+      window.removeEventListener("mousemove", onMove);
+      window.removeEventListener("mouseup", onUp);
+    };
+  }, [seek, totalDuration, setVolume]);
 
   const formatTime = (seconds) => {
     const s = Math.max(0, seconds);
@@ -1014,6 +1061,7 @@ const Canvas = () => {
               ref={progressRef}
               className="progress-bar-container"
               onClick={handleProgressClick}
+              onMouseDown={handleProgressMouseDown}
             >
               <div
                 className="progress-fill"
@@ -1044,15 +1092,25 @@ const Canvas = () => {
                   onClick={() => setVolume(volume === 0 ? 0.5 : 0)}
                 />
               </div>
-              <input
-                type="range"
-                min="0"
-                max="1"
-                step="0.01"
-                value={volume}
-                onChange={handleVolumeChange}
-                className="volume-slider"
-              />
+              <div
+                ref={volumeTrackRef}
+                className="volume-slider-track"
+                onClick={(e) => {
+                  const rect = e.currentTarget.getBoundingClientRect();
+                  const ratio = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+                  handleVolumeChange({ target: { value: ratio } });
+                }}
+                onMouseDown={handleVolumeMouseDown}
+              >
+                <div
+                  className="volume-slider-fill"
+                  style={{ width: `${volume * 100}%` }}
+                />
+                <div
+                  className="volume-slider-thumb"
+                  style={{ left: `${volume * 100}%` }}
+                />
+              </div>
             </div>
           </div>
         )}
