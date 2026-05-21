@@ -440,6 +440,21 @@ const Canvas = () => {
           segments,
           melodyParamsForGen,
         ));
+        // --- DEBUG EXPORT ---
+        const { events: eventsForLog, tonicMidi, roles } = melodyEngine.buildNoteEvents(
+            segments,
+            melodyParamsForGen,
+        );
+        const log  = melodyEngine.exportDebugLog(eventsForLog, roles, tonicMidi, melodyParamsForGen);
+        const blob = new Blob([log], { type: "text/plain;charset=utf-8" });
+        const url  = URL.createObjectURL(blob);
+        const a    = document.createElement("a");
+        a.href     = url;
+        a.download = `melody-debug-${Date.now()}.txt`;
+        a.click();
+        URL.revokeObjectURL(url);
+        // --- END DEBUG ---
+
       } catch (engineErr) {
         console.error("MelodyEngine error:", engineErr);
         showModal(
