@@ -1,4 +1,3 @@
-// StepsSection.jsx
 import React from "react";
 import Step1 from "../../assets/home/step1.svg";
 import Step2 from "../../assets/home/step2.svg";

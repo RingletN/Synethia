@@ -1,6 +1,4 @@
 /* SettingsPanel.css */
-@import "../../../index.css";
-
 .settings-panel {
   display: flex;
   flex-direction: column;

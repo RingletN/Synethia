@@ -6,10 +6,10 @@ import ConfirmIcon from "../../assets/icons/icon-confirm.svg";
 import CloseIcon from "../../assets/icons/icon-close.svg";
 import LogoutIcon from "../../assets/icons/icon-logout.svg";
 
-import InputField from "../../components/ui/InputField";
-import Button from "../../components/ui/Button";
+import InputField from "../../components/ui/InputField/InputField";
+import Button from "../../components/ui/Button/Button";
 import Loader from "../../components/ui/Loader";
-import Modal from "../../components/ui/Modal";
+import Modal from "../../components/ui/Modal/Modal";
 
 import { getValidationErrorMessage } from "../../utils/validationErrors";
 import { useUnsavedChanges } from "../../hooks/useUnsavedChanges"; // ← новый хук

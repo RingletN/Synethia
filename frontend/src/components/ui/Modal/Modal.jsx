@@ -1,6 +1,6 @@
 import React from "react";
 import { createPortal } from "react-dom";
-import Button from "./Button";
+import Button from "../Button/Button";
 import "./Modal.css";
 
 const Modal = ({
@@ -47,7 +47,7 @@ const Modal = ({
         </div>
       </div>
     </div>,
-    document.body, // ← контейнер, а не ребёнок!
+    document.body // ← контейнер, а не ребёнок!
   );
 };
 

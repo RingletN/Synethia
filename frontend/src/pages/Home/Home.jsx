@@ -12,7 +12,7 @@ import Step1 from "../../assets/home/step1.svg";
 import Step2 from "../../assets/home/step2.svg";
 import Step3 from "../../assets/home/step3.svg";
 import StepsSection from "./StepsSection";
-import Button from "../../components/ui/Button";
+import Button from "../../components/ui/Button/Button";
 
 import "./Home.css";
 
@@ -38,7 +38,7 @@ const Home = () => {
           name: file.name,
           type: file.type,
           data: reader.result, // base64 data URL
-        }),
+        })
       );
       navigate("/canvas", { state: { autoImport: true } });
     };

@@ -2,7 +2,7 @@ import React, { useRef, useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import * as Tone from "tone";
 import api from "../../api";
-import Modal from "../../components/ui/Modal";
+import Modal from "../../components/ui/Modal/Modal";
 import PlusIcon from "../../assets/projects/plus.svg";
 import StarIcon from "../../assets/icons/icon-star.svg";
 import StarSelectedIcon from "../../assets/icons/icon-star-selected.svg";
@@ -11,7 +11,7 @@ import TrashIcon from "../../assets/icons/icon-trash.svg";
 import PlayIcon from "../../assets/icons/icon-play-mini.svg";
 import PauseIcon from "../../assets/icons/icon-pause-mini.svg";
 import "./ProjectCard.css";
-import useMelodyPlayer from "../Canvas/hooks/useMelodyPlayer";
+import useMelodyPlayer from "../../hooks/useMelodyPlayer";
 import { useAudioExporter } from "../Canvas/hooks/useAudioExporter";
 
 // ─── Карточка «Создать новый проект» ─────────────────────────────────────────
@@ -83,7 +83,7 @@ const MiniPlayer = ({
     events,
     totalDuration,
     null,
-    effects,
+    effects
   );
 
   const trackRef = useRef(null);
@@ -101,7 +101,7 @@ const MiniPlayer = ({
       const rect = trackRef.current.getBoundingClientRect();
       const ratio = Math.max(
         0,
-        Math.min(1, (e.clientX - rect.left) / rect.width),
+        Math.min(1, (e.clientX - rect.left) / rect.width)
       );
       seek(ratio * totalDuration);
     };
@@ -134,7 +134,7 @@ const MiniPlayer = ({
     const rect = trackRef.current.getBoundingClientRect();
     const ratio = Math.max(
       0,
-      Math.min(1, (e.clientX - rect.left) / rect.width),
+      Math.min(1, (e.clientX - rect.left) / rect.width)
     );
     seek(ratio * totalDuration);
   };
@@ -145,7 +145,7 @@ const MiniPlayer = ({
     const rect = trackRef.current.getBoundingClientRect();
     const ratio = Math.max(
       0,
-      Math.min(1, (e.clientX - rect.left) / rect.width),
+      Math.min(1, (e.clientX - rect.left) / rect.width)
     );
     seek(ratio * totalDuration);
   };
@@ -318,7 +318,7 @@ const ProjectCard = ({
       onPrimary: () => {
         setModalOpen(false);
         exportToWAV(
-          `${project.title || "melody"}_${new Date().toISOString().slice(0, 10)}.wav`,
+          `${project.title || "melody"}_${new Date().toISOString().slice(0, 10)}.wav`
         );
       },
       onCancel: (e2) => {

@@ -1,8 +1,8 @@
 // src/components/SaveAsModal.jsx
 import React, { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
-import Button from "./Button";
-import InputField from "./InputField";
+import Button from "../Button/Button";
+import InputField from "../InputField/InputField";
 
 const SaveAsModal = ({ isOpen, onClose, onSave, existingNames = [] }) => {
   const [title, setTitle] = useState("");
@@ -58,7 +58,7 @@ const SaveAsModal = ({ isOpen, onClose, onSave, existingNames = [] }) => {
         </div>
       </div>
     </div>,
-    document.body,
+    document.body
   );
 };
 

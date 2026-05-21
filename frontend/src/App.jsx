@@ -1,16 +1,14 @@
 import { Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "./context/AuthContext";
 import Loader from "./components/ui/Loader";
-import Header from "./components/layout/Header";
-import Footer from "./components/layout/Footer";
-import BackgroundGlow from "./components/layout/BackgroundGlow";
+import Header from "./components/layout/Header/Header";
+import Footer from "./components/layout/Footer/Footer";
+import BackgroundGlow from "./components/layout/BackgroundGlow/BackgroundGlow";
 import Home from "./pages/Home/Home";
 import Canvas from "./pages/Canvas/Canvas";
 import Projects from "./pages/Projects/Projects";
 import Profile from "./pages/Profile/Profile";
 import AuthPage from "./pages/Auth/AuthPage";
-
-import "./App.css";
 
 function PrivateRoute({ children }) {
   const { user, loading } = useAuth();

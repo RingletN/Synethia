@@ -1,12 +1,12 @@
 import React, { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { useAuth } from "../../context/AuthContext";
+import { useAuth } from "../../../context/AuthContext";
 
-import Logo from "../../assets/Logo.svg";
-import ProfileIcon from "../../assets/icons/profile.svg";
-import ProfileGlow from "../../assets/icons/profile-glow.svg";
-import BurgerIcon from "../../assets/icons/icon-burger.svg";
-import CloseIcon from "../../assets/icons/icon-close.svg";
+import Logo from "../../../assets/Logo.svg";
+import ProfileIcon from "../../../assets/icons/profile.svg";
+import ProfileGlow from "../../../assets/icons/profile-glow.svg";
+import BurgerIcon from "../../../assets/icons/icon-burger.svg";
+import CloseIcon from "../../../assets/icons/icon-close.svg";
 import "./Header.css";
 
 const Header = () => {

@@ -8,15 +8,15 @@ import ToolsPanel from "./components/ToolsPanel";
 import SettingsPanel from "./components/SettingsPanel";
 import { useDrawing } from "./hooks/useDrawing";
 import { useProjectSave } from "./hooks/useProjectSave";
-import useMelodyPlayer from "./hooks/useMelodyPlayer";
+import useMelodyPlayer from "../../hooks/useMelodyPlayer";
 import { useAudioExporter } from "./hooks/useAudioExporter";
 import { imageToSegments } from "../../utils/imageToSegments";
 import MelodyEngine from "../../engines/MelodyEngine";
-import Button from "../../components/ui/Button";
+import Button from "../../components/ui/Button/Button";
 import Loader from "../../components/ui/Loader";
-import SaveAsModal from "../../components/ui/SaveAsModal";
+import SaveAsModal from "../../components/ui/Modal/SaveAsModal";
 import { useUnsavedChanges } from "../../hooks/useUnsavedChanges";
-import Modal from "../../components/ui/Modal";
+import Modal from "../../components/ui/Modal/Modal";
 import StarIcon from "../../assets/icons/icon-star.svg";
 import StarSelectedIcon from "../../assets/icons/icon-star-selected.svg";
 import SaveIcon from "../../assets/icons/icon-save.svg";
@@ -201,7 +201,7 @@ const Canvas = () => {
     (title, description, variant = "default") => {
       openModal({ title, description, variant, primaryText: "ОК" });
     },
-    [openModal],
+    [openModal]
   );
 
   // ← теперь передаём hasUnsavedChanges вместо canUndo
@@ -277,7 +277,7 @@ const Canvas = () => {
           melodyEvents,
           totalDuration,
           segments: engineRef.current?.getAllSegments?.() ?? [],
-        }),
+        })
       );
       navigate("/auth?redirect=/canvas&pendingSave=1");
       return;
@@ -319,7 +319,7 @@ const Canvas = () => {
       brushColorRef.current = newColor;
       if (engineRef.current) engineRef.current.currentColor = newColor;
     },
-    [engineRef],
+    [engineRef]
   );
 
   const handleImportPhoto = useCallback(
@@ -339,7 +339,7 @@ const Canvas = () => {
         if (segments.length === 0) {
           showModal(
             "Контуры не найдены",
-            "На изображении не удалось обнаружить достаточно контуров.\n\nПопробуйте другое фото",
+            "На изображении не удалось обнаружить достаточно контуров.\n\nПопробуйте другое фото"
           );
           return;
         }
@@ -349,13 +349,13 @@ const Canvas = () => {
         showModal(
           "Ошибка обработки фото",
           "Не удалось обработать изображение.",
-          "error",
+          "error"
         );
       } finally {
         setIsImporting(false);
       }
     },
-    [engineRef, showModal],
+    [engineRef, showModal]
   );
 
   //   useEffect(() => {
@@ -414,7 +414,7 @@ const Canvas = () => {
     melodyEvents,
     totalDuration,
     (note) => setActiveNote(note),
-    effects,
+    effects
   );
 
   const handleStrokeEnd = useCallback(() => {
@@ -491,13 +491,13 @@ const Canvas = () => {
         showModal(
           "Ошибка",
           `Не удалось загрузить проект: ${err.message}`,
-          "error",
+          "error"
         );
       } finally {
         setIsLoadingProject(false);
       }
     },
-    [engineRef, saveToHistory, setProjectId, setCurrentTitle, showModal],
+    [engineRef, saveToHistory, setProjectId, setCurrentTitle, showModal]
   );
 
   useEffect(() => {
@@ -530,7 +530,7 @@ const Canvas = () => {
         showModal(
           "Нечего генерировать",
           "Нарисуйте что-нибудь на холсте или импортируйте изображение.",
-          "warning",
+          "warning"
         );
         return;
       }
@@ -539,14 +539,14 @@ const Canvas = () => {
       try {
         ({ events } = melodyEngine.buildNoteEvents(
           segments,
-          melodyParamsForGen,
+          melodyParamsForGen
         ));
       } catch (engineErr) {
         console.error("MelodyEngine error:", engineErr);
         showModal(
           "Ошибка генерации",
           "Не удалось обработать рисунок. Попробуйте ещё раз.",
-          "error",
+          "error"
         );
         return;
       }
@@ -555,7 +555,7 @@ const Canvas = () => {
         showModal(
           "Нечего генерировать",
           "Не удалось извлечь ноты из рисунка.",
-          "warning",
+          "warning"
         );
         return;
       }
@@ -582,7 +582,7 @@ const Canvas = () => {
     (e) => {
       setVolume(parseFloat(e.target.value));
     },
-    [setVolume],
+    [setVolume]
   );
 
   const progressRef = useRef(null);
@@ -596,11 +596,11 @@ const Canvas = () => {
       const rect = progressRef.current.getBoundingClientRect();
       const ratio = Math.max(
         0,
-        Math.min(1, (e.clientX - rect.left) / rect.width),
+        Math.min(1, (e.clientX - rect.left) / rect.width)
       );
       seek(ratio * totalDuration);
     },
-    [seek, totalDuration],
+    [seek, totalDuration]
   );
 
   const handleProgressMouseDown = useCallback(
@@ -611,11 +611,11 @@ const Canvas = () => {
       const rect = progressRef.current.getBoundingClientRect();
       const ratio = Math.max(
         0,
-        Math.min(1, (e.clientX - rect.left) / rect.width),
+        Math.min(1, (e.clientX - rect.left) / rect.width)
       );
       seek(ratio * totalDuration);
     },
-    [seek, totalDuration],
+    [seek, totalDuration]
   );
 
   const handleVolumeMouseDown = useCallback(
@@ -626,11 +626,11 @@ const Canvas = () => {
       const rect = volumeTrackRef.current.getBoundingClientRect();
       const ratio = Math.max(
         0,
-        Math.min(1, (e.clientX - rect.left) / rect.width),
+        Math.min(1, (e.clientX - rect.left) / rect.width)
       );
       setVolume(ratio);
     },
-    [setVolume],
+    [setVolume]
   );
 
   useEffect(() => {
@@ -639,7 +639,7 @@ const Canvas = () => {
         const rect = progressRef.current.getBoundingClientRect();
         const ratio = Math.max(
           0,
-          Math.min(1, (e.clientX - rect.left) / rect.width),
+          Math.min(1, (e.clientX - rect.left) / rect.width)
         );
         seek(ratio * totalDuration);
       }
@@ -647,7 +647,7 @@ const Canvas = () => {
         const rect = volumeTrackRef.current.getBoundingClientRect();
         const ratio = Math.max(
           0,
-          Math.min(1, (e.clientX - rect.left) / rect.width),
+          Math.min(1, (e.clientX - rect.left) / rect.width)
         );
         setVolume(ratio);
       }
@@ -699,7 +699,7 @@ const Canvas = () => {
         exportToWAV(`melody_${new Date().toISOString().slice(0, 10)}.wav`);
       }
     },
-    [engineRef, bgColor, exportToWAV, showModal],
+    [engineRef, bgColor, exportToWAV, showModal]
   );
 
   const handleResizeMouseDown = useCallback(
@@ -712,7 +712,7 @@ const Canvas = () => {
         h: canvasPanelRef.current?.clientHeight ?? INITIAL_CANVAS_HEIGHT,
       };
     },
-    [],
+    []
   );
 
   useEffect(() => {
@@ -815,7 +815,7 @@ const Canvas = () => {
       handleStrokeEnd,
       handleImportPhoto,
       location.state,
-    ],
+    ]
   );
 
   useEffect(() => {
@@ -836,7 +836,7 @@ const Canvas = () => {
         setHasUnsavedChanges(true); // ← смена фона тоже изменение
       }, 800);
     },
-    [saveToHistory],
+    [saveToHistory]
   );
 
   const syncLayout = useCallback(() => {
@@ -845,7 +845,7 @@ const Canvas = () => {
     if (!canvasEl || !container) return;
     const maxW = Math.max(
       CANVAS_MIN_SIZE,
-      container.offsetWidth - CANVAS_BLOCK_GAP - SETTINGS_MIN_WIDTH,
+      container.offsetWidth - CANVAS_BLOCK_GAP - SETTINGS_MIN_WIDTH
     );
     canvasEl.style.maxWidth = `${maxW}px`;
   }, []);
@@ -883,7 +883,7 @@ const Canvas = () => {
       showModal(
         "Ошибка",
         "Не удалось обновить избранное. Попробуйте ещё раз.",
-        "error",
+        "error"
       );
     }
   }, [projectId, showModal]);
@@ -906,7 +906,7 @@ const Canvas = () => {
             showModal(
               "Ошибка",
               "Не удалось удалить проект. Попробуйте ещё раз.",
-              "error",
+              "error"
             );
             return;
           }
@@ -1124,7 +1124,7 @@ const Canvas = () => {
                   const rect = e.currentTarget.getBoundingClientRect();
                   const ratio = Math.max(
                     0,
-                    Math.min(1, (e.clientX - rect.left) / rect.width),
+                    Math.min(1, (e.clientX - rect.left) / rect.width)
                   );
                   handleVolumeChange({ target: { value: ratio } });
                 }}

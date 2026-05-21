@@ -10,8 +10,8 @@ import UndoBlockedIcon from "../../../assets/icons/icon-undo-blocked.svg";
 import RedoIcon from "../../../assets/icons/icon-redo.svg";
 import RedoBlockedIcon from "../../../assets/icons/icon-redo-blocked.svg";
 import ClearCanvasIcon from "../../../assets/icons/icon-clear-canvas.svg";
-import IconCanvasBg from "../../../components/ui/IconCanvasBg";
-import IconBrushColor from "../../../components/ui/IconBrushColor";
+import IconCanvasBg from "../../../components/ui/CustomIcons/IconCanvasBg";
+import IconBrushColor from "../../../components/ui/CustomIcons/IconBrushColor";
 
 // ─── Маппинг: цвет → инструмент (должен совпадать с MelodyEngine и useMelodyPlayer) ──
 export const INSTRUMENT_COLORS = [

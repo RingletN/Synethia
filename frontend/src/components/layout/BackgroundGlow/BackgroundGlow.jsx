@@ -1,6 +1,6 @@
 import "./BackgroundGlow.css";
-import LogoBlur from "../../assets/backgrounds/logo-blur.svg";
-import NavBlur from "../../assets/backgrounds/nav-blur.svg";
+import LogoBlur from "../../../assets/backgrounds/logo-blur.svg";
+import NavBlur from "../../../assets/backgrounds/nav-blur.svg";
 
 const BackgroundGlow = () => {
   return (

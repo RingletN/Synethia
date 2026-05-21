@@ -1,6 +1,6 @@
 import React, { useState } from "react";
-import EyeOpenIcon from "../../assets/icons/icon-eye-open.svg";
-import EyeClosedIcon from "../../assets/icons/icon-eye-closed.svg";
+import EyeOpenIcon from "../../../assets/icons/icon-eye-open.svg";
+import EyeClosedIcon from "../../../assets/icons/icon-eye-closed.svg";
 import "./InputField.css";
 
 const InputField = ({

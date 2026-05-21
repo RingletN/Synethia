@@ -1,12 +1,11 @@
 import { useState } from "react";
 import { useAuth } from "../../context/AuthContext";
 import { useNavigate } from "react-router-dom";
-import InputField from "../../components/ui/InputField";
-import Button from "../../components/ui/Button";
-import Modal from "../../components/ui/Modal";
+import InputField from "../../components/ui/InputField/InputField";
+import Button from "../../components/ui/Button/Button";
+import Modal from "../../components/ui/Modal/Modal";
 import Loader from "../../components/ui/Loader";
 import tabLoginTop from "../../assets/login/tab-login-top.svg";
-import tabRegisterTop from "../../assets/login/tab-register-top.svg";
 import frameBottom from "../../assets/login/frame-bottom.svg";
 
 function Login({ onSwitchToRegister, onForgotPassword }) {

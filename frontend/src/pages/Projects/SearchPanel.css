@@ -1,6 +1,3 @@
-/* Можно импортировать глобальные переменные, если они в index.css или :root */
-@import "../../index.css";
-
 .search-block {
   background: rgba(var(--color-dark-rgb), 0.4);
   border: none;

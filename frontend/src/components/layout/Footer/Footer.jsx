@@ -1,11 +1,11 @@
 import React from "react";
 import { Link } from "react-router-dom";
-import { useAuth } from "../../context/AuthContext";
-import Logo from "../../assets/Logo.svg";
-import IconInst from "../../assets/icons/icon-instagram.svg";
-import IconX from "../../assets/icons/icon-x.svg";
-import IconTikTok from "../../assets/icons/icon-tiktok.svg";
-import BgFooterLine from "../../assets/backgrounds/bg-footer-line.png";
+import { useAuth } from "../../../context/AuthContext";
+import Logo from "../../../assets/Logo.svg";
+import IconInst from "../../../assets/icons/icon-instagram.svg";
+import IconX from "../../../assets/icons/icon-x.svg";
+import IconTikTok from "../../../assets/icons/icon-tiktok.svg";
+import BgFooterLine from "../../../assets/backgrounds/bg-footer-line.png";
 import "./Footer.css";
 
 const Footer = () => {

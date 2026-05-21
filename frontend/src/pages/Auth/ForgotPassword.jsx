@@ -1,9 +1,9 @@
 import { useState, useEffect, useRef } from "react";
 import { useAuth } from "../../context/AuthContext";
-import InputField from "../../components/ui/InputField";
-import Button from "../../components/ui/Button";
+import InputField from "../../components/ui/InputField/InputField";
+import Button from "../../components/ui/Button/Button";
 import Loader from "../../components/ui/Loader";
-import Modal from "../../components/ui/Modal";
+import Modal from "../../components/ui/Modal/Modal";
 import frameBottom from "../../assets/login/frame-bottom1.svg";
 import forgotTop from "../../assets/login/forgot-top.svg";
 import arrowBack from "../../assets/login/arrow-back.svg";
