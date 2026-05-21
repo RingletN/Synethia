@@ -71,7 +71,7 @@
     padding: 32px 43px;
     display: flex;
     flex-direction: column;
-    gap: 43px;
+    gap: 60px;
     position: relative;
     overflow: hidden;
 }
@@ -95,15 +95,73 @@
     z-index: 1;
     /* filter: blur(1px); */
 }
-
-.sort-header{
-
-}
-
 .sort-header-text{
         display: flex;
         justify-content: space-between;
         align-items: center;
+}
+
+/* Грид для контента: 2 колонки */
+.sort-content {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 60px;
+}
+
+/* Каждый столбец — flex-колонка по центру */
+.sort-field,
+.sort-direction {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+}
+
+/* Заголовки столбцов */
+.sort-field > p,
+.sort-direction > p {
+    font-family: var(--font-montserrat);
+    font-weight: var(--font-weight-semibold);
+    font-size: 36px;
+    color: var(--color-pale);
+    margin: 0;
+}
+
+/* Элементы сортировки */
+.option {
+    font-family: var(--font-montserrat);
+    font-weight: var(--font-weight-bold);
+    font-size: 32px;
+    color: var(--color-bright);
+    border-radius: 40px;
+    padding: 14px 20px;
+    background: rgba(255, 255, 255, 0.20);
+    border: 3px solid transparent;
+    cursor: pointer;
+    text-align: center;
+    /* width: 100%; */
+    box-sizing: border-box;
+}
+
+/* Выбранный элемент */
+.option.active {
+    border-color: var(--color-cyan);
+}
+
+.option {
+    cursor: pointer;
+    transition: transform 0.2s ease;
+}
+
+.option:hover {
+    transform: scale(1.03);
+}
+
+/* Кнопки — тоже грид, те же 2 колонки */
+.sort-modal > .sort-buttons {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 60px;
 }
 
 
@@ -224,3 +282,18 @@
 .pagination-chevron--disabled:hover {
     transform: none !important;
 } */
+
+.projects-unauthenticated {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 20px;
+}
+
+.projects-unauthenticated-text {
+    font-family: var(--font-montserrat);
+    font-weight: var(--font-weight-semibold);
+    font-size: 28px;
+    color: var(--color-pale);
+    margin: 0;
+}

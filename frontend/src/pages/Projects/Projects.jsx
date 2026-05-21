@@ -12,6 +12,7 @@ import Button from '../../components/ui/Button';
 import Loader from '../../components/ui/Loader';
 import api from '../../api';
 import './Projects.css';
+import { useAuth } from '../../context/AuthContext';
 
 // ─── Хук: сколько колонок сейчас помещается ──────────────────────────────────
 const CARD_WIDTH = 590;
@@ -48,12 +49,25 @@ const Projects = () => {
     const [error, setError]             = useState(null);
     const [searchQuery, setSearchQuery] = useState('');
     const [isSortOpen, setIsSortOpen]   = useState(false);
-    const [sortField, setSortField]     = useState('updated_at');
-    const [sortDir, setSortDir]         = useState('desc');
-    const [page, setPage]               = useState(1);
+
+    // ── Реальные значения сортировки (применяются к данным) ──────────────────
+    const [sortField, setSortField] = useState('updated_at');
+    const [sortDir, setSortDir]     = useState('desc');
+
+    // ── Временные значения (только внутри модалки, до подтверждения) ─────────
+    const [tempField, setTempField] = useState('updated_at');
+    const [tempDir, setTempDir]     = useState('desc');
+
+    const [page, setPage] = useState(1);
+    const { user, loading: authLoading } = useAuth();
 
     // Загрузка
     useEffect(() => {
+        if (authLoading) return;
+        if (!user) {
+            setIsLoading(false);
+            return;
+        }
         const load = async () => {
             setIsLoading(true); setError(null);
             try {
@@ -66,18 +80,45 @@ const Projects = () => {
             }
         };
         load();
-    }, []);
+    }, [user, authLoading]);
 
     // Сброс страницы при поиске или смене колонок
     useEffect(() => { setPage(1); }, [searchQuery, cols]);
+
+    // ── Открытие модалки — синхронизируем temp с реальными ───────────────────
+    const openSort = () => {
+        setTempField(sortField);
+        setTempDir(sortDir);
+        setIsSortOpen(true);
+    };
+
+    // ── Подтвердить — применяем temp к реальным ──────────────────────────────
+    const applySort = () => {
+        setSortField(tempField);
+        setSortDir(tempDir);
+        setIsSortOpen(false);
+    };
+
+    // ── Отменить — сбрасываем к дефолту ──────────────────────────────────────
+    const resetSort = () => {
+        setSortField('updated_at');
+        setSortDir('desc');
+        setTempField('updated_at');
+        setTempDir('desc');
+        setIsSortOpen(false);
+    };
+
+    // ── Закрыть без изменений (крестик / клик вне) ───────────────────────────
+    const closeSort = () => {
+        setIsSortOpen(false);
+        // temp не трогаем — при следующем открытии openSort синхронизирует заново
+    };
 
     // ── Удаление — с коррекцией страницы ──────────────────────────────────────
     const handleDelete = (id) => {
         setProjects(prev => {
             const next = prev.filter(p => p.id !== id);
 
-            // Пересчитываем максимальную страницу после удаления
-            // (используем текущие значения cols, searchQuery, sortField, sortDir)
             const filtered = next
                 .filter(p => p.title.toLowerCase().includes(searchQuery.toLowerCase()));
 
@@ -87,7 +128,6 @@ const Projects = () => {
                 ? 1
                 : 1 + Math.ceil(Math.max(0, filtered.length - perPageFirst) / perPageOther);
 
-            // Если текущая страница вышла за пределы — перекидываем на последнюю
             setPage(p => Math.min(p, newTotalPages));
 
             return next;
@@ -99,7 +139,7 @@ const Projects = () => {
             prev.map(p => p.id === id ? { ...p, is_favorite: !p.is_favorite } : p)
         );
 
-    // Фильтрация + сортировка
+    // Фильтрация + сортировка (по реальным значениям)
     const filtered = projects
         .filter(p => p.title.toLowerCase().includes(searchQuery.toLowerCase()))
         .sort((a, b) => {
@@ -126,7 +166,6 @@ const Projects = () => {
         ? 1
         : 1 + Math.ceil(Math.max(0, filtered.length - perPageFirst) / perPageOther);
 
-    // Защита от устаревшей страницы (на случай если totalPages уменьшился)
     const safePage = Math.min(page, totalPages);
 
     const getPageProjects = () => {
@@ -137,11 +176,38 @@ const Projects = () => {
 
     const pageProjects = getPageProjects();
 
-    const applySort = () => setIsSortOpen(false);
-    const resetSort = () => { setSortField('updated_at'); setSortDir('desc'); setIsSortOpen(false); };
-
     const canGoPrev = safePage > 1;
     const canGoNext = safePage < totalPages;
+
+    if (!authLoading && !user) {
+        return (
+            <div className="projects-content">
+                <div className="projects-bg-line">
+                    <img src={BgProjectsLine} alt="фоновая линия" />
+                </div>
+
+                <div className="projects-header">
+                    <div className="projects-header-text">
+                        <h2>БИБЛИОТЕКА ПРОЕКТОВ</h2>
+                    </div>
+                    <div className="divider" />
+                </div>
+
+                <div className="projects-unauthenticated">
+                    <p className="projects-unauthenticated-text">
+                        Авторизируйтесь, чтобы хранить историю проектов
+                    </p>
+                    <Button variant="primary" onClick={() => navigate('/auth')}>
+                        ВХОД / РЕГИСТРАЦИЯ
+                    </Button>
+                </div>
+
+                <div className="project-cards-grid" style={{ '--cols': 1, '--card-gap': '56px' }}>
+                    <CreateCard onClick={() => navigate('/canvas')} />
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="projects-content">
@@ -153,7 +219,7 @@ const Projects = () => {
             <div className="projects-header">
                 <div className="projects-header-text">
                     <h2>БИБЛИОТЕКА ПРОЕКТОВ</h2>
-                    <div className="icon sort-btn" onClick={() => setIsSortOpen(!isSortOpen)}>
+                    <div className="icon sort-btn" onClick={openSort}>
                         <img src={SortIcon} alt="Сортировка" />
                     </div>
                 </div>
@@ -162,12 +228,12 @@ const Projects = () => {
 
             {/* ── Сортировка ── */}
             {isSortOpen && (
-                <div className="sort-overlay" onClick={() => setIsSortOpen(false)}>
+                <div className="sort-overlay" onClick={closeSort}>
                     <div className="sort-modal" onClick={e => e.stopPropagation()}>
                         <div className="sort-header">
                             <div className="sort-header-text">
                                 <h2>Сортировка</h2>
-                                <div className="icon close-btn" onClick={() => setIsSortOpen(false)}>
+                                <div className="icon close-btn" onClick={closeSort}>
                                     <img src={CloseIcon} alt="Закрыть" />
                                 </div>
                             </div>
@@ -181,9 +247,11 @@ const Projects = () => {
                                     { value: 'created_at', label: 'Дата создания' },
                                     { value: 'updated_at', label: 'Дата изменения' },
                                 ].map(opt => (
-                                    <div key={opt.value}
-                                         className={`option ${sortField === opt.value ? 'active' : ''}`}
-                                         onClick={() => setSortField(opt.value)}>
+                                    <div
+                                        key={opt.value}
+                                        className={`option ${tempField === opt.value ? 'active' : ''}`}
+                                        onClick={() => setTempField(opt.value)}
+                                    >
                                         {opt.label}
                                     </div>
                                 ))}
@@ -194,16 +262,20 @@ const Projects = () => {
                                     { value: 'asc',  label: 'Возрастание' },
                                     { value: 'desc', label: 'Убывание' },
                                 ].map(opt => (
-                                    <div key={opt.value}
-                                         className={`option ${sortDir === opt.value ? 'active' : ''}`}
-                                         onClick={() => setSortDir(opt.value)}>
+                                    <div
+                                        key={opt.value}
+                                        className={`option ${tempDir === opt.value ? 'active' : ''}`}
+                                        onClick={() => setTempDir(opt.value)}
+                                    >
                                         {opt.label}
                                     </div>
                                 ))}
                             </div>
                         </div>
-                        <Button variant="negative" onClick={resetSort}>ОТМЕНИТЬ</Button>
-                        <Button variant="primary"  onClick={applySort}>ПОДТВЕРДИТЬ</Button>
+                        <div className="sort-buttons">
+                            <Button variant="negative" onClick={resetSort}>ОТМЕНИТЬ</Button>
+                            <Button variant="primary"  onClick={applySort}>ПОДТВЕРДИТЬ</Button>
+                        </div>
                     </div>
                 </div>
             )}
@@ -255,10 +327,10 @@ const Projects = () => {
                 )}
             </div>
 
-            {/* ── Пагинация: шевроны всегда видны, disabled когда некуда листать ── */}
+            {/* ── Пагинация ── */}
             {!isLoading && !error && totalPages > 1 && (
                 <div className="projects-pagination">
-                    <div className={`icon ${canGoPrev ? '' : ' disabled'}`}
+                    <div className={`icon ${canGoPrev ? '' : 'disabled'}`}
                         onClick={canGoPrev ? () => setPage(p => p - 1) : undefined}>
                         <img src={LeftChevron} alt="Назад" />
                     </div>
@@ -269,11 +341,10 @@ const Projects = () => {
                         <span className="pagination-total">{totalPages}</span>
                     </div>
 
-                    <div className={`icon ${canGoNext ? '' : ' disabled'}`}
+                    <div className={`icon ${canGoNext ? '' : 'disabled'}`}
                         onClick={canGoNext ? () => setPage(p => p + 1) : undefined}>
                         <img src={RightChevron} alt="Вперёд" />
                     </div>
-
                 </div>
             )}
         </div>

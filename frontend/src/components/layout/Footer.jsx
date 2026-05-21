@@ -1,4 +1,6 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
 import Logo from '../../assets/Logo.svg'
 import IconInst from '../../assets/icons/icon-instagram.svg'
 import IconX from '../../assets/icons/icon-x.svg'
@@ -7,6 +9,7 @@ import BgFooterLine from '../../assets/backgrounds/bg-footer-line.png';
 import "./Footer.css";
 
 const Footer = () => {
+    const { user } = useAuth();
   return (
     <footer className="footer">
         <div className="footer-bg-line">
@@ -22,7 +25,11 @@ const Footer = () => {
             <a href="/">ГЛАВНАЯ</a>
             <a href="/canvas">ХОЛСТ</a>
             <a href="/projects">ПРОЕКТЫ</a>
-            <a href="/profile">ПРОФИЛЬ</a>
+            {user ? (
+              <Link to="/profile">ПРОФИЛЬ</Link>
+          ) : (
+              <Link to="/auth">ВХОД</Link>
+          )}
       </div>
       <div className="contacts">
         <div className="social-medias">
