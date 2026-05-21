@@ -91,7 +91,8 @@ p {
   transform: scale(1.1);
 }
 
-.icon:disabled {
+.icon:disabled,
+.icon.disabled {
   cursor: default;
   opacity: 0.5;
 }

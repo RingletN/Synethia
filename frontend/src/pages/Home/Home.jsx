@@ -1,4 +1,6 @@
 import React from 'react';
+import { useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import BgHomeLine from '../../assets/backgrounds/bg-home-line1.png';
 import BgHomeLine2 from '../../assets/backgrounds/bg-home-line2.png';
 import MainLine from '../../assets/home/main-karakulya.png'
@@ -15,8 +17,41 @@ import Button from "../../components/ui/Button";
 import './Home.css'
 
 const Home = () => {
+    const navigate = useNavigate();
+
+    const importInputRef = useRef(null);
+
+    const handleImportClick = () => {
+        importInputRef.current?.click();
+    };
+
+    const handleFileSelected = (e) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        e.target.value = '';
+        // Кладём файл в sessionStorage как base64, затем переходим
+        const reader = new FileReader();
+        reader.onload = () => {
+            sessionStorage.setItem('pendingImportFile', JSON.stringify({
+                name: file.name,
+                type: file.type,
+                data: reader.result, // base64 data URL
+            }));
+            navigate('/canvas', { state: { autoImport: true } });
+        };
+        reader.readAsDataURL(file);
+    };
+
     return (
         <div className="home-content">
+              <input
+                ref={importInputRef}
+                type="file"
+                accept="image/*"
+                style={{ display: 'none' }}
+                onChange={handleFileSelected}
+            />
+
             <div className="main-poster">
                 <div className="home-bg-line">
                     <img src={BgHomeLine} alt="фоновая линия" />
@@ -27,7 +62,7 @@ const Home = () => {
                     <p>преврати рисунок в мелодию</p>
                 </div>
                 {/* <button>НАЧАТЬ РИСОВАТЬ</button> */}
-                <Button variant="accent">
+                <Button variant="accent" onClick={() => navigate('/canvas')}>
                  НАЧАТЬ РИСОВАТЬ
                 </Button>
             </div>
@@ -54,14 +89,16 @@ const Home = () => {
                         <img src={PhotoAfter} className="photo-block" alt="Photo After" />   
                     </div>
                 </div>
-                <Button variant="accent">ИМПОРТИРОВАТЬ ИЗОБРАЖЕНИЕ</Button>
+                <Button variant="accent" onClick={handleImportClick}>
+                    ИМПОРТИРОВАТЬ ИЗОБРАЖЕНИЕ</Button>
             </div>
 
             <StepsSection />
 
             <div className="last-slogan-block">
                 <h1>ГОТОВ ПРЕВРАТИТЬ ХОЛСТ В МУЗЫКУ?</h1>
-                <Button variant="accent">НАЧАТЬ ТВОРИТЬ</Button>
+                <Button variant="accent" onClick={() => navigate('/canvas')}>
+                    НАЧАТЬ ТВОРИТЬ</Button>
             </div>
         </div>
     );

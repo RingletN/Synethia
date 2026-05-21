@@ -217,10 +217,10 @@
     height: 36px;
 } */
 
-.pagination-chevron--disabled {
+/* .pagination-chevron--disabled {
     opacity: 0.3;
     cursor: default !important;
 }
 .pagination-chevron--disabled:hover {
     transform: none !important;
-}
+} */

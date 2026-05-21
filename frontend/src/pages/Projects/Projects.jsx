@@ -255,17 +255,13 @@ const Projects = () => {
                 )}
             </div>
 
-            {/* ── Пагинация: шевроны скрыты когда некуда листать ── */}
+            {/* ── Пагинация: шевроны всегда видны, disabled когда некуда листать ── */}
             {!isLoading && !error && totalPages > 1 && (
                 <div className="projects-pagination">
-                    {canGoPrev && (
-                        <img
-                            src={LeftChevron}
-                            alt="Назад"
-                            className="icon pagination-chevron"
-                            onClick={() => setPage(p => p - 1)}
-                        />
-                    )}
+                    <div className={`icon ${canGoPrev ? '' : ' disabled'}`}
+                        onClick={canGoPrev ? () => setPage(p => p - 1) : undefined}>
+                        <img src={LeftChevron} alt="Назад" />
+                    </div>
 
                     <div className="pagination-badge">
                         <span className="pagination-current">{safePage}</span>
@@ -273,14 +269,11 @@ const Projects = () => {
                         <span className="pagination-total">{totalPages}</span>
                     </div>
 
-                    {canGoNext && (
-                        <img
-                            src={RightChevron}
-                            alt="Вперёд"
-                            className="icon pagination-chevron"
-                            onClick={() => setPage(p => p + 1)}
-                        />
-                    )}
+                    <div className={`icon ${canGoNext ? '' : ' disabled'}`}
+                        onClick={canGoNext ? () => setPage(p => p + 1) : undefined}>
+                        <img src={RightChevron} alt="Вперёд" />
+                    </div>
+
                 </div>
             )}
         </div>
