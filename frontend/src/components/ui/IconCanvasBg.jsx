@@ -1,10 +1,6 @@
-import React from 'react';
+import React from "react";
 
-const IconCanvasBg = ({ 
-  color = "#86D0FF", 
-  size = 60, 
-  className = "" 
-}) => {
+const IconCanvasBg = ({ color = "#86D0FF", size = 60, className = "" }) => {
   return (
     <svg
       width={size}

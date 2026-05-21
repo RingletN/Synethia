@@ -1,127 +1,145 @@
 /* ProjectCard.css */
-@import '../../index.css';
+@import "../../index.css";
 
 /* ══════════════════════════════════════════════════════════
    ОБЩАЯ КАРТОЧКА
    ══════════════════════════════════════════════════════════ */
 .project-card {
-    position: relative;
-    background: rgba(var(--color-dark-rgb), 0.45);
-    border-radius: 24px;
-    padding: 32px;
-    display: flex;
-    flex-direction: column;
-    gap: 22px;
-    cursor: pointer;
-    overflow: hidden;
-    transition: transform 0.18s ease, box-shadow 0.18s ease;
-    min-width: 0;
+  position: relative;
+  background: rgba(var(--color-dark-rgb), 0.45);
+  border-radius: 24px;
+  padding: 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+  cursor: pointer;
+  overflow: hidden;
+  transition:
+    transform 0.18s ease,
+    box-shadow 0.18s ease;
+  min-width: 0;
 }
 
 /* Градиентная рамка — как у SearchPanel */
 .project-card::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    border-radius: 24px;
-    padding: 2px;
-    background: linear-gradient(135deg, var(--color-cyan), var(--color-violet), var(--color-pink));
-    mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-    mask-composite: exclude;
-    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-    -webkit-mask-composite: xor;
-    pointer-events: none;
-    z-index: 1;
-    opacity: 0.65;
-    transition: opacity 0.18s ease;
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 24px;
+  padding: 2px;
+  background: linear-gradient(
+    135deg,
+    var(--color-cyan),
+    var(--color-violet),
+    var(--color-pink)
+  );
+  mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  mask-composite: exclude;
+  -webkit-mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  pointer-events: none;
+  z-index: 1;
+  opacity: 0.65;
+  transition: opacity 0.18s ease;
 }
 
-.project-card:hover { transform: translateY(-5px); box-shadow: 0 14px 48px rgba(77,77,255,0.28); }
-.project-card:hover::before { opacity: 1; }
+.project-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 14px 48px rgba(77, 77, 255, 0.28);
+}
+.project-card:hover::before {
+  opacity: 1;
+}
 
 /* ══════════════════════════════════════════════════════════
    КАРТОЧКА «СОЗДАТЬ»
    ══════════════════════════════════════════════════════════ */
 .project-card--create {
-    align-items: center;
-    justify-content: center;
-    min-height: 420px;
+  align-items: center;
+  justify-content: center;
+  min-height: 420px;
 }
 .project-card--create::before {
-    background: linear-gradient(135deg, var(--color-cyan), var(--color-violet));
+  background: linear-gradient(135deg, var(--color-cyan), var(--color-violet));
 }
 .project-card-create-inner {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 20px;
-    user-select: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+  user-select: none;
 }
 /* Размер иконки плюса берём из SVG — не переопределяем */
 .project-card-plus {
-    opacity: 0.85;
-    transition: transform 0.25s ease, opacity 0.2s ease;
+  opacity: 0.85;
+  transition:
+    transform 0.25s ease,
+    opacity 0.2s ease;
 }
 .project-card--create:hover .project-card-plus {
-    transform: scale(1.12) rotate(90deg);
-    opacity: 1;
+  transform: scale(1.12) rotate(90deg);
+  opacity: 1;
 }
 .project-card-create-label {
-    color: var(--color-bright);
-    font-family: var(--font-montserrat);
-    font-weight: var(--font-weight-bold);
-    font-size: 40px;
-    text-align: center;
+  color: var(--color-bright);
+  font-family: var(--font-montserrat);
+  font-weight: var(--font-weight-bold);
+  font-size: 40px;
+  text-align: center;
 }
 
 /* ══════════════════════════════════════════════════════════
    НАЗВАНИЕ — Montserrat Bold 40px
    ══════════════════════════════════════════════════════════ */
 .project-card-title {
-    color: var(--color-bright);
-    font-family: var(--font-montserrat);
-    font-weight: var(--font-weight-bold);
-    font-size: 40px;
-    line-height: 1.15;
-    margin: 0;
-    letter-spacing: normal;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+  color: var(--color-bright);
+  font-family: var(--font-montserrat);
+  font-weight: var(--font-weight-bold);
+  font-size: 40px;
+  line-height: 1.15;
+  margin: 0;
+  letter-spacing: normal;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* ══════════════════════════════════════════════════════════
    БЛОК ИКОНОК — высота 71px, белый фон 20%, контент по центру
    ══════════════════════════════════════════════════════════ */
 .project-card-actions {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 20px;
-    height: 71px;
-    background: rgba(255, 255, 255, 0.20);
-    border-radius: 40px;
-    /* Иконки НЕ масштабируем — размеры берутся из SVG */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  height: 71px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 40px;
+  /* Иконки НЕ масштабируем — размеры берутся из SVG */
 }
 
 /* ══════════════════════════════════════════════════════════
    ПРЕВЬЮ ХОЛСТА — position:relative, чтобы плеер лежал абсолютно
    ══════════════════════════════════════════════════════════ */
 .project-card-preview {
-    border-radius: 40px;
-    overflow: hidden;
-    flex-shrink: 0;
-    aspect-ratio: 525 / 371;
-    position: relative;
-    display: flex;
-    align-items: stretch;
+  border-radius: 40px;
+  overflow: hidden;
+  flex-shrink: 0;
+  aspect-ratio: 525 / 371;
+  position: relative;
+  display: flex;
+  align-items: stretch;
 }
 
 .project-card-preview-canvas {
-    width: 100%;
-    height: 100%;
-    display: block;
-    border-radius: 14px;
+  width: 100%;
+  height: 100%;
+  display: block;
+  border-radius: 14px;
 }
 
 /* ══════════════════════════════════════════════════════════
@@ -129,95 +147,99 @@
    Высота 71px, фон #0B0B1F, контент по центру
    ══════════════════════════════════════════════════════════ */
 .project-card-player {
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    height: 71px;
-    display: flex;
-    align-items: center;
-    background: rgba(11, 11, 31, 0.4);
-    border-radius: 40px;
-    padding: 5px 32px;
-    margin: 14px;
-    box-sizing: border-box;
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 71px;
+  display: flex;
+  align-items: center;
+  background: rgba(11, 11, 31, 0.4);
+  border-radius: 40px;
+  padding: 5px 32px;
+  margin: 14px;
+  box-sizing: border-box;
 }
 
 .mini-player {
-    display: flex;
-    align-items: center;
-    gap: 14px;
-    width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
 }
 
 /* Иконки play/pause — НЕ задаём размер, берётся из SVG */
 .mini-player-btn {
-    flex-shrink: 0;
+  flex-shrink: 0;
 }
 
 .mini-player-track {
-    flex: 1;
-    height: 4px;
-    background: rgba(255, 255, 255, 0.12);
-    border-radius: 4px;
-    position: relative;
-    cursor: pointer;
+  flex: 1;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 4px;
+  position: relative;
+  cursor: pointer;
 }
 
 .mini-player-fill {
-    position: absolute;
-    left: 0;
-    top: 0;
-    height: 100%;
-    background: linear-gradient(90deg, #00ffd1, #9900ff);
-    border-radius: 4px;
-    pointer-events: none;
+  position: absolute;
+  left: 0;
+  top: 0;
+  height: 100%;
+  background: linear-gradient(90deg, #00ffd1, #9900ff);
+  border-radius: 4px;
+  pointer-events: none;
 }
 
 .mini-player-thumb {
-    position: absolute;
-    top: 50%;
-    transform: translate(-50%, -50%);
-    width: 18px;
-    height: 18px;
-    border-radius: 50%;
-    background: var(--color-bright);
-    box-shadow: 0 0 6px rgba(0, 255, 209, 0.6);
-    pointer-events: none;
+  position: absolute;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--color-bright);
+  box-shadow: 0 0 6px rgba(0, 255, 209, 0.6);
+  pointer-events: none;
 }
 
 /* Время — SemiBold 28px */
 .mini-player-time {
-    color: var(--color-bright);
-    font-family: var(--font-montserrat);
-    font-weight: var(--font-weight-semibold);
-    font-size: 28px;
-    flex-shrink: 0;
-    min-width: 72px;
-    text-align: right;
-    line-height: 1;
+  color: var(--color-bright);
+  font-family: var(--font-montserrat);
+  font-weight: var(--font-weight-semibold);
+  font-size: 28px;
+  flex-shrink: 0;
+  min-width: 72px;
+  text-align: right;
+  line-height: 1;
 }
 
 /* ══════════════════════════════════════════════════════════
    ДАТЫ — SemiBold 33px
    ══════════════════════════════════════════════════════════ */
 .project-card-dates {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-    margin-top: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: auto;
 }
 .project-card-date-row {
-    display: flex;
-    justify-content: space-between;
-    gap: 10px;
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
 }
 .project-card-date-label,
 .project-card-date-value {
-    font-family: var(--font-montserrat);
-    font-weight: var(--font-weight-semibold);
-    font-size: 32px;
-    white-space: nowrap;
+  font-family: var(--font-montserrat);
+  font-weight: var(--font-weight-semibold);
+  font-size: 32px;
+  white-space: nowrap;
 }
-.project-card-date-label { color: var(--color-pale); }
-.project-card-date-value { color: var(--color-bright); }
+.project-card-date-label {
+  color: var(--color-pale);
+}
+.project-card-date-value {
+  color: var(--color-bright);
+}

@@ -1,189 +1,198 @@
-@import '../../index.css';
+@import "../../index.css";
 
-.canvas-content{
-    display: flex;
-    flex-direction: column;
-    gap: 30px;
-    margin: 100px 0;
+.canvas-content {
+  display: flex;
+  flex-direction: column;
+  gap: 30px;
+  margin: 100px 0;
 }
 
 .canvas-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start; /* выравнивание по верху, т.к. текст может быть многострочным */
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start; /* выравнивание по верху, т.к. текст может быть многострочным */
 }
 
 .canvas-header-icons {
-    display: flex;
-    gap: 22px;
-    align-items: center;
-    flex-shrink: 0;    /* ← иконки не сжимаются */
-    flex-wrap: nowrap; /* ← иконки не переносятся */
+  display: flex;
+  gap: 22px;
+  align-items: center;
+  flex-shrink: 0; /* ← иконки не сжимаются */
+  flex-wrap: nowrap; /* ← иконки не переносятся */
 }
 
 .canvas-header-text {
-    width: 749px;
-    flex-shrink: 0;
+  width: 749px;
+  flex-shrink: 0;
 }
 
 .project-title-input {
-    background: transparent;
-    border: none;
-    outline: none;
-    font-family: var(--font-montserrat);
-    color: var(--color-bright);
-    font-weight: var(--font-weight-semibold);
-    font-size: var(--font-size-h2);
-    margin: 0;
-    width: 100%;
-    white-space: pre-wrap;      /* перенос текста */
-    word-break: break-word;
-    min-height: 1.2em;          /* минимум одна строка */
-    display: block;
+  background: transparent;
+  border: none;
+  outline: none;
+  font-family: var(--font-montserrat);
+  color: var(--color-bright);
+  font-weight: var(--font-weight-semibold);
+  font-size: var(--font-size-h2);
+  margin: 0;
+  width: 100%;
+  white-space: pre-wrap; /* перенос текста */
+  word-break: break-word;
+  min-height: 1.2em; /* минимум одна строка */
+  display: block;
 }
 
 /* placeholder для contenteditable */
 .project-title-input:empty::before {
-    content: attr(data-placeholder);
-    color: var(--color-pale);
-    pointer-events: none;
+  content: attr(data-placeholder);
+  color: var(--color-pale);
+  pointer-events: none;
 }
 
 .divider-project {
-    padding: 0;
-    margin-top: 6px;
-    margin-bottom: 0;
-    height: 3px;
-    width: 749px;               /* фиксированная ширина */
-    background: var(--color-pale);
-    border-radius: 2px;
+  padding: 0;
+  margin-top: 6px;
+  margin-bottom: 0;
+  height: 3px;
+  width: 749px; /* фиксированная ширина */
+  background: var(--color-pale);
+  border-radius: 2px;
 }
 
-.workspace-area{
-    display:flex;
-    flex-direction: column;
-    gap: 45px;
+.workspace-area {
+  display: flex;
+  flex-direction: column;
+  gap: 45px;
 }
 
-.canvas-block{
-    display: flex;
-    flex-direction: row;
-    align-items: stretch;
-    gap: 46px; /* CANVAS_BLOCK_GAP — менять только вместе с константой в JSX */
-    width: 100%;
-    overflow: hidden;
+.canvas-block {
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
+  gap: 46px; /* CANVAS_BLOCK_GAP — менять только вместе с константой в JSX */
+  width: 100%;
+  overflow: hidden;
 }
 
-.draw-block{
-    display: grid;
-    grid-template-rows: auto 1fr auto;
-    gap: 32px;
-    flex-shrink: 0;
-    min-width: 0;
-    overflow: visible;
-    width: fit-content;
+.draw-block {
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  gap: 32px;
+  flex-shrink: 0;
+  min-width: 0;
+  overflow: visible;
+  width: fit-content;
 }
 
-.canvas-panel{
-    position: relative;
-    overflow: hidden;
-    min-height: 600px;
-    min-width: 600px;
-    max-width: none;   
-    max-height: none;
-    box-sizing: border-box;
+.canvas-panel {
+  position: relative;
+  overflow: hidden;
+  min-height: 600px;
+  min-width: 600px;
+  max-width: none;
+  max-height: none;
+  box-sizing: border-box;
 }
 
-.settings-block{
-    display: flex;
-    flex-direction: column;
-    gap: 32px;
-    position: relative;
-    flex: 1;
-    min-width: 200px;
-    align-self: stretch;
-    box-sizing: border-box;
+.settings-block {
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+  position: relative;
+  flex: 1;
+  min-width: 200px;
+  align-self: stretch;
+  box-sizing: border-box;
 }
 
-.tools-panel{
-    display:flex;
-    align-items: center;
-    gap: 16px;
-    position: relative;
-    box-sizing: border-box;
-    overflow: hidden;
-    padding: 8px 22px;
-    background-color: rgba(190, 190, 190, 0.1);
-    border-radius: 40px 40px 0 0;
+.tools-panel {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  position: relative;
+  box-sizing: border-box;
+  overflow: hidden;
+  padding: 8px 22px;
+  background-color: rgba(190, 190, 190, 0.1);
+  border-radius: 40px 40px 0 0;
 }
 
-.idk-panel{
-    display:flex;
-    align-items: center;
-    position: relative;
-    height:100px;
-    box-sizing: border-box;
-    overflow: hidden;
-    background-color: rgba(190, 190, 190, 0.1);
-    border-radius: 0px 0px 40px 40px;
+.idk-panel {
+  display: flex;
+  align-items: center;
+  position: relative;
+  height: 100px;
+  box-sizing: border-box;
+  overflow: hidden;
+  background-color: rgba(190, 190, 190, 0.1);
+  border-radius: 0px 0px 40px 40px;
 }
 
-.music-player{
-    display:flex;
-    align-items: center;
-    justify-content: center;
-    /* margin-bottom: 16px; */
-    position: relative;
-    gap:17px;
-    padding:8px 23px ;
-    min-height: 75px;
+.music-player {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* margin-bottom: 16px; */
+  position: relative;
+  gap: 17px;
+  padding: 8px 23px;
+  min-height: 75px;
 }
 
 .tools-panel::before,
 .idk-panel::before,
 .canvas-panel::before,
 .settings-block::before,
-.music-player::before{
-    content: '';
-    position: absolute;
-    inset: 0;
-    padding:3px;
-    mask: 
-        linear-gradient(#fff 0 0) content-box, 
-        linear-gradient(#fff 0 0);
-    mask-composite: exclude;
-    -webkit-mask: 
-        linear-gradient(#fff 0 0) content-box, 
-        linear-gradient(#fff 0 0);
-    -webkit-mask-composite: xor;
-    pointer-events: none;    
-    z-index: 1;
+.music-player::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  padding: 3px;
+  mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  mask-composite: exclude;
+  -webkit-mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  pointer-events: none;
+  z-index: 1;
 }
 
-.tools-panel::before{
-    border-radius: 40px 40px 0 0;
-    background: linear-gradient(180deg, var(--color-cyan), var(--color-violet));
+.tools-panel::before {
+  border-radius: 40px 40px 0 0;
+  background: linear-gradient(180deg, var(--color-cyan), var(--color-violet));
 }
 
-.idk-panel::before{
-    border-radius: 0px 0px 40px 40px;
-    background: linear-gradient(180deg, var(--color-violet), var(--color-cyan));
+.idk-panel::before {
+  border-radius: 0px 0px 40px 40px;
+  background: linear-gradient(180deg, var(--color-violet), var(--color-cyan));
 }
 
-.canvas-panel::before{
-    background: var(--color-violet);
+.canvas-panel::before {
+  background: var(--color-violet);
 }
 
-.settings-block::before{
-    border-radius: 40px;
-    background: linear-gradient(185deg, var(--color-pink), var(--color-violet), var(--color-cyan));
+.settings-block::before {
+  border-radius: 40px;
+  background: linear-gradient(
+    185deg,
+    var(--color-pink),
+    var(--color-violet),
+    var(--color-cyan)
+  );
 }
 
-.music-player::before{
-    border-radius: 40px;
-    background: linear-gradient(95deg, var(--color-cyan), var(--color-violet), var(--color-pink));
+.music-player::before {
+  border-radius: 40px;
+  background: linear-gradient(
+    95deg,
+    var(--color-cyan),
+    var(--color-violet),
+    var(--color-pink)
+  );
 }
-
 
 /* .color-picker-popup {
     position: absolute;
@@ -235,189 +244,192 @@
 } */
 
 .resize-handle-horizontal {
-    position: absolute;
-    top: 0;
-    right: -4px;
-    width: 8px;
-    height: 100%;
-    cursor: ew-resize;
-    z-index: 10;
+  position: absolute;
+  top: 0;
+  right: -4px;
+  width: 8px;
+  height: 100%;
+  cursor: ew-resize;
+  z-index: 10;
 }
 
 .resize-handle-vertical {
-    position: absolute;
-    bottom: -4px;
-    left: 0;
-    width: 100%;
-    height: 8px;
-    cursor: ns-resize;
-    z-index: 10;
+  position: absolute;
+  bottom: -4px;
+  left: 0;
+  width: 100%;
+  height: 8px;
+  cursor: ns-resize;
+  z-index: 10;
 }
 
 .resize-handle-corner {
-    position: absolute;
-    bottom: 0;
-    right: 0;
-    width: 16px;
-    height: 16px;
-    cursor: nwse-resize;
-    z-index: 11;
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 16px;
+  height: 16px;
+  cursor: nwse-resize;
+  z-index: 11;
 }
 
 .import-overlay {
-    position: absolute;
-    inset: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: rgba(0, 0, 0, 0.45);
-    z-index: 20;
-    border-radius: inherit;
-    backdrop-filter: blur(4px);
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.45);
+  z-index: 20;
+  border-radius: inherit;
+  backdrop-filter: blur(4px);
 }
 
 /* Если хочешь чуть более атмосферный вариант */
 .import-overlay::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: radial-gradient(circle at center, transparent 40%, rgba(0,0,0,0.3) 100%);
-    pointer-events: none;
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    circle at center,
+    transparent 40%,
+    rgba(0, 0, 0, 0.3) 100%
+  );
+  pointer-events: none;
 }
 
 /* Стили элементов плеера */
 .music-player .progress-bar-container {
-    flex: 1;
-    height: 4px;
-    background: rgba(255, 255, 255, 0.12);
-    border-radius: 4px;
-    cursor: pointer;
-    position: relative;
-    min-width: 60px;
+  flex: 1;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 4px;
+  cursor: pointer;
+  position: relative;
+  min-width: 60px;
 }
 
 .music-player .progress-fill {
-    position: absolute;
-    left: 0;
-    top: 0;
-    height: 100%;
-    background: linear-gradient(90deg, #00ffd1, #9900ff);
-    border-radius: 4px;
-    transition: width 0.05s linear;
+  position: absolute;
+  left: 0;
+  top: 0;
+  height: 100%;
+  background: linear-gradient(90deg, #00ffd1, #9900ff);
+  border-radius: 4px;
+  transition: width 0.05s linear;
 }
 
 .music-player .progress-thumb {
-    position: absolute;
-    top: 50%;
-    width: 18px;
-    height: 18px;
-    border-radius: 50%;
-    background: var(--color-bright);
-    box-shadow: 0 0 6px rgba(0, 255, 209, 0.6);
-    pointer-events: none;
-    transform: translate(-50%, -50%);
+  position: absolute;
+  top: 50%;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--color-bright);
+  box-shadow: 0 0 6px rgba(0, 255, 209, 0.6);
+  pointer-events: none;
+  transform: translate(-50%, -50%);
 }
 
 .music-player .time-text {
-    font-variant-numeric: tabular-nums;
+  font-variant-numeric: tabular-nums;
 }
 
 .music-player .volume-control {
-    display: flex;
-    align-items: center;
-    gap: 17px;
+  display: flex;
+  align-items: center;
+  gap: 17px;
 }
 
 .music-player .volume-slider-track {
-    width: 117px;
-    height: 4px;
-    background: rgba(255, 255, 255, 0.12);
-    border-radius: 4px;
-    cursor: pointer;
-    position: relative;
-    flex-shrink: 0;
+  width: 117px;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 4px;
+  cursor: pointer;
+  position: relative;
+  flex-shrink: 0;
 }
 
 .music-player .volume-slider-fill {
-    position: absolute;
-    left: 0;
-    top: 0;
-    height: 100%;
-    background: linear-gradient(90deg, #00ffd1, #9900ff);
-    border-radius: 4px;
-    pointer-events: none;
+  position: absolute;
+  left: 0;
+  top: 0;
+  height: 100%;
+  background: linear-gradient(90deg, #00ffd1, #9900ff);
+  border-radius: 4px;
+  pointer-events: none;
 }
 
 .music-player .volume-slider-thumb {
-    position: absolute;
-    top: 50%;
-    width: 18px;
-    height: 18px;
-    border-radius: 50%;
-    background: var(--color-bright);
-    box-shadow: 0 0 6px rgba(0, 255, 209, 0.6);
-    pointer-events: none;
-    transform: translate(-50%, -50%);
+  position: absolute;
+  top: 50%;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--color-bright);
+  box-shadow: 0 0 6px rgba(0, 255, 209, 0.6);
+  pointer-events: none;
+  transform: translate(-50%, -50%);
 }
 
 /* Индикатор активной ноты */
 .active-note-indicator {
-    position: absolute;
-    bottom: 12px;
-    right: 12px;
-    background: rgba(0, 0, 0, 0.55);
-    backdrop-filter: blur(6px);
-    border-radius: 10px;
-    padding: 6px 12px;
-    color: #fff;
-    font-size: 13px;
-    font-family: monospace;
-    pointer-events: none;
-    z-index: 20;
-    display: flex;
-    gap: 10px;
-    align-items: center;
+  position: absolute;
+  bottom: 12px;
+  right: 12px;
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(6px);
+  border-radius: 10px;
+  padding: 6px 12px;
+  color: #fff;
+  font-size: 13px;
+  font-family: monospace;
+  pointer-events: none;
+  z-index: 20;
+  display: flex;
+  gap: 10px;
+  align-items: center;
 }
 
 .active-note-indicator .note-name {
-    font-size: 18px;
-    font-weight: 700;
+  font-size: 18px;
+  font-weight: 700;
 }
 
 .active-note-indicator .instrument {
-    opacity: 0.7;
+  opacity: 0.7;
 }
 
 .active-note-indicator .frequency {
-    opacity: 0.5;
+  opacity: 0.5;
 }
 
-
 .canvas-bg-line {
-    position: absolute;
-    left: 50%;
-    top: 65px;
-    transform: translateX(-50%);
-    width: 100vw;
-    pointer-events: none;
-    z-index: 0;
-    opacity: 0;
-    animation: fadeInBg 1.2s ease-in-out forwards;
+  position: absolute;
+  left: 50%;
+  top: 65px;
+  transform: translateX(-50%);
+  width: 100vw;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0;
+  animation: fadeInBg 1.2s ease-in-out forwards;
 }
 
 @keyframes fadeInBg {
-    0% {
-        opacity: 0;
-    }
-    100% {
-        opacity: 1;
-    }
+  0% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
 }
 
 .canvas-bg-line img {
-    width: 100%;
-    height: auto;
-    max-height:150vh;
-    max-width: none;
-    display: block;
+  width: 100%;
+  height: auto;
+  max-height: 150vh;
+  max-width: none;
+  display: block;
 }

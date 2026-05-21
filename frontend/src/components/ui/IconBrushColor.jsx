@@ -1,10 +1,6 @@
-import React from 'react';
+import React from "react";
 
-const IconBrushColor = ({ 
-  color = "#00ffd1", 
-  size = 60, 
-  className = "" 
-}) => {
+const IconBrushColor = ({ color = "#00ffd1", size = 60, className = "" }) => {
   return (
     <svg
       width={size}
@@ -15,12 +11,12 @@ const IconBrushColor = ({
       className={className}
     >
       {/* Круглая иконка */}
-      <circle 
-        cx="30" 
-        cy="30" 
-        r="26" 
+      <circle
+        cx="30"
+        cy="30"
+        r="26"
         fill={color}
-        stroke="#ECECEC" 
+        stroke="#ECECEC"
         strokeWidth="3"
       />
     </svg>

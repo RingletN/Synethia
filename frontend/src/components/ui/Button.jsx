@@ -1,13 +1,13 @@
-import React from 'react';
-import './Button.css';
+import React from "react";
+import "./Button.css";
 
-const Button = ({ 
-  children, 
-  variant = 'primary',   // 'primary', 'negative' или 'accent'
-  onClick, 
+const Button = ({
+  children,
+  variant = "primary", // 'primary', 'negative' или 'accent'
+  onClick,
   disabled = false,
-  className = '',
-  ...rest 
+  className = "",
+  ...rest
 }) => {
   const baseClass = `button-base button-${variant}`;
   return (
@@ -17,7 +17,7 @@ const Button = ({
       disabled={disabled}
       {...rest}
     >
-      <span style={{ position: 'relative', zIndex: 2 }}>{children}</span>
+      <span style={{ position: "relative", zIndex: 2 }}>{children}</span>
     </button>
   );
 };

@@ -1,10 +1,10 @@
 // StepsSection.jsx
-import React from 'react';
-import Step1 from '../../assets/home/step1.svg';
-import Step2 from '../../assets/home/step2.svg';
-import Step3 from '../../assets/home/step3.svg';
-import Arrow2 from '../../assets/home/arrow2.svg';
-import './StepsSection.css';
+import React from "react";
+import Step1 from "../../assets/home/step1.svg";
+import Step2 from "../../assets/home/step2.svg";
+import Step3 from "../../assets/home/step3.svg";
+import Arrow2 from "../../assets/home/arrow2.svg";
+import "./StepsSection.css";
 
 const StepsSection = () => {
   return (

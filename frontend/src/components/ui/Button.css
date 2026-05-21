@@ -1,4 +1,4 @@
-@import '../../index.css';
+@import "../../index.css";
 
 .button-base {
   position: relative;
@@ -11,10 +11,12 @@
   color: var(--color-bright);
   border: none;
   border-radius: 40px;
-  padding: 18px 32px; 
+  padding: 18px 32px;
   cursor: pointer;
-  transition: transform 0.2s, box-shadow 0.2s;
-  background:  rgba(8, 8, 12, 0.4);
+  transition:
+    transform 0.2s,
+    box-shadow 0.2s;
+  background: rgba(8, 8, 12, 0.4);
 }
 
 .button-base:hover {
@@ -22,10 +24,10 @@
 }
 
 .button-base:disabled {
-    opacity: 0.9;
-    color: var(--color-pale);
-    transform: none;
-    pointer-events: none;
+  opacity: 0.9;
+  color: var(--color-pale);
+  transform: none;
+  pointer-events: none;
 }
 
 .button-base:disabled::before {
@@ -33,24 +35,22 @@
 }
 
 .button-base::before {
-  content: '';
+  content: "";
   position: absolute;
   inset: 0;
   border-radius: inherit;
   padding: 3px;
-    background: conic-gradient(
+  background: conic-gradient(
     from 90deg at 50% 50%,
     var(--gradient-start) 0deg,
-    /* var(--gradient-mid)   90deg, */
-    var(--gradient-mid)   30deg,  
-     var(--gradient-mid)  150deg,
+    /* var(--gradient-mid)   90deg, */ var(--gradient-mid) 30deg,
+    var(--gradient-mid) 150deg,
     var(--gradient-start) 180deg,
-    /* var(--gradient-mid)   270deg, */
-    var(--gradient-mid)  210deg,
-    var(--gradient-mid)  330deg,
+    /* var(--gradient-mid)   270deg, */ var(--gradient-mid) 210deg,
+    var(--gradient-mid) 330deg,
     var(--gradient-start) 360deg
   );
-  mask: 
+  mask:
     linear-gradient(#fff 0 0) content-box,
     linear-gradient(#fff 0 0);
   mask-composite: exclude;
@@ -62,23 +62,23 @@
 }
 
 .button-primary {
-  --gradient-start:var(--color-cyan);
-  --gradient-mid:var(--color-violet);
+  --gradient-start: var(--color-cyan);
+  --gradient-mid: var(--color-violet);
   box-shadow: 8px 7px 34.2px 2px rgba(0, 242, 255, 0.2);
 }
 
-.button-primary:hover{
+.button-primary:hover {
   box-shadow: 8px 7px 34.2px 20px rgba(0, 242, 255, 0.2);
 }
 
 .button-negative {
   --gradient-start: var(--color-pink);
   --gradient-mid: var(--color-violet);
-  box-shadow: 8px 7px 34.2px 2px  rgba(255, 0, 255, 0.2);
+  box-shadow: 8px 7px 34.2px 2px rgba(255, 0, 255, 0.2);
 }
 
-.button-negative:hover{
-  box-shadow: 8px 7px 34.2px 20px  rgba(255, 0, 255, 0.2);
+.button-negative:hover {
+  box-shadow: 8px 7px 34.2px 20px rgba(255, 0, 255, 0.2);
 }
 
 .button-accent {
@@ -87,7 +87,10 @@
     rgba(0, 242, 255, 0.8) 0%,
     rgba(255, 0, 255, 0.8) 100%
   );
-  transition: transform 0.2s, box-shadow 0.2s, background 0.1s;
+  transition:
+    transform 0.2s,
+    box-shadow 0.2s,
+    background 0.1s;
 }
 
 .button-accent::before {
@@ -100,15 +103,19 @@
 
 .button-accent {
   background: linear-gradient
-  (99deg, rgba(0,242,255,0.7) 0%, rgba(255,0,255,0.7) 100%);
+    (99deg, rgba(0, 242, 255, 0.7) 0%, rgba(255, 0, 255, 0.7) 100%);
 }
 
 .button-accent::after {
-  content: '';
+  content: "";
   position: absolute;
   inset: 0;
   border-radius: inherit;
-  background: linear-gradient(99deg, rgba(255,0,255,0.8) 0%, rgba(0,242,255,0.8) 100%);
+  background: linear-gradient(
+    99deg,
+    rgba(255, 0, 255, 0.8) 0%,
+    rgba(0, 242, 255, 0.8) 100%
+  );
   opacity: 0;
   transition: opacity 0.3s;
   z-index: 1;

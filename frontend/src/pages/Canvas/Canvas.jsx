@@ -201,7 +201,7 @@ const Canvas = () => {
     (title, description, variant = "default") => {
       openModal({ title, description, variant, primaryText: "ОК" });
     },
-    [openModal]
+    [openModal],
   );
 
   // ← теперь передаём hasUnsavedChanges вместо canUndo
@@ -277,7 +277,7 @@ const Canvas = () => {
           melodyEvents,
           totalDuration,
           segments: engineRef.current?.getAllSegments?.() ?? [],
-        })
+        }),
       );
       navigate("/auth?redirect=/canvas&pendingSave=1");
       return;
@@ -319,7 +319,7 @@ const Canvas = () => {
       brushColorRef.current = newColor;
       if (engineRef.current) engineRef.current.currentColor = newColor;
     },
-    [engineRef]
+    [engineRef],
   );
 
   const handleImportPhoto = useCallback(
@@ -339,7 +339,7 @@ const Canvas = () => {
         if (segments.length === 0) {
           showModal(
             "Контуры не найдены",
-            "На изображении не удалось обнаружить достаточно контуров.\n\nПопробуйте другое фото"
+            "На изображении не удалось обнаружить достаточно контуров.\n\nПопробуйте другое фото",
           );
           return;
         }
@@ -349,56 +349,56 @@ const Canvas = () => {
         showModal(
           "Ошибка обработки фото",
           "Не удалось обработать изображение.",
-          "error"
+          "error",
         );
       } finally {
         setIsImporting(false);
       }
     },
-    [engineRef, showModal]
+    [engineRef, showModal],
   );
 
-//   useEffect(() => {
-//     if (!location.state?.autoImport) return;
+  //   useEffect(() => {
+  //     if (!location.state?.autoImport) return;
 
-//     const raw = sessionStorage.getItem("pendingImportFile");
-//     if (!raw) return;
-//     sessionStorage.removeItem("pendingImportFile");
+  //     const raw = sessionStorage.getItem("pendingImportFile");
+  //     if (!raw) return;
+  //     sessionStorage.removeItem("pendingImportFile");
 
-//     console.log('[autoImport] state detected, waiting for engine...');
+  //     console.log('[autoImport] state detected, waiting for engine...');
 
-//     // Даём движку время инициализироваться — ждём дольше
-//     const interval = setInterval(() => {
-//         console.log('[autoImport] checking engine:', engineRef.current);
-//         if (!engineRef.current) return;
-//         clearInterval(interval);
+  //     // Даём движку время инициализироваться — ждём дольше
+  //     const interval = setInterval(() => {
+  //         console.log('[autoImport] checking engine:', engineRef.current);
+  //         if (!engineRef.current) return;
+  //         clearInterval(interval);
 
-//         console.log('[autoImport] engine ready, starting import');
-//         try {
-//             const { name, type, data } = JSON.parse(raw);
-//             fetch(data)
-//                 .then((r) => r.blob())
-//                 .then((blob) => {
-//                     const file = new File([blob], name, { type });
-//                     console.log('[autoImport] calling handleImportPhoto with file:', file.name);
-//                     handleImportPhoto(file);
-//                 });
-//         } catch (e) {
-//             console.error("Ошибка автоимпорта:", e);
-//         }
-//     }, 200); // увеличили до 200мс
+  //         console.log('[autoImport] engine ready, starting import');
+  //         try {
+  //             const { name, type, data } = JSON.parse(raw);
+  //             fetch(data)
+  //                 .then((r) => r.blob())
+  //                 .then((blob) => {
+  //                     const file = new File([blob], name, { type });
+  //                     console.log('[autoImport] calling handleImportPhoto with file:', file.name);
+  //                     handleImportPhoto(file);
+  //                 });
+  //         } catch (e) {
+  //             console.error("Ошибка автоимпорта:", e);
+  //         }
+  //     }, 200); // увеличили до 200мс
 
-//     // Таймаут на случай если движок так и не инициализируется
-//     const timeout = setTimeout(() => {
-//         clearInterval(interval);
-//         console.error('[autoImport] timeout — engine never initialized');
-//     }, 10000);
+  //     // Таймаут на случай если движок так и не инициализируется
+  //     const timeout = setTimeout(() => {
+  //         clearInterval(interval);
+  //         console.error('[autoImport] timeout — engine never initialized');
+  //     }, 10000);
 
-//     return () => {
-//         clearInterval(interval);
-//         clearTimeout(timeout);
-//     };
-// }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  //     return () => {
+  //         clearInterval(interval);
+  //         clearTimeout(timeout);
+  //     };
+  // }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const {
     isPlaying,
@@ -414,7 +414,7 @@ const Canvas = () => {
     melodyEvents,
     totalDuration,
     (note) => setActiveNote(note),
-    effects
+    effects,
   );
 
   const handleStrokeEnd = useCallback(() => {
@@ -491,13 +491,13 @@ const Canvas = () => {
         showModal(
           "Ошибка",
           `Не удалось загрузить проект: ${err.message}`,
-          "error"
+          "error",
         );
       } finally {
         setIsLoadingProject(false);
       }
     },
-    [engineRef, saveToHistory, setProjectId, setCurrentTitle, showModal]
+    [engineRef, saveToHistory, setProjectId, setCurrentTitle, showModal],
   );
 
   useEffect(() => {
@@ -530,7 +530,7 @@ const Canvas = () => {
         showModal(
           "Нечего генерировать",
           "Нарисуйте что-нибудь на холсте или импортируйте изображение.",
-          "warning"
+          "warning",
         );
         return;
       }
@@ -539,14 +539,14 @@ const Canvas = () => {
       try {
         ({ events } = melodyEngine.buildNoteEvents(
           segments,
-          melodyParamsForGen
+          melodyParamsForGen,
         ));
       } catch (engineErr) {
         console.error("MelodyEngine error:", engineErr);
         showModal(
           "Ошибка генерации",
           "Не удалось обработать рисунок. Попробуйте ещё раз.",
-          "error"
+          "error",
         );
         return;
       }
@@ -555,7 +555,7 @@ const Canvas = () => {
         showModal(
           "Нечего генерировать",
           "Не удалось извлечь ноты из рисунка.",
-          "warning"
+          "warning",
         );
         return;
       }
@@ -582,7 +582,7 @@ const Canvas = () => {
     (e) => {
       setVolume(parseFloat(e.target.value));
     },
-    [setVolume]
+    [setVolume],
   );
 
   const progressRef = useRef(null);
@@ -596,41 +596,59 @@ const Canvas = () => {
       const rect = progressRef.current.getBoundingClientRect();
       const ratio = Math.max(
         0,
-        Math.min(1, (e.clientX - rect.left) / rect.width)
+        Math.min(1, (e.clientX - rect.left) / rect.width),
       );
       seek(ratio * totalDuration);
     },
-    [seek, totalDuration]
+    [seek, totalDuration],
   );
 
-  const handleProgressMouseDown = useCallback((e) => {
-    e.preventDefault();
-    isDraggingProgressRef.current = true;
-    if (!progressRef.current) return;
-    const rect = progressRef.current.getBoundingClientRect();
-    const ratio = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
-    seek(ratio * totalDuration);
-  }, [seek, totalDuration]);
+  const handleProgressMouseDown = useCallback(
+    (e) => {
+      e.preventDefault();
+      isDraggingProgressRef.current = true;
+      if (!progressRef.current) return;
+      const rect = progressRef.current.getBoundingClientRect();
+      const ratio = Math.max(
+        0,
+        Math.min(1, (e.clientX - rect.left) / rect.width),
+      );
+      seek(ratio * totalDuration);
+    },
+    [seek, totalDuration],
+  );
 
-  const handleVolumeMouseDown = useCallback((e) => {
-    e.preventDefault();
-    isDraggingVolumeRef.current = true;
-    if (!volumeTrackRef.current) return;
-    const rect = volumeTrackRef.current.getBoundingClientRect();
-    const ratio = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
-    setVolume(ratio);
-  }, [setVolume]);
+  const handleVolumeMouseDown = useCallback(
+    (e) => {
+      e.preventDefault();
+      isDraggingVolumeRef.current = true;
+      if (!volumeTrackRef.current) return;
+      const rect = volumeTrackRef.current.getBoundingClientRect();
+      const ratio = Math.max(
+        0,
+        Math.min(1, (e.clientX - rect.left) / rect.width),
+      );
+      setVolume(ratio);
+    },
+    [setVolume],
+  );
 
   useEffect(() => {
     const onMove = (e) => {
       if (isDraggingProgressRef.current && progressRef.current) {
         const rect = progressRef.current.getBoundingClientRect();
-        const ratio = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+        const ratio = Math.max(
+          0,
+          Math.min(1, (e.clientX - rect.left) / rect.width),
+        );
         seek(ratio * totalDuration);
       }
       if (isDraggingVolumeRef.current && volumeTrackRef.current) {
         const rect = volumeTrackRef.current.getBoundingClientRect();
-        const ratio = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+        const ratio = Math.max(
+          0,
+          Math.min(1, (e.clientX - rect.left) / rect.width),
+        );
         setVolume(ratio);
       }
     };
@@ -681,7 +699,7 @@ const Canvas = () => {
         exportToWAV(`melody_${new Date().toISOString().slice(0, 10)}.wav`);
       }
     },
-    [engineRef, bgColor, exportToWAV, showModal]
+    [engineRef, bgColor, exportToWAV, showModal],
   );
 
   const handleResizeMouseDown = useCallback(
@@ -694,7 +712,7 @@ const Canvas = () => {
         h: canvasPanelRef.current?.clientHeight ?? INITIAL_CANVAS_HEIGHT,
       };
     },
-    []
+    [],
   );
 
   useEffect(() => {
@@ -764,34 +782,41 @@ const Canvas = () => {
 
   const handleCanvasReady = useCallback(
     (canvases) => {
-        initEngine(canvases);
-        if (engineRef.current) {
-            engineRef.current.onStrokeEnd = () => {
-                saveToHistory(bgColorRef.current);
-                setHasUnsavedChanges(true);
-                engineRef.current.onStrokeEnd = handleStrokeEnd;
-            };
-        }
+      initEngine(canvases);
+      if (engineRef.current) {
+        engineRef.current.onStrokeEnd = () => {
+          saveToHistory(bgColorRef.current);
+          setHasUnsavedChanges(true);
+          engineRef.current.onStrokeEnd = handleStrokeEnd;
+        };
+      }
 
-        // Автоимпорт при переходе с главной страницы
-        const raw = sessionStorage.getItem("pendingImportFile");
-        if (raw && location.state?.autoImport) {
-            sessionStorage.removeItem("pendingImportFile");
-            try {
-                const { name, type, data } = JSON.parse(raw);
-                fetch(data)
-                    .then((r) => r.blob())
-                    .then((blob) => {
-                        const file = new File([blob], name, { type });
-                        handleImportPhoto(file);
-                    });
-            } catch (e) {
-                console.error("Ошибка автоимпорта:", e);
-            }
+      // Автоимпорт при переходе с главной страницы
+      const raw = sessionStorage.getItem("pendingImportFile");
+      if (raw && location.state?.autoImport) {
+        sessionStorage.removeItem("pendingImportFile");
+        try {
+          const { name, type, data } = JSON.parse(raw);
+          fetch(data)
+            .then((r) => r.blob())
+            .then((blob) => {
+              const file = new File([blob], name, { type });
+              handleImportPhoto(file);
+            });
+        } catch (e) {
+          console.error("Ошибка автоимпорта:", e);
         }
+      }
     },
-    [initEngine, saveToHistory, engineRef, handleStrokeEnd, handleImportPhoto, location.state]
-);
+    [
+      initEngine,
+      saveToHistory,
+      engineRef,
+      handleStrokeEnd,
+      handleImportPhoto,
+      location.state,
+    ],
+  );
 
   useEffect(() => {
     if (!pendingResizeRef.current || !engineRef.current) return;
@@ -811,7 +836,7 @@ const Canvas = () => {
         setHasUnsavedChanges(true); // ← смена фона тоже изменение
       }, 800);
     },
-    [saveToHistory]
+    [saveToHistory],
   );
 
   const syncLayout = useCallback(() => {
@@ -820,7 +845,7 @@ const Canvas = () => {
     if (!canvasEl || !container) return;
     const maxW = Math.max(
       CANVAS_MIN_SIZE,
-      container.offsetWidth - CANVAS_BLOCK_GAP - SETTINGS_MIN_WIDTH
+      container.offsetWidth - CANVAS_BLOCK_GAP - SETTINGS_MIN_WIDTH,
     );
     canvasEl.style.maxWidth = `${maxW}px`;
   }, []);
@@ -858,7 +883,7 @@ const Canvas = () => {
       showModal(
         "Ошибка",
         "Не удалось обновить избранное. Попробуйте ещё раз.",
-        "error"
+        "error",
       );
     }
   }, [projectId, showModal]);
@@ -881,7 +906,7 @@ const Canvas = () => {
             showModal(
               "Ошибка",
               "Не удалось удалить проект. Попробуйте ещё раз.",
-              "error"
+              "error",
             );
             return;
           }
@@ -1084,8 +1109,8 @@ const Canvas = () => {
                     volume === 0
                       ? VolumeNoIcon
                       : volume < 0.5
-                      ? VolumeLowIcon
-                      : VolumeHighIcon
+                        ? VolumeLowIcon
+                        : VolumeHighIcon
                   }
                   alt="Громкость"
                   className="volume-icon"
@@ -1097,7 +1122,10 @@ const Canvas = () => {
                 className="volume-slider-track"
                 onClick={(e) => {
                   const rect = e.currentTarget.getBoundingClientRect();
-                  const ratio = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+                  const ratio = Math.max(
+                    0,
+                    Math.min(1, (e.clientX - rect.left) / rect.width),
+                  );
                   handleVolumeChange({ target: { value: ratio } });
                 }}
                 onMouseDown={handleVolumeMouseDown}

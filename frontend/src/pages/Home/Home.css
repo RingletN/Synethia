@@ -1,188 +1,185 @@
-@import '../../index.css';
+@import "../../index.css";
 
 .home-content {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 180px;
-    margin-top: 100px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 180px;
+  margin-top: 100px;
 }
 
 .main-poster,
 .photo-convert-block {
-    display: flex;
-    flex-direction: column;
-    gap: 60px;
-    align-items: center;
-    position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 60px;
+  align-items: center;
+  position: relative;
 }
 
 .main-line {
-    width: 77.78vw;
+  width: 77.78vw;
 }
 
 .main-slogan,
 .photo-slogan,
 .description-block {
-    display: flex;
-    flex-direction: column;
-    gap: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
 }
 
 .main-slogan {
-    align-items: center;
+  align-items: center;
 }
 
 .photo-slogan-description {
-    display: flex;
-    gap: 34px;
+  display: flex;
+  gap: 34px;
 }
 
 .cyan-line {
-    width: 12px;
-    background-color: var(--color-cyan);
-    border-radius: 6px;
-    height: auto;
-    flex-shrink: 0;
+  width: 12px;
+  background-color: var(--color-cyan);
+  border-radius: 6px;
+  height: auto;
+  flex-shrink: 0;
 }
 
 .photo-slogan-description p {
-    display: flex;
-    align-items: center;
+  display: flex;
+  align-items: center;
 }
 
-.photo-before-after
- {
-    display: flex;
-    align-items: center;
-    gap: 38px;
+.photo-before-after {
+  display: flex;
+  align-items: center;
+  gap: 38px;
 }
 
 .box {
-    height: 332px;
-    width: 500px;
-    position: relative;
-    border-radius: 40px;
+  height: 332px;
+  width: 500px;
+  position: relative;
+  border-radius: 40px;
 }
 
 .box::before {
-    content: '';
-    position: absolute;
-    inset: -4px;
-    background: linear-gradient(66deg, var(--color-cyan), var(--color-pink));
-    border-radius: 44px;
-    z-index: 1;
-    filter: blur(1px);
+  content: "";
+  position: absolute;
+  inset: -4px;
+  background: linear-gradient(66deg, var(--color-cyan), var(--color-pink));
+  border-radius: 44px;
+  z-index: 1;
+  filter: blur(1px);
 }
 
 .box .photo-block {
-    position: relative;
-    z-index: 3;
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    border-radius: 40px;
-    display: block;
+  position: relative;
+  z-index: 3;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 40px;
+  display: block;
 }
 
 .last-slogan-block {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 43px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 43px;
 }
 
 .last-slogan-block h1 {
-    max-width: 620px;
-    text-align: center;
+  max-width: 620px;
+  text-align: center;
 }
 
 .home-bg-line,
 .home-bg-line2 {
-    position: absolute;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 99vw;
-    pointer-events: none;
-    z-index: 0;
-    opacity: 0;
-    animation: fadeInBg 1.2s ease-in-out forwards;
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 99vw;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0;
+  animation: fadeInBg 1.2s ease-in-out forwards;
 }
 
 @keyframes fadeInBg {
-    0% {
-        opacity: 0;
-    }
-    100% {
-        opacity: 1;
-    }
+  0% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
 }
 
 .home-bg-line {
-    top: 65px;
+  top: 65px;
 }
 
 .home-bg-line2 {
-    top: 10vw;
+  top: 10vw;
 }
 
 .home-bg-line img,
 .home-bg-line2 img {
-    width: 100%;
-    height: auto;
-    max-width: none;
-    display: block;
+  width: 100%;
+  height: auto;
+  max-width: none;
+  display: block;
 }
 
 p {
-    font-weight: var(--font-weight-semibold);
-    letter-spacing: 4%;
-    font-size: 30px;
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: 4%;
+  font-size: 30px;
 }
 
-
 @media (max-width: 1300px) {
-    p {
-        font-size: 21px;
-    }
+  p {
+    font-size: 21px;
+  }
 
-    .photo-before-after {
-        flex-direction: column;
-        gap: 40px;
-    }
+  .photo-before-after {
+    flex-direction: column;
+    gap: 40px;
+  }
 
-    .box {
-        width: 90vw;
-        max-width: 500px;
-        height: auto; 
-    }
+  .box {
+    width: 90vw;
+    max-width: 500px;
+    height: auto;
+  }
 
-    .box .photo-block {
-        height: auto;
-        aspect-ratio: 500 / 332;
-    }
+  .box .photo-block {
+    height: auto;
+    aspect-ratio: 500 / 332;
+  }
 
-    .main-slogan,
-    .photo-slogan,
-    .description-block {
-        gap: 12px;
-    }
+  .main-slogan,
+  .photo-slogan,
+  .description-block {
+    gap: 12px;
+  }
 
-    .photo-slogan-description {
-        gap: 18px;
-    }
+  .photo-slogan-description {
+    gap: 18px;
+  }
 
-    .arrow1 {
-        transform: rotate(90deg);
-    }
-
+  .arrow1 {
+    transform: rotate(90deg);
+  }
 }
 
 @media (max-width: 600px) {
-    p {
-        font-size: 15px;
-    }
-    .photo-convert-block {
-        gap: 43px;
-    }
+  p {
+    font-size: 15px;
+  }
+  .photo-convert-block {
+    gap: 43px;
+  }
 }

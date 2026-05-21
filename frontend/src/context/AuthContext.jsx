@@ -1,12 +1,11 @@
-import { createContext, useContext, useState, useEffect, useRef } from 'react';
+import { createContext, useContext, useState, useEffect, useRef } from "react";
 
 const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
-
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
-  const apiUrl = 'http://127.0.0.1:8000';
+  const apiUrl = "http://127.0.0.1:8000";
 
   // Флаг — CSRF уже был получен в этой сессии
   const csrfInitialized = useRef(false);
@@ -17,19 +16,22 @@ export const AuthProvider = ({ children }) => {
 
     try {
       await fetch(`${apiUrl}/sanctum/csrf-cookie`, {
-        credentials: 'include',
+        credentials: "include",
       });
 
       // Ждём появления куки (polling до 1 сек)
       for (let i = 0; i < 10; i++) {
         if (getXsrfToken()) break;
-        await new Promise(r => setTimeout(r, 100));
+        await new Promise((r) => setTimeout(r, 100));
       }
 
       csrfInitialized.current = true;
 
       // Отладка — убери после исправления
-      console.log('[CSRF] token after init:', getXsrfToken() ? 'OK' : 'MISSING');
+      console.log(
+        "[CSRF] token after init:",
+        getXsrfToken() ? "OK" : "MISSING",
+      );
     } catch (e) {
       console.error("CSRF fetch error", e);
     }
@@ -37,36 +39,40 @@ export const AuthProvider = ({ children }) => {
 
   const getXsrfToken = () => {
     const match = document.cookie
-        .split('; ')
-        .find(row => row.startsWith('XSRF-TOKEN='));
-    return match ? decodeURIComponent(match.split('=').slice(1).join('=')) : null;
-};
+      .split("; ")
+      .find((row) => row.startsWith("XSRF-TOKEN="));
+    return match
+      ? decodeURIComponent(match.split("=").slice(1).join("="))
+      : null;
+  };
 
   const fetchWithCsrf = async (url, options = {}) => {
-    const method = (options.method || 'GET').toUpperCase();
+    const method = (options.method || "GET").toUpperCase();
 
-    if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(method)) {
+    if (["POST", "PUT", "PATCH", "DELETE"].includes(method)) {
       await getCsrfCookie();
     }
 
     const xsrfToken = getXsrfToken();
 
     // Отладка — убери после исправления
-    console.log(`[${method}] ${url} | XSRF: ${xsrfToken ? xsrfToken.slice(0, 20) + '...' : 'MISSING'}`);
+    console.log(
+      `[${method}] ${url} | XSRF: ${xsrfToken ? xsrfToken.slice(0, 20) + "..." : "MISSING"}`,
+    );
 
     const headers = {
-      'Content-Type': 'application/json',
+      "Content-Type": "application/json",
       ...options.headers,
     };
 
     if (xsrfToken) {
-      headers['X-XSRF-TOKEN'] = xsrfToken;
+      headers["X-XSRF-TOKEN"] = xsrfToken;
     }
 
     return fetch(url, {
       ...options,
       headers,
-      credentials: 'include',
+      credentials: "include",
     });
   };
 
@@ -74,17 +80,17 @@ export const AuthProvider = ({ children }) => {
   const refreshUser = async () => {
     try {
       const res = await fetch(`${apiUrl}/api/me`, {
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
       });
 
       if (res.ok) {
         const userData = await res.json();
 
         if (userData.profile_photo) {
-          userData.profile_photo = userData.profile_photo.startsWith('http')
+          userData.profile_photo = userData.profile_photo.startsWith("http")
             ? userData.profile_photo
-            : `${apiUrl}${userData.profile_photo.startsWith('/') ? '' : '/'}${userData.profile_photo}`;
+            : `${apiUrl}${userData.profile_photo.startsWith("/") ? "" : "/"}${userData.profile_photo}`;
         }
 
         setUser(userData);
@@ -112,14 +118,13 @@ export const AuthProvider = ({ children }) => {
     fetchUser();
   }, []);
 
-
   // === АУТЕНТИФИКАЦИЯ ===
 
   const register = async (formData) => {
     try {
       const { confirmPassword, ...dataToSend } = formData;
       const res = await fetchWithCsrf(`${apiUrl}/api/register`, {
-        method: 'POST',
+        method: "POST",
         body: JSON.stringify(dataToSend),
       });
 
@@ -129,8 +134,8 @@ export const AuthProvider = ({ children }) => {
         await refreshUser();
         return true;
       } else {
-        console.error('Статус:', res.status);
-        console.error('Ошибки:', JSON.stringify(data, null, 2));
+        console.error("Статус:", res.status);
+        console.error("Ошибки:", JSON.stringify(data, null, 2));
         return false;
       }
     } catch (err) {
@@ -142,7 +147,7 @@ export const AuthProvider = ({ children }) => {
   const login = async (email, password) => {
     try {
       const res = await fetchWithCsrf(`${apiUrl}/api/login`, {
-        method: 'POST',
+        method: "POST",
         body: JSON.stringify({ email, password }),
       });
 
@@ -163,10 +168,13 @@ export const AuthProvider = ({ children }) => {
 
   const sendResetCode = async (email) => {
     try {
-      const res = await fetchWithCsrf(`${apiUrl}/api/forgot-password/send-code`, {
-        method: 'POST',
-        body: JSON.stringify({ email }),
-      });
+      const res = await fetchWithCsrf(
+        `${apiUrl}/api/forgot-password/send-code`,
+        {
+          method: "POST",
+          body: JSON.stringify({ email }),
+        },
+      );
       return res.ok;
     } catch (e) {
       console.error(e);
@@ -176,22 +184,25 @@ export const AuthProvider = ({ children }) => {
 
   const verifyResetCode = async (email, code) => {
     try {
-      const res = await fetchWithCsrf(`${apiUrl}/api/forgot-password/verify-code`, {
-        method: 'POST',
-        body: JSON.stringify({ email, code }),
-      });
+      const res = await fetchWithCsrf(
+        `${apiUrl}/api/forgot-password/verify-code`,
+        {
+          method: "POST",
+          body: JSON.stringify({ email, code }),
+        },
+      );
       if (res.ok) return { valid: true };
       const data = await res.json().catch(() => ({}));
-      return { valid: false, error: data.error || 'Неверный код' };
+      return { valid: false, error: data.error || "Неверный код" };
     } catch {
-      return { valid: false, error: 'Ошибка соединения' };
+      return { valid: false, error: "Ошибка соединения" };
     }
   };
 
   const resetPassword = async (email, code, password) => {
     try {
       const res = await fetchWithCsrf(`${apiUrl}/api/forgot-password/reset`, {
-        method: 'POST',
+        method: "POST",
         body: JSON.stringify({ email, code, password }),
       });
       return res.ok;
@@ -202,24 +213,24 @@ export const AuthProvider = ({ children }) => {
 
   const logout = async () => {
     try {
-        await fetchWithCsrf(`${apiUrl}/api/logout`, { method: 'POST' });
+      await fetchWithCsrf(`${apiUrl}/api/logout`, { method: "POST" });
     } catch (err) {
-        console.error("Logout error:", err);
+      console.error("Logout error:", err);
     } finally {
-        csrfInitialized.current = false;
-        setUser(null);
-        // НЕ трогаем HttpOnly куки через JS — это бесполезно
-        // Sanctum сам инвалидирует сессию на сервере через /api/logout
-        // Просто чистим то что реально доступно:
-        localStorage.clear();
-        sessionStorage.clear();
+      csrfInitialized.current = false;
+      setUser(null);
+      // НЕ трогаем HttpOnly куки через JS — это бесполезно
+      // Sanctum сам инвалидирует сессию на сервере через /api/logout
+      // Просто чистим то что реально доступно:
+      localStorage.clear();
+      sessionStorage.clear();
     }
-};
+  };
 
   const updateUser = async (data) => {
     try {
       const res = await fetchWithCsrf(`${apiUrl}/api/profile`, {
-        method: 'PUT',
+        method: "PUT",
         body: JSON.stringify(data),
       });
 
@@ -229,7 +240,7 @@ export const AuthProvider = ({ children }) => {
       }
 
       const errorData = await res.json().catch(() => ({}));
-      console.error('Server errors:', errorData);
+      console.error("Server errors:", errorData);
       return false;
     } catch (err) {
       console.error(err);
@@ -239,7 +250,7 @@ export const AuthProvider = ({ children }) => {
 
   const uploadPhoto = async (file) => {
     const formData = new FormData();
-    formData.append('photo', file);
+    formData.append("photo", file);
 
     try {
       const res = await fetchFormData(`${apiUrl}/api/profile/photo`, formData);
@@ -258,7 +269,9 @@ export const AuthProvider = ({ children }) => {
 
   const deletePhoto = async () => {
     try {
-      const res = await fetchWithCsrf(`${apiUrl}/api/profile/photo`, { method: 'DELETE' });
+      const res = await fetchWithCsrf(`${apiUrl}/api/profile/photo`, {
+        method: "DELETE",
+      });
       if (res.ok) {
         await refreshUser();
         return true;
@@ -276,16 +289,15 @@ export const AuthProvider = ({ children }) => {
 
     const xsrfToken = getXsrfToken();
     const headers = {};
-    if (xsrfToken) headers['X-XSRF-TOKEN'] = xsrfToken;
+    if (xsrfToken) headers["X-XSRF-TOKEN"] = xsrfToken;
 
     return fetch(url, {
-      method: 'POST',
+      method: "POST",
       headers,
-      credentials: 'include',
+      credentials: "include",
       body: formData,
     });
   };
-
 
   return (
     <AuthContext.Provider

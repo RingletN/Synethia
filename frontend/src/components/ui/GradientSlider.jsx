@@ -2,10 +2,10 @@ import { useEffect, useCallback } from "react";
 
 const COLORS = {
   violet: "#4D4DFF",
-  cyan:   "#00F2FF",
-  pink:   "#FF00FF",
+  cyan: "#00F2FF",
+  pink: "#FF00FF",
   bright: "#ECECEC",
-  dark:   "rgba(0, 0, 0, 0.45)",
+  dark: "rgba(0, 0, 0, 0.45)",
 };
 
 const STATIC_STYLE_ID = "gradient-slider-static";
@@ -80,7 +80,9 @@ export default function GradientSlider({
   style,
   className,
 }) {
-  useEffect(() => { ensureStaticStyles(); }, []);
+  useEffect(() => {
+    ensureStaticStyles();
+  }, []);
 
   const pct = (value - min) / (max - min);
   const thumbColor = getThumbColor(pct);
@@ -97,7 +99,7 @@ export default function GradientSlider({
 
   const handleChange = useCallback(
     (e) => onChange?.(Number(e.target.value)),
-    [onChange]
+    [onChange],
   );
 
   return (

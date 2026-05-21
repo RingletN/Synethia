@@ -1,37 +1,37 @@
 /* SettingsPanel.css */
-@import '../../../index.css';
+@import "../../../index.css";
 
 .settings-panel {
-    display: flex;
-    flex-direction: column;
-    gap: 30px;
-    padding: 7px 17px;
-    height: 100%;
-    box-sizing: border-box;
-    overflow-y: auto;
-    background: rgba(11, 11, 31, 0.4);
-    border-radius: 40px;
+  display: flex;
+  flex-direction: column;
+  gap: 30px;
+  padding: 7px 17px;
+  height: 100%;
+  box-sizing: border-box;
+  overflow-y: auto;
+  background: rgba(11, 11, 31, 0.4);
+  border-radius: 40px;
 }
 
 /* Header */
 .settings-panel-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    max-height:60px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  max-height: 60px;
 }
 
-.divider-settings{
-    margin-top: 7px;
-    margin-bottom: 0;
-    height: 3px;
-    background: var(--color-pale);
-    border-radius: 2px;
+.divider-settings {
+  margin-top: 7px;
+  margin-bottom: 0;
+  height: 3px;
+  background: var(--color-pale);
+  border-radius: 2px;
 }
 
 .settings-panel-header-block {
-    display: flex;
-    flex-direction: column;
+  display: flex;
+  flex-direction: column;
 }
 
 /* .settings-panel-header-title {
@@ -41,85 +41,85 @@
 
 /* Cards */
 .settings-panel-card {
-    background-color: rgba(255, 255, 255, 0.2);
-    border-radius: 40px;
-    overflow: hidden;
-    transition: all 0.2s ease;
+  background-color: rgba(255, 255, 255, 0.2);
+  border-radius: 40px;
+  overflow: hidden;
+  transition: all 0.2s ease;
 }
 
 .settings-panel-card-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 10px 15px;
-    cursor: pointer;
-    user-select: none;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 15px;
+  cursor: pointer;
+  user-select: none;
 }
 
 .settings-panel h3 {
-    font-size: 32px;
-    color: var(--color-bright);
-    font-weight: var(--font-weight-semibold);
-    text-transform: uppercase;
+  font-size: 32px;
+  color: var(--color-bright);
+  font-weight: var(--font-weight-semibold);
+  text-transform: uppercase;
 }
 
 .settings-panel-card-content {
-    padding: 0 15px 40px 15px;
-    display: flex;
-    flex-direction: column;
-    gap: 30px;
+  padding: 0 15px 40px 15px;
+  display: flex;
+  flex-direction: column;
+  gap: 30px;
 }
 
 /* Control groups */
 .settings-panel-control-group {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 
-.settings-panel-control-group.duration{
-    gap: 2px;
+.settings-panel-control-group.duration {
+  gap: 2px;
 }
 
-.settings-panel-control-group.mood{
-    gap: 11px;
+.settings-panel-control-group.mood {
+  gap: 11px;
 }
 
 .settings-panel-control-label {
-    text-transform: uppercase;
-    text-align: center;
-    font-size: 28px;
-    color: var(--color-bright);
-    font-weight: var(--font-weight-semibold);
+  text-transform: uppercase;
+  text-align: center;
+  font-size: 28px;
+  color: var(--color-bright);
+  font-weight: var(--font-weight-semibold);
 }
 
 .settings-panel-value-row {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
 }
 
 .settings-panel-duration-text {
-    font-size: 28px;
-    color: var(--color-bright);
-    font-weight: var(--font-weight-semibold);
-    font-variant-numeric: tabular-nums;
-    min-width: 100px;
-    text-align: center;
+  font-size: 28px;
+  color: var(--color-bright);
+  font-weight: var(--font-weight-semibold);
+  font-variant-numeric: tabular-nums;
+  min-width: 100px;
+  text-align: center;
 }
 
 .settings-panel-mood-img {
-    width: 100px;
-    height: 70px;
+  width: 100px;
+  height: 70px;
 }
 
 /* Tempo */
 .settings-panel-tempo-row {
-    display: flex;               
-    justify-content: space-between; 
-    align-items: flex-start;    
-    width: 100%;               
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  width: 100%;
 }
 
 /* .settings-panel-tempo-icon {
@@ -131,41 +131,41 @@
 } */
 
 .settings-panel-tempo-value {
-    font-variant-numeric: tabular-nums;
-    font-size: 28px;
-    color: var(--color-bright);
-    font-weight: var(--font-weight-semibold);
-    min-width: 70px;
-    text-align: center;
+  font-variant-numeric: tabular-nums;
+  font-size: 28px;
+  color: var(--color-bright);
+  font-weight: var(--font-weight-semibold);
+  min-width: 70px;
+  text-align: center;
 }
 .settings-panel-control-group.temp {
-    width: 100%;
-    gap: 10px;
+  width: 100%;
+  gap: 10px;
 }
 /* Slider (common) */
 .settings-panel-slider {
-    width: 100%;
-    accent-color: #00ffd1;
-    cursor: pointer;
+  width: 100%;
+  accent-color: #00ffd1;
+  cursor: pointer;
 }
 
 /* Effects sliders */
 .settings-panel-effect-slider-row {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
 }
 
 .settings-panel-effect-label-row {
-    display: flex;
-    justify-content: space-between;
-    font-size: 12px;
-    color: rgba(255, 255, 255, 0.55);
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.55);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
 }
 
 .settings-panel-effect-value {
-    color: rgba(255, 255, 255, 0.85);
-    font-variant-numeric: tabular-nums;
+  color: rgba(255, 255, 255, 0.85);
+  font-variant-numeric: tabular-nums;
 }

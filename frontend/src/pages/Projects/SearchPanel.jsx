@@ -1,13 +1,13 @@
-import React from 'react';
-import SearchIcon from '../../assets/icons/icon-search.svg';
-import CloseIcon from '../../assets/icons/icon-close2.svg';
-import './SearchPanel.css';
+import React from "react";
+import SearchIcon from "../../assets/icons/icon-search.svg";
+import CloseIcon from "../../assets/icons/icon-close2.svg";
+import "./SearchPanel.css";
 
 const SearchPanel = ({ value, onChange, onClear, placeholder }) => {
   return (
     <div className="search-block">
       <div className="search-panel">
-        <img src={SearchIcon} alt="Поиск" className='icon' />
+        <img src={SearchIcon} alt="Поиск" className="icon" />
         <input
           type="text"
           placeholder={placeholder || "Поиск по названию проекта ..."}

@@ -1,96 +1,110 @@
-@import '../../index.css';
+@import "../../index.css";
 
 .modal-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    width: 100vw;
-    height: 100vh;
-    background: rgba(11, 11, 31, 0.4);
-    backdrop-filter: blur(30px);
-    -webkit-backdrop-filter: blur(30px);
-    z-index: 9999;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(11, 11, 31, 0.4);
+  backdrop-filter: blur(30px);
+  -webkit-backdrop-filter: blur(30px);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .modal-content {
-    background: rgba(11, 11, 31, 0.25);
-    border-radius: 40px;
-    padding: 32px 43px;
-    width: 60%;
-    text-align: center;
-    position: relative;
-    overflow: hidden;
-    backdrop-filter: blur(70px);
-    -webkit-backdrop-filter: blur(70px);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-direction: column;
-    gap: 32px;
+  background: rgba(11, 11, 31, 0.25);
+  border-radius: 40px;
+  padding: 32px 43px;
+  width: 60%;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+  backdrop-filter: blur(70px);
+  -webkit-backdrop-filter: blur(70px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 32px;
 }
 
 .modal-content::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    border-radius: 40px;
-    padding: 3px;
-    background: linear-gradient(95deg, #308CFF, #E40BFE, #A925FF);
-    mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-    mask-composite: exclude;
-    -webkit-mask-composite: xor;
-    pointer-events: none;
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 40px;
+  padding: 3px;
+  background: linear-gradient(95deg, #308cff, #e40bfe, #a925ff);
+  mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  mask-composite: exclude;
+  -webkit-mask-composite: xor;
+  pointer-events: none;
 }
 
 .modal-description {
-    font-family: var(--font-montserrat);
-    font-size: 32px;
-    color: var(--color-pale);
+  font-family: var(--font-montserrat);
+  font-size: 32px;
+  color: var(--color-pale);
 }
 
 .modal-buttons {
-    display: flex;
-    justify-content: center;
-    gap: 70px;
-    margin-top: 12px;
-
+  display: flex;
+  justify-content: center;
+  gap: 70px;
+  margin-top: 12px;
 }
 
 .modal-success::before {
-    background: linear-gradient(95deg, var(--color-cyan), var(--color-violet), var(--color-cyan));
+  background: linear-gradient(
+    95deg,
+    var(--color-cyan),
+    var(--color-violet),
+    var(--color-cyan)
+  );
 }
 
 .modal-error::before {
-    background: linear-gradient(95deg, var(--color-violet), var(--color-pink), var(--color-violet));
+  background: linear-gradient(
+    95deg,
+    var(--color-violet),
+    var(--color-pink),
+    var(--color-violet)
+  );
 }
 
 .modal-warning::before {
-    background: linear-gradient(95deg, var(--color-pink), var(--color-violet), var(--color-cyan));
+  background: linear-gradient(
+    95deg,
+    var(--color-pink),
+    var(--color-violet),
+    var(--color-cyan)
+  );
 }
 
 @media (max-width: 1120px) {
-    .modal-description {
-        font-size: 21px;
-    }
-
+  .modal-description {
+    font-size: 21px;
+  }
 }
 
 @media (max-width: 800px) {
-
-    .modal-buttons {
-        flex-direction: column;
-        margin: 0;
-        gap: 28px;
-    }
+  .modal-buttons {
+    flex-direction: column;
+    margin: 0;
+    gap: 28px;
+  }
 }
 
 @media (max-width: 600px) {
-    .modal-description {
-        font-size: 15px;
-    }
+  .modal-description {
+    font-size: 15px;
+  }
 }
