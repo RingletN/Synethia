@@ -2,7 +2,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import BgProjectsLine from '../../assets/backgrounds/bg-projects-line.png';
-import SortIcon from '../../assets/icons/icon-sort.svg';
+import SortIcon     from '../../assets/icons/icon-sort.svg';
+import StarIcon     from '../../assets/icons/icon-star.svg';
 import CloseIcon from '../../assets/icons/icon-close.svg';
 import LeftChevron from '../../assets/icons/icon-chevron-left.svg';
 import RightChevron from '../../assets/icons/icon-chevron-right.svg';
@@ -58,6 +59,17 @@ const Projects = () => {
     const [tempField, setTempField] = useState('updated_at');
     const [tempDir, setTempDir]     = useState('desc');
 
+    // ── Фильтр избранного (реальные значения) ────────────────────────────────
+    // 'favorites_first' | 'only_favorites' | 'hide_favorites'
+    const [favFilter, setFavFilter]     = useState('favorites_first');
+    const [tempFavFilter, setTempFavFilter] = useState('favorites_first');
+    const [isFavOpen, setIsFavOpen]     = useState(false);
+
+    // committedFavorites — «снимок» id избранных на момент применения фильтра.
+    // Список не перестраивается при ручном тыке на звёздочку — только при
+    // смене страницы / поиска / повторном подтверждении фильтра.
+    const [committedFavorites, setCommittedFavorites] = useState(null); // null = не инициализировано
+
     const [page, setPage] = useState(1);
     const { user, loading: authLoading } = useAuth();
 
@@ -73,6 +85,7 @@ const Projects = () => {
             try {
                 const data = await api.get('/api/projects');
                 setProjects(data);
+                setCommittedFavorites(new Set(data.filter(p => p.is_favorite).map(p => p.id)));
             } catch (err) {
                 setError(err.message || 'Не удалось загрузить проекты');
             } finally {
@@ -82,8 +95,11 @@ const Projects = () => {
         load();
     }, [user, authLoading]);
 
-    // Сброс страницы при поиске или смене колонок
-    useEffect(() => { setPage(1); }, [searchQuery, cols]);
+    // Сброс страницы при поиске или смене колонок + коммит снимка избранных
+    useEffect(() => {
+        setPage(1);
+        setCommittedFavorites(new Set(projects.filter(p => p.is_favorite).map(p => p.id)));
+    }, [searchQuery, cols]); // eslint-disable-line react-hooks/exhaustive-deps
 
     // ── Открытие модалки — синхронизируем temp с реальными ───────────────────
     const openSort = () => {
@@ -111,25 +127,50 @@ const Projects = () => {
     // ── Закрыть без изменений (крестик / клик вне) ───────────────────────────
     const closeSort = () => {
         setIsSortOpen(false);
-        // temp не трогаем — при следующем открытии openSort синхронизирует заново
     };
+
+    // ── Избранное: открыть / подтвердить / отменить / закрыть ────────────────
+    const openFav = () => {
+        setTempFavFilter(favFilter);
+        setIsFavOpen(true);
+    };
+
+    const applyFav = () => {
+        setFavFilter(tempFavFilter);
+        // Коммитим снимок избранных в момент подтверждения
+        setCommittedFavorites(new Set(projects.filter(p => p.is_favorite).map(p => p.id)));
+        setPage(1);
+        setIsFavOpen(false);
+    };
+
+    const resetFav = () => {
+        setFavFilter('favorites_first');
+        setTempFavFilter('favorites_first');
+        setCommittedFavorites(new Set(projects.filter(p => p.is_favorite).map(p => p.id)));
+        setPage(1);
+        setIsFavOpen(false);
+    };
+
+    const closeFav = () => setIsFavOpen(false);
 
     // ── Удаление — с коррекцией страницы ──────────────────────────────────────
     const handleDelete = (id) => {
         setProjects(prev => {
             const next = prev.filter(p => p.id !== id);
+            const committed = committedFavorites ?? new Set();
 
-            const filtered = next
-                .filter(p => p.title.toLowerCase().includes(searchQuery.toLowerCase()));
+            const afterSearch = next.filter(p =>
+                p.title.toLowerCase().includes(searchQuery.toLowerCase())
+            );
+            const afterFav = applyFavFilter(afterSearch, favFilter, committed);
 
             const perPageFirst = cols * 2 - 1;
             const perPageOther = cols * 2;
-            const newTotalPages = filtered.length === 0
+            const newTotalPages = afterFav.length === 0
                 ? 1
-                : 1 + Math.ceil(Math.max(0, filtered.length - perPageFirst) / perPageOther);
+                : 1 + Math.ceil(Math.max(0, afterFav.length - perPageFirst) / perPageOther);
 
             setPage(p => Math.min(p, newTotalPages));
-
             return next;
         });
     };
@@ -139,19 +180,41 @@ const Projects = () => {
             prev.map(p => p.id === id ? { ...p, is_favorite: !p.is_favorite } : p)
         );
 
+    // ── Вспомогательная функция фильтрации по избранному ─────────────────────
+    // Использует committedFavorites-снимок, чтобы список не дёргался при
+    // ручном тыке на звёздочку.
+    const applyFavFilter = (list, filter, committed) => {
+        if (!committed || filter === 'all') return list;
+        if (filter === 'only_favorites')
+            return list.filter(p => committed.has(p.id));
+        if (filter === 'hide_favorites')
+            return list.filter(p => !committed.has(p.id));
+        if (filter === 'favorites_first')
+            return [
+                ...list.filter(p =>  committed.has(p.id)),
+                ...list.filter(p => !committed.has(p.id)),
+            ];
+        return list;
+    };
+
     // Фильтрация + сортировка (по реальным значениям)
-    const filtered = projects
-        .filter(p => p.title.toLowerCase().includes(searchQuery.toLowerCase()))
-        .sort((a, b) => {
-            let va = a[sortField] ?? '', vb = b[sortField] ?? '';
-            if (sortField === 'title') {
-                va = va.toLowerCase(); vb = vb.toLowerCase();
-                return sortDir === 'asc' ? va.localeCompare(vb) : vb.localeCompare(va);
-            }
-            return sortDir === 'asc'
-                ? new Date(va) - new Date(vb)
-                : new Date(vb) - new Date(va);
-        });
+    const committed = committedFavorites ?? new Set();
+
+    const afterSearch = projects
+        .filter(p => p.title.toLowerCase().includes(searchQuery.toLowerCase()));
+
+    const sorted = [...afterSearch].sort((a, b) => {
+        let va = a[sortField] ?? '', vb = b[sortField] ?? '';
+        if (sortField === 'title') {
+            va = va.toLowerCase(); vb = vb.toLowerCase();
+            return sortDir === 'asc' ? va.localeCompare(vb) : vb.localeCompare(va);
+        }
+        return sortDir === 'asc'
+            ? new Date(va) - new Date(vb)
+            : new Date(vb) - new Date(va);
+    });
+
+    const filtered = applyFavFilter(sorted, favFilter, committed);
 
     /*
      * Пагинация: 2 ряда по cols карточек.
@@ -219,12 +282,55 @@ const Projects = () => {
             <div className="projects-header">
                 <div className="projects-header-text">
                     <h2>БИБЛИОТЕКА ПРОЕКТОВ</h2>
-                    <div className="icon sort-btn" onClick={openSort}>
-                        <img src={SortIcon} alt="Сортировка" />
+                    <div className="canvas-header-icons">
+                        <div className="icon fav-btn" onClick={openFav}>
+                            <img src={StarIcon} alt="Избранное" />
+                        </div>
+                        <div className="icon sort-btn" onClick={openSort}>
+                            <img src={SortIcon} alt="Сортировка" />
+                        </div>
                     </div>
                 </div>
                 <div className="divider" />
             </div>
+
+            {/* ── Модалка избранного ── */}
+            {isFavOpen && (
+                <div className="sort-overlay" onClick={closeFav}>
+                    <div className="sort-modal sort-modal--fav" onClick={e => e.stopPropagation()}>
+                        <div className="sort-header">
+                            <div className="sort-header-text">
+                                <h2>Избранное</h2>
+                                <div className="icon close-btn" onClick={closeFav}>
+                                    <img src={CloseIcon} alt="Закрыть" />
+                                </div>
+                            </div>
+                            <div className="divider" />
+                        </div>
+                        <div className="sort-content">
+                            <div className="sort-field">
+                                {[
+                                    { value: 'favorites_first', label: 'Закреплять избранное' },
+                                    { value: 'only_favorites',  label: 'Только избранное' },
+                                    { value: 'hide_favorites',  label: 'Скрыть избранное' },
+                                ].map(opt => (
+                                    <div
+                                        key={opt.value}
+                                        className={`option ${tempFavFilter === opt.value ? 'active' : ''}`}
+                                        onClick={() => setTempFavFilter(opt.value)}
+                                    >
+                                        {opt.label}
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                        <div className="sort-buttons">
+                            <Button variant="negative" onClick={resetFav}>ОТМЕНИТЬ</Button>
+                            <Button variant="primary"  onClick={applyFav}>ПОДТВЕРДИТЬ</Button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* ── Сортировка ── */}
             {isSortOpen && (

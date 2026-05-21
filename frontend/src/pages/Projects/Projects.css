@@ -283,6 +283,12 @@
     transform: none !important;
 } */
 
+/* ─── Модалка избранного (одноколоночный вариант) ─────────────────────────── */
+.sort-modal--fav {
+    width: 40%;
+    max-width: 560px;
+}
+
 .projects-unauthenticated {
     display: flex;
     flex-direction: column;
