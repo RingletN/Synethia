@@ -23,17 +23,11 @@ import SaveIcon from "../../assets/icons/icon-save.svg";
 import DownloadIcon from "../../assets/icons/icon-download.svg";
 import TrashIcon from "../../assets/icons/icon-trash.svg";
 import QuestionIcon from "../../assets/icons/icon-question.svg";
-import PauseIcon from "../../assets/icons/icon-pause.svg";
-import PlayIcon from "../../assets/icons/icon-play.svg";
-import SkipBackIcon from "../../assets/icons/icon-skip-back.svg";
-import SkipForwardIcon from "../../assets/icons/icon-skip-forward.svg";
-import VolumeHighIcon from "../../assets/icons/icon-volume-high.svg";
-import VolumeLowIcon from "../../assets/icons/icon-volume-low.svg";
-import VolumeNoIcon from "../../assets/icons/icon-volume-no.svg";
 
 import * as Tone from "tone";
 
 import "./Canvas.css";
+import MusicPlayer from "./components/MusicPlayer";
 
 const CANVAS_BLOCK_GAP = 46;
 const SETTINGS_MIN_WIDTH = 200;
@@ -56,7 +50,7 @@ const Canvas = () => {
 
   const [projectTitle, setProjectTitle] = useState("");
 
-  // ← флаг несохранённых изменений — именно его слушает useUnsavedChanges
+  // флаг несохранённых изменений — именно его слушает useUnsavedChanges
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
 
   const [activeNote, setActiveNote] = useState(null);
@@ -204,7 +198,6 @@ const Canvas = () => {
     [openModal]
   );
 
-  // ← теперь передаём hasUnsavedChanges вместо canUndo
   useUnsavedChanges(hasUnsavedChanges, openModal);
 
   const {
@@ -232,7 +225,7 @@ const Canvas = () => {
     totalDuration,
     isMelodyGenerated,
     showModal,
-    onSaveSuccess: () => setHasUnsavedChanges(false), // ← сброс после сохранения
+    onSaveSuccess: () => setHasUnsavedChanges(false),
   });
 
   // Синхронизируем название в шапке когда хук сохранил новый title
@@ -286,12 +279,10 @@ const Canvas = () => {
     const trimmed = projectTitle.trim();
 
     if (!trimmed) {
-      // Название пустое — открываем модалку с инпутом
       setShowSaveAsModal(true);
       return;
     }
 
-    // Есть название — сохраняем напрямую (и для нового, и для существующего проекта)
     handleSaveClick(trimmed);
   }, [
     user,
@@ -358,48 +349,6 @@ const Canvas = () => {
     [engineRef, showModal]
   );
 
-  //   useEffect(() => {
-  //     if (!location.state?.autoImport) return;
-
-  //     const raw = sessionStorage.getItem("pendingImportFile");
-  //     if (!raw) return;
-  //     sessionStorage.removeItem("pendingImportFile");
-
-  //     console.log('[autoImport] state detected, waiting for engine...');
-
-  //     // Даём движку время инициализироваться — ждём дольше
-  //     const interval = setInterval(() => {
-  //         console.log('[autoImport] checking engine:', engineRef.current);
-  //         if (!engineRef.current) return;
-  //         clearInterval(interval);
-
-  //         console.log('[autoImport] engine ready, starting import');
-  //         try {
-  //             const { name, type, data } = JSON.parse(raw);
-  //             fetch(data)
-  //                 .then((r) => r.blob())
-  //                 .then((blob) => {
-  //                     const file = new File([blob], name, { type });
-  //                     console.log('[autoImport] calling handleImportPhoto with file:', file.name);
-  //                     handleImportPhoto(file);
-  //                 });
-  //         } catch (e) {
-  //             console.error("Ошибка автоимпорта:", e);
-  //         }
-  //     }, 200); // увеличили до 200мс
-
-  //     // Таймаут на случай если движок так и не инициализируется
-  //     const timeout = setTimeout(() => {
-  //         clearInterval(interval);
-  //         console.error('[autoImport] timeout — engine never initialized');
-  //     }, 10000);
-
-  //     return () => {
-  //         clearInterval(interval);
-  //         clearTimeout(timeout);
-  //     };
-  // }, []); // eslint-disable-line react-hooks/exhaustive-deps
-
   const {
     isPlaying,
     currentTime,
@@ -419,7 +368,7 @@ const Canvas = () => {
 
   const handleStrokeEnd = useCallback(() => {
     saveToHistory(bgColorRef.current);
-    setHasUnsavedChanges(true); // ← помечаем что есть несохранённые изменения
+    setHasUnsavedChanges(true);
   }, [saveToHistory]);
 
   const loadProjectRef = useRef(null);
@@ -485,7 +434,6 @@ const Canvas = () => {
         }
 
         setProjectId(parseInt(projectId, 10));
-        // После загрузки проекта изменений нет
         setHasUnsavedChanges(false);
       } catch (err) {
         showModal(
@@ -563,7 +511,7 @@ const Canvas = () => {
       setMelodyEvents(events);
       setTotalDuration(duration);
       setIsMelodyGenerated(true);
-      setHasUnsavedChanges(true); // ← мелодия сгенерирована — тоже несохранённое изменение
+      setHasUnsavedChanges(true);
       showModal("Готово", "Мелодия успешно сгенерирована!", "success");
     } catch (err) {
       console.error(err);
@@ -577,104 +525,6 @@ const Canvas = () => {
     if (isPlaying) pause();
     else play();
   }, [isPlaying, play, pause]);
-
-  const handleVolumeChange = useCallback(
-    (e) => {
-      setVolume(parseFloat(e.target.value));
-    },
-    [setVolume]
-  );
-
-  const progressRef = useRef(null);
-  const isDraggingProgressRef = useRef(false);
-  const isDraggingVolumeRef = useRef(false);
-  const volumeTrackRef = useRef(null);
-
-  const handleProgressClick = useCallback(
-    (e) => {
-      if (!progressRef.current) return;
-      const rect = progressRef.current.getBoundingClientRect();
-      const ratio = Math.max(
-        0,
-        Math.min(1, (e.clientX - rect.left) / rect.width)
-      );
-      seek(ratio * totalDuration);
-    },
-    [seek, totalDuration]
-  );
-
-  const handleProgressMouseDown = useCallback(
-    (e) => {
-      e.preventDefault();
-      isDraggingProgressRef.current = true;
-      if (!progressRef.current) return;
-      const rect = progressRef.current.getBoundingClientRect();
-      const ratio = Math.max(
-        0,
-        Math.min(1, (e.clientX - rect.left) / rect.width)
-      );
-      seek(ratio * totalDuration);
-    },
-    [seek, totalDuration]
-  );
-
-  const handleVolumeMouseDown = useCallback(
-    (e) => {
-      e.preventDefault();
-      isDraggingVolumeRef.current = true;
-      if (!volumeTrackRef.current) return;
-      const rect = volumeTrackRef.current.getBoundingClientRect();
-      const ratio = Math.max(
-        0,
-        Math.min(1, (e.clientX - rect.left) / rect.width)
-      );
-      setVolume(ratio);
-    },
-    [setVolume]
-  );
-
-  useEffect(() => {
-    const onMove = (e) => {
-      if (isDraggingProgressRef.current && progressRef.current) {
-        const rect = progressRef.current.getBoundingClientRect();
-        const ratio = Math.max(
-          0,
-          Math.min(1, (e.clientX - rect.left) / rect.width)
-        );
-        seek(ratio * totalDuration);
-      }
-      if (isDraggingVolumeRef.current && volumeTrackRef.current) {
-        const rect = volumeTrackRef.current.getBoundingClientRect();
-        const ratio = Math.max(
-          0,
-          Math.min(1, (e.clientX - rect.left) / rect.width)
-        );
-        setVolume(ratio);
-      }
-    };
-    const onUp = () => {
-      isDraggingProgressRef.current = false;
-      isDraggingVolumeRef.current = false;
-    };
-    window.addEventListener("mousemove", onMove);
-    window.addEventListener("mouseup", onUp);
-    return () => {
-      window.removeEventListener("mousemove", onMove);
-      window.removeEventListener("mouseup", onUp);
-    };
-  }, [seek, totalDuration, setVolume]);
-
-  const formatTime = (seconds) => {
-    const s = Math.max(0, seconds);
-    const mins = Math.floor(s / 60);
-    const secs = Math.floor(s % 60);
-    return `${mins.toString().padStart(2, "0")}:${secs
-      .toString()
-      .padStart(2, "0")}`;
-  };
-
-  const progressPercent =
-    totalDuration > 0 ? Math.min(100, (currentTime / totalDuration) * 100) : 0;
 
   const handleDownload = useCallback(
     (type = "image") => {
@@ -791,7 +641,6 @@ const Canvas = () => {
         };
       }
 
-      // Автоимпорт при переходе с главной страницы
       const raw = sessionStorage.getItem("pendingImportFile");
       if (raw && location.state?.autoImport) {
         sessionStorage.removeItem("pendingImportFile");
@@ -833,7 +682,7 @@ const Canvas = () => {
       if (bgColorDebounceRef.current) clearTimeout(bgColorDebounceRef.current);
       bgColorDebounceRef.current = setTimeout(() => {
         saveToHistory(color);
-        setHasUnsavedChanges(true); // ← смена фона тоже изменение
+        setHasUnsavedChanges(true);
       }, 800);
     },
     [saveToHistory]
@@ -1068,79 +917,16 @@ const Canvas = () => {
         </div>
 
         {isMelodyGenerated && (
-          <div className="music-player">
-            <div className="icon" onClick={() => skip(-5)} title="−5 с">
-              <img src={SkipBackIcon} alt="Назад 5 с" />
-            </div>
-            <div className="icon" onClick={handlePlayPause}>
-              <img
-                src={isPlaying ? PauseIcon : PlayIcon}
-                alt={isPlaying ? "Пауза" : "Воспроизвести"}
-              />
-            </div>
-            <div className="icon" onClick={() => skip(5)} title="+5 с">
-              <img src={SkipForwardIcon} alt="Вперёд 5 с" />
-            </div>
-
-            <div
-              ref={progressRef}
-              className="progress-bar-container"
-              onClick={handleProgressClick}
-              onMouseDown={handleProgressMouseDown}
-            >
-              <div
-                className="progress-fill"
-                style={{ width: `${progressPercent}%` }}
-              />
-              <div
-                className="progress-thumb"
-                style={{ left: `${progressPercent}%` }}
-              />
-            </div>
-
-            <p className="time-text">
-              {formatTime(currentTime)} / {formatTime(totalDuration)}
-            </p>
-
-            <div className="volume-control">
-              <div className="icon volume-btn">
-                <img
-                  src={
-                    volume === 0
-                      ? VolumeNoIcon
-                      : volume < 0.5
-                        ? VolumeLowIcon
-                        : VolumeHighIcon
-                  }
-                  alt="Громкость"
-                  className="volume-icon"
-                  onClick={() => setVolume(volume === 0 ? 0.5 : 0)}
-                />
-              </div>
-              <div
-                ref={volumeTrackRef}
-                className="volume-slider-track"
-                onClick={(e) => {
-                  const rect = e.currentTarget.getBoundingClientRect();
-                  const ratio = Math.max(
-                    0,
-                    Math.min(1, (e.clientX - rect.left) / rect.width)
-                  );
-                  handleVolumeChange({ target: { value: ratio } });
-                }}
-                onMouseDown={handleVolumeMouseDown}
-              >
-                <div
-                  className="volume-slider-fill"
-                  style={{ width: `${volume * 100}%` }}
-                />
-                <div
-                  className="volume-slider-thumb"
-                  style={{ left: `${volume * 100}%` }}
-                />
-              </div>
-            </div>
-          </div>
+          <MusicPlayer
+            isPlaying={isPlaying}
+            currentTime={currentTime}
+            totalDuration={totalDuration}
+            volume={volume}
+            onVolumeChange={setVolume}
+            onPlayPause={handlePlayPause}
+            onSkip={skip}
+            onSeek={seek}
+          />
         )}
       </div>
 
@@ -1152,7 +938,6 @@ const Canvas = () => {
         {isGenerating ? "ИДЁТ ГЕНЕРАЦИЯ…" : "СГЕНЕРИРОВАТЬ МЕЛОДИЮ"}
       </Button>
 
-      {/* Общая модалка для уведомлений и подтверждений */}
       <Modal
         isOpen={modalOpen}
         onClose={closeModal}
@@ -1171,7 +956,6 @@ const Canvas = () => {
         }}
       />
 
-      {/* Модалка с инпутом названия */}
       <SaveAsModal
         isOpen={showSaveAsModal}
         onClose={() => setShowSaveAsModal(false)}
