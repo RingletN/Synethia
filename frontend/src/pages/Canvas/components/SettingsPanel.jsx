@@ -16,6 +16,15 @@ import GradientSlider from "../../../components/ui/GradientSlider";
 // Запас: суммарные gap-ы и паддинги внутри панели (header ~70px + gap*2 ~60px + паддинги ~14px)
 const OVERHEAD_PX = 144;
 
+const RHYTHM_LABELS = {
+  straight: "ПРЯМОЙ",
+  waltz:    "ВАЛЬС",
+  rock:     "РОК",
+  disco:    "ДИСКО",
+  jazz:     "ДЖАЗ",
+};
+const RHYTHM_ORDER = ["straight", "waltz", "rock", "disco", "jazz"];
+
 const SettingsPanel = ({
   bpm,
   onBpmChange,
@@ -23,6 +32,8 @@ const SettingsPanel = ({
   onDurationChange,
   scale,
   onScaleChange,
+  rhythmPattern,
+  onRhythmPatternChange,
   effectReverb,
   onReverbChange,
   effectDelay,
@@ -112,6 +123,15 @@ const SettingsPanel = ({
   };
   const nextMood = () => onScaleChange(scale === "major" ? "minor" : "major");
   const prevMood = () => onScaleChange(scale === "major" ? "minor" : "major");
+
+  const nextRhythm = () => {
+    const idx = RHYTHM_ORDER.indexOf(rhythmPattern);
+    onRhythmPatternChange(RHYTHM_ORDER[(idx + 1) % RHYTHM_ORDER.length]);
+  };
+  const prevRhythm = () => {
+    const idx = RHYTHM_ORDER.indexOf(rhythmPattern);
+    onRhythmPatternChange(RHYTHM_ORDER[(idx - 1 + RHYTHM_ORDER.length) % RHYTHM_ORDER.length]);
+  };
   const decreaseBpm = () => {
     if (bpm - 1 >= 40) onBpmChange(bpm - 1);
   };
@@ -212,6 +232,28 @@ const SettingsPanel = ({
                 alt="next"
                 className="icon settings-panel-chevron"
                 onClick={nextMood}
+              />
+            </div>
+          </div>
+
+          {/* Жанр */}
+          <div className="settings-panel-control-group mood">
+            <div className="settings-panel-control-label">ЖАНР</div>
+            <div className="settings-panel-value-row">
+              <img
+                src={LeftChevron}
+                alt="prev"
+                className="icon settings-panel-chevron"
+                onClick={prevRhythm}
+              />
+              <span className="settings-panel-rhythm-text">
+                {RHYTHM_LABELS[rhythmPattern] ?? rhythmPattern.toUpperCase()}
+              </span>
+              <img
+                src={RightChevron}
+                alt="next"
+                className="icon settings-panel-chevron"
+                onClick={nextRhythm}
               />
             </div>
           </div>

@@ -40,8 +40,9 @@ const Canvas = () => {
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
 
   const [bpm, setBpm] = useState(80);
-  const [duration, setDuration] = useState(8);
+  const [duration, setDuration] = useState(20);
   const [scale, setScale] = useState("major");
+  const [rhythmPattern, setRhythmPattern] = useState("rock");
 
   const [effectReverb, setEffectReverb] = useState(0);
   const [effectDelay, setEffectDelay] = useState(0);
@@ -52,7 +53,7 @@ const Canvas = () => {
     delay: effectDelay,
     distortion: effectDistortion,
   };
-  const melodyParamsForGen = { bpm, duration, scale };
+  const melodyParamsForGen = { bpm, duration, scale, rhythmPattern };
 
   const [isGenerating, setIsGenerating] = useState(false);
   const [isMelodyGenerated, setIsMelodyGenerated] = useState(false);
@@ -426,6 +427,7 @@ const Canvas = () => {
     await new Promise((resolve) => setTimeout(resolve, 100));
     try {
       const segments = engineRef.current.getAllSegments();
+      console.log('🎨 segments при генерации:', segments.map(s => ({ color: s.color, points: s.points?.length })));
       if (!segments || segments.length === 0) {
         showModal(
           "Нечего генерировать",
@@ -773,6 +775,8 @@ const Canvas = () => {
               onDurationChange={setDuration}
               scale={scale}
               onScaleChange={setScale}
+              rhythmPattern={rhythmPattern}
+              onRhythmPatternChange={setRhythmPattern}
               effectReverb={effectReverb}
               onReverbChange={setEffectReverb}
               effectDelay={effectDelay}

@@ -26,6 +26,9 @@ class DrawingEngine {
     // RAF handle для дебаунса resize во время drag
     this._resizeRafId = null;
 
+    // Накопленные точки ластика за текущий мазок (нормализованные)
+    this._eraserTrail = [];
+
     this.initCanvases();
     this.setupEventListeners();
   }
@@ -75,39 +78,67 @@ class DrawingEngine {
     this.lastX = pos.x;
     this.lastY = pos.y;
 
-    this.currentSegment = {
-      points: [
+    if (this.isErasing) {
+      // Ластик: накапливаем точки отдельно, сегмент не создаём
+      this._eraserTrail = [
         {
           x: pos.x / this.mainCanvas.width,
           y: pos.y / this.mainCanvas.height,
         },
-      ],
-      color: this.currentColor,
-      lineWidth: this.isErasing ? this.eraserWidth : this.lineWidth,
-      isErase: this.isErasing,
-      instrument: this.currentInstrument,
-    };
+      ];
+      this.currentSegment = null;
+    } else {
+      this._eraserTrail = [];
+      this.currentSegment = {
+        points: [
+          {
+            x: pos.x / this.mainCanvas.width,
+            y: pos.y / this.mainCanvas.height,
+          },
+        ],
+        color: this.currentColor,
+        lineWidth: this.lineWidth,
+        isErase: false,
+        instrument: this.currentInstrument,
+      };
+    }
   }
 
   draw(e) {
-    if (!this.isDrawing || !this.currentSegment) return;
+    if (!this.isDrawing) return;
     const pos = this.getMousePos(e);
 
-    this.ctx.lineWidth = this.isErasing ? this.eraserWidth : this.lineWidth;
-    this.ctx.globalCompositeOperation = this.isErasing
-      ? "destination-out"
-      : "source-over";
-    if (!this.isErasing) this.ctx.strokeStyle = this.currentColor;
+    if (this.isErasing) {
+      // Визуально стираем пиксели на лету
+      this.ctx.lineWidth = this.eraserWidth;
+      this.ctx.globalCompositeOperation = "destination-out";
+      this.ctx.beginPath();
+      this.ctx.moveTo(this.lastX, this.lastY);
+      this.ctx.lineTo(pos.x, pos.y);
+      this.ctx.stroke();
+      this.ctx.globalCompositeOperation = "source-over";
 
-    this.ctx.beginPath();
-    this.ctx.moveTo(this.lastX, this.lastY);
-    this.ctx.lineTo(pos.x, pos.y);
-    this.ctx.stroke();
+      // Накапливаем путь ластика
+      this._eraserTrail.push({
+        x: pos.x / this.mainCanvas.width,
+        y: pos.y / this.mainCanvas.height,
+      });
+    } else {
+      if (!this.currentSegment) return;
+      this.ctx.lineWidth = this.lineWidth;
+      this.ctx.globalCompositeOperation = "source-over";
+      this.ctx.strokeStyle = this.currentColor;
 
-    this.currentSegment.points.push({
-      x: pos.x / this.mainCanvas.width,
-      y: pos.y / this.mainCanvas.height,
-    });
+      this.ctx.beginPath();
+      this.ctx.moveTo(this.lastX, this.lastY);
+      this.ctx.lineTo(pos.x, pos.y);
+      this.ctx.stroke();
+
+      this.currentSegment.points.push({
+        x: pos.x / this.mainCanvas.width,
+        y: pos.y / this.mainCanvas.height,
+      });
+    }
 
     this.lastX = pos.x;
     this.lastY = pos.y;
@@ -118,13 +149,123 @@ class DrawingEngine {
     this.isDrawing = false;
     this.ctx.globalCompositeOperation = "source-over";
 
-    if (this.currentSegment && this.currentSegment.points.length > 1) {
-      this.segments.push(this.currentSegment);
-      if (typeof this.onStrokeEnd === "function") {
-        this.onStrokeEnd();
+    if (this.isErasing) {
+      // Применяем ластик к данным сегментов
+      if (this._eraserTrail.length > 0) {
+        const changed = this._erasePoints(this._eraserTrail, this.eraserWidth);
+        if (changed) {
+          // Перерисовываем с обновлёнными сегментами
+          this.redraw();
+          if (typeof this.onStrokeEnd === "function") {
+            this.onStrokeEnd();
+          }
+        }
+      }
+      this._eraserTrail = [];
+    } else {
+      if (this.currentSegment && this.currentSegment.points.length > 1) {
+        this.segments.push(this.currentSegment);
+        if (typeof this.onStrokeEnd === "function") {
+          this.onStrokeEnd();
+        }
       }
     }
     this.currentSegment = null;
+  }
+
+  /**
+   * Удаляет точки из сегментов, попавшие под ластик.
+   * eraserTrail — нормализованные точки пути ластика [{ x, y }, ...]
+   * eraserWidthPx — толщина ластика в пикселях
+   * Возвращает true если хоть что-то изменилось.
+   */
+  _erasePoints(eraserTrail, eraserWidthPx) {
+    const w = this.mainCanvas.width;
+    const h = this.mainCanvas.height;
+    // Радиус ластика в нормализованных координатах (берём среднее по осям)
+    const rx = (eraserWidthPx / 2) / w;
+    const ry = (eraserWidthPx / 2) / h;
+    const r2 = rx * ry; // используем эллиптическое расстояние
+
+    let changed = false;
+
+    this.segments = this.segments
+      .map((seg) => {
+        if (seg.isErase) return null; // убираем старые erase-сегменты если вдруг остались
+
+        const filteredPoints = seg.points.filter((pt) => {
+          // Проверяем, попадает ли точка под любой отрезок пути ластика
+          for (let i = 0; i < eraserTrail.length; i++) {
+            const ep = eraserTrail[i];
+            const dx = (pt.x - ep.x) / rx;
+            const dy = (pt.y - ep.y) / ry;
+            if (dx * dx + dy * dy <= 1) {
+              changed = true;
+              return false; // точка стёрта
+            }
+            // Также проверяем отрезок между соседними точками ластика
+            if (i + 1 < eraserTrail.length) {
+              const ep2 = eraserTrail[i + 1];
+              if (this._pointNearSegment(pt, ep, ep2, rx, ry)) {
+                changed = true;
+                return false;
+              }
+            }
+          }
+          return true;
+        });
+
+        if (filteredPoints.length === seg.points.length) return seg; // ничего не стёрто
+        changed = true;
+        if (filteredPoints.length < 2) return null; // сегмент полностью стёрт
+        return { ...seg, points: filteredPoints };
+      })
+      .filter(Boolean)
+      // Разбиваем сегменты, у которых образовались «пробелы» после стирания
+      .flatMap((seg) => this._splitSegmentByGaps(seg));
+
+    return changed;
+  }
+
+  /**
+   * Проверяет, находится ли точка pt рядом с отрезком [a, b] (в нормализованных координатах),
+   * с учётом радиусов rx/ry.
+   */
+  _pointNearSegment(pt, a, b, rx, ry) {
+    const dx = (b.x - a.x) / rx;
+    const dy = (b.y - a.y) / ry;
+    const lenSq = dx * dx + dy * dy;
+    if (lenSq === 0) return false;
+    const px = (pt.x - a.x) / rx;
+    const py = (pt.y - a.y) / ry;
+    const t = Math.max(0, Math.min(1, (px * dx + py * dy) / lenSq));
+    const closestX = px - t * dx;
+    const closestY = py - t * dy;
+    return closestX * closestX + closestY * closestY <= 1;
+  }
+
+  /**
+   * Разбивает сегмент на несколько, если между точками образовались большие пробелы
+   * (признак того, что середина была стёрта).
+   */
+  _splitSegmentByGaps(seg) {
+    const GAP_THRESHOLD = 0.05; // разрыв больше 5% ширины холста
+    const parts = [];
+    let current = [seg.points[0]];
+
+    for (let i = 1; i < seg.points.length; i++) {
+      const prev = seg.points[i - 1];
+      const curr = seg.points[i];
+      const dist = Math.hypot(curr.x - prev.x, curr.y - prev.y);
+      if (dist > GAP_THRESHOLD) {
+        if (current.length >= 2) parts.push({ ...seg, points: current });
+        current = [curr];
+      } else {
+        current.push(curr);
+      }
+    }
+    if (current.length >= 2) parts.push({ ...seg, points: current });
+    return parts.length > 0 ? parts : [];
   }
 
   redraw() {

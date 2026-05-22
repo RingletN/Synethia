@@ -112,6 +112,15 @@
   height: 70px;
 }
 
+.settings-panel-rhythm-text {
+  font-size: 28px;
+  color: var(--color-bright);
+  font-weight: var(--font-weight-semibold);
+  min-width: 120px;
+  text-align: center;
+  letter-spacing: 0.04em;
+}
+
 /* Tempo */
 .settings-panel-tempo-row {
   display: flex;

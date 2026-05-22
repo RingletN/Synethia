@@ -122,7 +122,7 @@ export const GAUSSIAN_SIGMA       = 2;
 export const EDGE_IGNORE_RATIO    = 0.05;
 
 // ===== НАСТРОЙКИ ПО УМОЛЧАНИЮ (меняйте здесь для дебага) =====
-export const DEFAULT_RHYTHM_PATTERN  = "rock";    // "straight" | "waltz" | "disco" | "jazz" | "rock"
+export const DEFAULT_RHYTHM_PATTERN  = "disco";    // "straight" | "waltz" | "disco" | "jazz" | "rock"
 export const DEFAULT_LEGATO          = false;     // false = стаккато, true = почти легато (95% такта)
 export const DEFAULT_VOICE_MODE      = "random";  // "together" | "offset" | "random"
 export const DEFAULT_NOTES_PER_BEAT  = 4;         // 1..4, чем больше — тем плотнее
