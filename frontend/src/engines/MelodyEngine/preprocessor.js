@@ -57,6 +57,7 @@ export function detectInflections(seg, T) {
 }
 
 export function detectTonic(processedSegs) {
+  // Берём самую левую точку (первую ноту рисунка) как тонику
   let leftmostPoint = null;
   let leftmostX     = Infinity;
   for (const seg of processedSegs) {
@@ -67,23 +68,10 @@ export function detectTonic(processedSegs) {
       }
     }
   }
-  if (!leftmostPoint) return Math.round(freqToMidi(261.63));
-  let rawMidi = Math.round(freqToMidi(yNormToFreq(leftmostPoint.y)));
-  
-  // УЛУЧШЕНИЕ: квантизация к «хорошим» тоникам (белые клавиши)
-  const goodTonals = [0, 2, 4, 5, 7, 9, 11]; // C, D, E, F, G, A, B
-  const noteClass = ((rawMidi % 12) + 12) % 12;
-  let bestClass = noteClass;
-  let minDist = 12;
-  for (const gc of goodTonals) {
-    const d = Math.min(Math.abs(gc - noteClass), 12 - Math.abs(gc - noteClass));
-    if (d < minDist) {
-      minDist = d;
-      bestClass = gc;
-    }
-  }
-  const octave = Math.floor(rawMidi / 12);
-  return octave * 12 + bestClass;
+  if (!leftmostPoint) return Math.round(freqToMidi(261.63)); // C4 fallback
+
+  // Квантизуем к ближайшему целому полутону (точная нота, без дрейфа)
+  return Math.round(freqToMidi(yNormToFreq(leftmostPoint.y)));
 }
 
 // ─── приватные хелперы ────────────────────────────────────────────────────────

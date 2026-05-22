@@ -1,5 +1,4 @@
 // engines/MelodyEngine/constants.js
-// Все константы, маппинги и ритмические паттерны движка мелодии
 
 export const A4_FREQ = 440;
 export const A4_MIDI = 69;
@@ -41,12 +40,21 @@ export const INSTRUMENT_VOLUME = {
   harp:              0.26,
 };
 
+// Множители громкости по роли — бас тихий, чтобы не перекрывал мелодию
+export const ROLE_VOLUME_MULT = {
+  melody: 1.0,
+  chord:  0.65,
+  bass:   0.50,
+};
+
 export const RHYTHM_PATTERNS = {
   straight: {
     melody: [ { offset: 0, accentMult: 1.0, durationMult: 0.6 } ],
     chord:  [ { offset: 0, accentMult: 0.75, durationMult: 0.7 } ],
     bass:   [ { offset: 0, accentMult: 0.8,  durationMult: 0.7 } ],
   },
+
+  // Вальс: бас на 1, аккорд на 2 и 3 (классический «бас — аккорд — аккорд»)
   waltz: {
     melody: [
       { offset: 0,    accentMult: 1.3,  durationMult: 0.7  },
@@ -54,31 +62,32 @@ export const RHYTHM_PATTERNS = {
       { offset: 0.67, accentMult: 0.65, durationMult: 0.45 },
     ],
     chord: [
-      { offset: 0,    accentMult: 0.8,  durationMult: 0.7  },
-      { offset: 0.33, accentMult: 0.55, durationMult: 0.4  },
-      { offset: 0.67, accentMult: 0.55, durationMult: 0.4  },
+      { offset: 0.33, accentMult: 0.55, durationMult: 0.38 },
+      { offset: 0.67, accentMult: 0.55, durationMult: 0.38 },
     ],
     bass: [
-      { offset: 0,    accentMult: 1.0, durationMult: 0.7 },
-      { offset: 0.67, accentMult: 0.5, durationMult: 0.4 },
+      { offset: 0, accentMult: 1.0, durationMult: 0.55 },
     ],
   },
+
+  // Рок: жёсткие акценты на 1 и 3, staccato
   rock: {
     melody: [
-      { offset: 0,   accentMult: 1.4, durationMult: 0.6 },
-      { offset: 0.5, accentMult: 1.2, durationMult: 0.6 },
+      { offset: 0,   accentMult: 1.8, durationMult: 0.4 },
+      { offset: 0.5, accentMult: 1.5, durationMult: 0.4 },
     ],
     chord: [
-      { offset: 0,    accentMult: 0.9, durationMult: 0.6 },
-      { offset: 0.25, accentMult: 0.5, durationMult: 0.4 },
-      { offset: 0.5,  accentMult: 0.9, durationMult: 0.6 },
-      { offset: 0.75, accentMult: 0.5, durationMult: 0.4 },
+      { offset: 0,    accentMult: 1.1, durationMult: 0.45 },
+      { offset: 0.25, accentMult: 0.5, durationMult: 0.3  },
+      { offset: 0.5,  accentMult: 1.1, durationMult: 0.45 },
+      { offset: 0.75, accentMult: 0.5, durationMult: 0.3  },
     ],
     bass: [
-      { offset: 0,   accentMult: 1.2, durationMult: 0.7 },
-      { offset: 0.5, accentMult: 1.0, durationMult: 0.7 },
+      { offset: 0,   accentMult: 1.4, durationMult: 0.55 },
+      { offset: 0.5, accentMult: 1.2, durationMult: 0.55 },
     ],
   },
+
   disco: {
     melody: [
       { offset: 0,    accentMult: 1.3, durationMult: 0.5 },
@@ -97,6 +106,7 @@ export const RHYTHM_PATTERNS = {
       { offset: 0.5, accentMult: 0.9, durationMult: 0.6 },
     ],
   },
+
   jazz: {
     melody: [
       { offset: 0,    accentMult: 1.1,  durationMult: 0.65 },
@@ -121,8 +131,12 @@ export const INFLECTION_THRESHOLD = 0.035;
 export const GAUSSIAN_SIGMA       = 2;
 export const EDGE_IGNORE_RATIO    = 0.05;
 
-// ===== НАСТРОЙКИ ПО УМОЛЧАНИЮ (меняйте здесь для дебага) =====
-export const DEFAULT_RHYTHM_PATTERN  = "disco";    // "straight" | "waltz" | "disco" | "jazz" | "rock"
-export const DEFAULT_LEGATO          = false;     // false = стаккато, true = почти легато (95% такта)
-export const DEFAULT_VOICE_MODE      = "random";  // "together" | "offset" | "random"
-export const DEFAULT_NOTES_PER_BEAT  = 4;         // 1..4, чем больше — тем плотнее
+// ===== НАСТРОЙКИ ПО УМОЛЧАНИЮ =====
+export const DEFAULT_RHYTHM_PATTERN  = "disco";
+export const DEFAULT_LEGATO          = false;
+export const DEFAULT_VOICE_MODE      = "random";
+export const DEFAULT_NOTES_PER_BEAT  = 4;
+
+// Chord progressions: offsets от тоники в полутонах
+// Для каждого паттерна: [I, IV, V, I]
+export const CHORD_PROGRESSION_SEMITONES = [0, 5, 7, 0];

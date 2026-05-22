@@ -34,11 +34,13 @@ class MelodyEngine {
       bpm           = 80,
       duration      = 8,
       scale         = "major",
-      notesPerBeat  = this.defaultNotesPerBeat,
       rhythmPattern = "straight",
       legato        = this.defaultLegato,
       voiceMode     = this.defaultVoiceMode,
     } = options;
+
+    // Адаптируем количество нот к BPM, если не задано явно
+    const notesPerBeat = options.notesPerBeat ?? selectNotesPerBeat(bpm);
 
     if (!segments?.length) return { events: [], tonicMidi: 60, roles: {} };
 
