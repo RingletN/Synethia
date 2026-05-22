@@ -68,7 +68,22 @@ export function detectTonic(processedSegs) {
     }
   }
   if (!leftmostPoint) return Math.round(freqToMidi(261.63));
-  return Math.round(freqToMidi(yNormToFreq(leftmostPoint.y)));
+  let rawMidi = Math.round(freqToMidi(yNormToFreq(leftmostPoint.y)));
+  
+  // УЛУЧШЕНИЕ: квантизация к «хорошим» тоникам (белые клавиши)
+  const goodTonals = [0, 2, 4, 5, 7, 9, 11]; // C, D, E, F, G, A, B
+  const noteClass = ((rawMidi % 12) + 12) % 12;
+  let bestClass = noteClass;
+  let minDist = 12;
+  for (const gc of goodTonals) {
+    const d = Math.min(Math.abs(gc - noteClass), 12 - Math.abs(gc - noteClass));
+    if (d < minDist) {
+      minDist = d;
+      bestClass = gc;
+    }
+  }
+  const octave = Math.floor(rawMidi / 12);
+  return octave * 12 + bestClass;
 }
 
 // ─── приватные хелперы ────────────────────────────────────────────────────────

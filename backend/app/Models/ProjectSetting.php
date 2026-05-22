@@ -6,7 +6,8 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-#[Fillable(['project_id', 'bpm', 'duration', 'scale', 'reverb', 'delay', 'distortion'])]
+#[Fillable(['project_id', 'bpm', 'duration', 'scale', 
+'rhythm_pattern', 'reverb', 'delay', 'distortion'])]
  
 class ProjectSetting extends Model
 {

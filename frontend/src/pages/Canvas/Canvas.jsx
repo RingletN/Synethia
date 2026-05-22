@@ -133,6 +133,7 @@ const Canvas = () => {
         if (saved.bpm) setBpm(saved.bpm);
         if (saved.duration) setDuration(saved.duration);
         if (saved.scale) setScale(saved.scale);
+        if (saved.rhythmPattern) setRhythmPattern(saved.rhythmPattern);
         if (saved.effectReverb !== undefined)
           setEffectReverb(saved.effectReverb);
         if (saved.effectDelay !== undefined) setEffectDelay(saved.effectDelay);
@@ -194,6 +195,7 @@ const Canvas = () => {
     bpm,
     duration,
     scale,
+    rhythmPattern,
     effectReverb,
     effectDelay,
     effectDistortion,
@@ -234,6 +236,7 @@ const Canvas = () => {
           bpm,
           duration,
           scale,
+          rhythmPattern,  
           effectReverb,
           effectDelay,
           effectDistortion,
@@ -352,6 +355,7 @@ const Canvas = () => {
           setBpm(s.bpm);
           setDuration(s.duration);
           setScale(s.scale);
+          setRhythmPattern(s.rhythm_pattern || 'rock'); 
           setEffectReverb(parseFloat(s.reverb));
           setEffectDelay(parseFloat(s.delay));
           setEffectDistortion(parseFloat(s.distortion));

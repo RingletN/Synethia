@@ -51,15 +51,16 @@ class MelodyEngine {
 
     assignRoles(processedSegs, T);
     const rawNotes = buildRawNotes(processedSegs, tonicMidi, T, scale, notesPerBeat);
-    const events   = applyRhythmPattern(rawNotes, beatDuration, rhythmPattern, legato, voiceMode);
+    // FIX: передаём bpm в applyRhythmPattern для динамического jitter
+    const events   = applyRhythmPattern(rawNotes, beatDuration, rhythmPattern, legato, voiceMode, bpm);
 
     const roles = {};
     for (const seg of processedSegs) roles[seg.instrument] = seg.role;
     return { events, tonicMidi, roles };
   }
 
-  regenerateRhythm(rawNotes, beatDuration, rhythmPattern, legato = this.defaultLegato, voiceMode = this.defaultVoiceMode) {
-    return applyRhythmPattern(rawNotes, beatDuration, rhythmPattern, legato, voiceMode);
+  regenerateRhythm(rawNotes, beatDuration, rhythmPattern, legato = this.defaultLegato, voiceMode = this.defaultVoiceMode, bpm = 120) {
+    return applyRhythmPattern(rawNotes, beatDuration, rhythmPattern, legato, voiceMode, bpm);
   }
 
   exportDebugLog(events, roles, tonicMidi, options = {}) {
@@ -70,7 +71,6 @@ class MelodyEngine {
     });
   }
 
-  // Утилиты, которые могут понадобиться снаружи
   getSegmentDirection(segment)  { return getSegmentDirection(segment); }
   selectNotesPerBeat(bpm)       { return selectNotesPerBeat(bpm); }
 }

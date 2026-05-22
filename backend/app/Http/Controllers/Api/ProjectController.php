@@ -95,6 +95,7 @@ class ProjectController extends Controller
             'settings.bpm'            => 'required|integer|min:40|max:180',
             'settings.duration'       => 'required|integer|min:5|max:90',
             'settings.scale'          => 'required|in:major,minor',
+            'settings.rhythm_pattern' => 'required|string|in:straight,waltz,rock,disco,jazz', // допустимые значения
             'settings.reverb'         => 'required|numeric|min:0|max:1',
             'settings.delay'          => 'required|numeric|min:0|max:1',
             'settings.distortion'     => 'required|numeric|min:0|max:1',
@@ -152,6 +153,7 @@ class ProjectController extends Controller
                     'bpm'         => $data['settings']['bpm'],
                     'duration'    => $data['settings']['duration'],
                     'scale'       => $data['settings']['scale'],
+                    'rhythm_pattern' => $data['settings']['rhythm_pattern'],
                     'reverb'      => $data['settings']['reverb'],
                     'delay'       => $data['settings']['delay'],
                     'distortion'  => $data['settings']['distortion'],
