@@ -11,6 +11,7 @@ import { useProjectSave } from "./hooks/useProjectSave";
 import useMelodyPlayer from "../../hooks/useMelodyPlayer";
 import { useAudioExporter } from "./hooks/useAudioExporter";
 import { imageToSegments } from "../../utils/imageToSegments";
+import { COLOR_TO_INSTRUMENT } from "../../engines/MelodyEngine/constants";
 import MelodyEngine from "../../engines/MelodyEngine/MelodyEngine";
 import Button from "../../components/ui/Button/Button";
 import Loader from "../../components/ui/Loader";
@@ -291,11 +292,22 @@ const Canvas = () => {
       setIsImporting(true);
       try {
         const currentLineWidth = engineRef.current.getLineWidth?.() || 5;
+
+        // Строим палитру из полного спектра инструментов движка мелодии
+        const palette = Object.entries(COLOR_TO_INSTRUMENT).map(
+          ([color, instrument]) => ({ color, instrument })
+        );
+
         const segments = await imageToSegments(file, {
-          threshold: 20,
-          maxWidth: 850,
-          lineWidth: currentLineWidth,
+          threshold:     90,   // высокий порог — только чёткие края, без шума
+          maxWidth:      700,   // немного меньше для скорости обработки
+          minSegmentLen: 20,    // отсекаем мелкий шум
+          maxSegments:   400,   // жёсткий потолок чтобы не перегружать плеер
+          simplifyEps:   0.004, // Douglas-Peucker — убирает лишние точки
+          lineWidth:     currentLineWidth,
+          palette,
         });
+
         if (segments.length === 0) {
           showModal(
             "Контуры не найдены",

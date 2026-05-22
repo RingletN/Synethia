@@ -1,6 +1,6 @@
 // engines/MelodyEngine/constants.js
 
-export const A4_FREQ = 440;
+export const A4_FREQ = 432;
 export const A4_MIDI = 69;
 
 export const MIN_FREQ = 130.81; // C3
@@ -29,13 +29,13 @@ export const COLOR_TO_INSTRUMENT = {
 
 export const INSTRUMENT_VOLUME = {
   piano:             0.28,
-  guitar:            0.18,
+  guitar:            0.28,
   flute:             0.22,
-  strings:           0.22,
+  strings:           0.16,
   clarinet:          0.24,
   saxophone:         0.20,
-  "guitar-electric": 0.16,
-  cello:             0.24,
+  "guitar-electric": 0.22,
+  cello:             0.20, //че...
   xylophone:         0.30,
   harp:              0.26,
 };
@@ -44,7 +44,7 @@ export const INSTRUMENT_VOLUME = {
 export const ROLE_VOLUME_MULT = {
   melody: 1.0,
   chord:  0.65,
-  bass:   0.50,
+  bass:   0.60,
 };
 
 export const RHYTHM_PATTERNS = {

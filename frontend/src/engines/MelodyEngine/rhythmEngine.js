@@ -48,20 +48,40 @@ export function applyRhythmPattern(rawNotes, beatDuration, rhythmPattern, legato
       }
 
     } else if (role === 'bass') {
-      // Бас: строго по паттерну, один раз за такт (или сколько задано)
-      const taktStart      = notes[0].takt * beatDuration;
-      const bassNote       = notes[0];
-      for (const beat of patternBeats) {
-        const jitter = (Math.random() - 0.5) * jitterScale * 0.5 * beatDuration;
-        events.push({
-          time:       Math.max(0, taktStart + beat.offset * beatDuration + jitter),
-          duration:   beatDuration * beat.durationMult,
-          freq:       bassNote.freq,
-          instrument: bassNote.instrument,
-          volume:     Math.min(1, bassNote.volume * beat.accentMult),
-          role:       bassNote.role,
-          midi:       bassNote.midi,
-        });
+      const taktStart  = notes[0].takt * beatDuration;
+      const accompStyle = notes[0].accompStyle;
+
+      if (accompStyle === 'bassInterval') {
+        // Несколько нот баса — играем интервал одновременно на каждый бит паттерна
+        for (const beat of patternBeats) {
+          const jitter = (Math.random() - 0.5) * jitterScale * 0.5 * beatDuration;
+          for (const n of notes) {
+            events.push({
+              time:       Math.max(0, taktStart + beat.offset * beatDuration + jitter),
+              duration:   beatDuration * beat.durationMult,
+              freq:       n.freq,
+              instrument: n.instrument,
+              volume:     Math.min(1, n.volume * beat.accentMult),
+              role:       n.role,
+              midi:       n.midi,
+            });
+          }
+        }
+      } else {
+        // Обычный bassWalk: один раз за такт
+        const bassNote = notes[0];
+        for (const beat of patternBeats) {
+          const jitter = (Math.random() - 0.5) * jitterScale * 0.5 * beatDuration;
+          events.push({
+            time:       Math.max(0, taktStart + beat.offset * beatDuration + jitter),
+            duration:   beatDuration * beat.durationMult,
+            freq:       bassNote.freq,
+            instrument: bassNote.instrument,
+            volume:     Math.min(1, bassNote.volume * beat.accentMult),
+            role:       bassNote.role,
+            midi:       bassNote.midi,
+          });
+        }
       }
 
     } else {
