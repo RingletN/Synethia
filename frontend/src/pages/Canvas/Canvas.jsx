@@ -11,7 +11,7 @@ import { useProjectSave } from "./hooks/useProjectSave";
 import useMelodyPlayer from "../../hooks/useMelodyPlayer";
 import { useAudioExporter } from "./hooks/useAudioExporter";
 import { imageToSegments } from "../../utils/imageToSegments";
-import MelodyEngine from "../../engines/MelodyEngine";
+import MelodyEngine from "../../engines/MelodyEngine/MelodyEngine";
 import Button from "../../components/ui/Button/Button";
 import Loader from "../../components/ui/Loader";
 import SaveAsModal from "../../components/ui/Modal/SaveAsModal";
