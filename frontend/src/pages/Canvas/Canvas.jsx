@@ -376,12 +376,18 @@ const Canvas = () => {
           const { segments, bg_color, width, height } = project.canvas;
           const newW = width || 750;
           const newH = height || 600;
+          // setCanvasSize({ width: newW, height: newH });
+          // if (canvasPanelRef.current) {
+          //   canvasPanelRef.current.style.width = `${newW}px`;
+          //   canvasPanelRef.current.style.height = `${newH}px`;
+          // }
+          // engineRef.current.resize(newW, newH);
           setCanvasSize({ width: newW, height: newH });
-          if (canvasPanelRef.current) {
-            canvasPanelRef.current.style.width = `${newW}px`;
-            canvasPanelRef.current.style.height = `${newH}px`;
-          }
-          engineRef.current.resize(newW, newH);
+          // движок перерисует содержимое после того как React обновит canvas-атрибуты
+          requestAnimationFrame(() => {
+            engineRef.current?._doResize(newW, newH);
+          });
+
           if (bg_color) {
             setBgColor(bg_color);
             bgColorRef.current = bg_color;
@@ -780,7 +786,9 @@ const Canvas = () => {
                 </div>
               )}
             </div>
-            <div className="idk-panel" />
+            <div className="hint-panel" >
+            <p>Рисуй на холсте и содавай свою мелодию!</p>
+          </div>
           </div>
 
           <div className="settings-block">

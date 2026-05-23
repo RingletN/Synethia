@@ -85,8 +85,8 @@
 .canvas-panel {
   position: relative;
   overflow: hidden;
-  min-height: 600px;
-  min-width: 600px;
+  min-height: 700px;
+  min-width: 780px;
   max-width: none;
   max-height: none;
   box-sizing: border-box;
@@ -115,13 +115,14 @@
   border-radius: 40px 40px 0 0;
 }
 
-.idk-panel {
+.hint-panel {
   display: flex;
   align-items: center;
   position: relative;
-  height: 100px;
+  min-height: 76px;
   box-sizing: border-box;
   overflow: hidden;
+  padding: 8px 22px;
   background-color: rgba(190, 190, 190, 0.1);
   border-radius: 0px 0px 40px 40px;
 }
@@ -138,7 +139,7 @@
 }
 
 .tools-panel::before,
-.idk-panel::before,
+.hint-panel::before,
 .canvas-panel::before,
 .settings-block::before,
 .music-player::before {
@@ -163,7 +164,7 @@
   background: linear-gradient(180deg, var(--color-cyan), var(--color-violet));
 }
 
-.idk-panel::before {
+.hint-panel::before {
   border-radius: 0px 0px 40px 40px;
   background: linear-gradient(180deg, var(--color-violet), var(--color-cyan));
 }

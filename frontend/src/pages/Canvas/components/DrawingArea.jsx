@@ -1,6 +1,6 @@
 import React, { useRef, useEffect } from "react";
 
-const DrawingArea = ({ width, height, onReady }) => {
+const DrawingArea = ({ onReady }) => {
   const mainRef = useRef(null);
   const initializedRef = useRef(false);
 
@@ -13,11 +13,9 @@ const DrawingArea = ({ width, height, onReady }) => {
   }, [onReady]);
 
   return (
-    <div style={{ position: "relative", width, height }}>
+    <div style={{ position: "absolute", inset: 0 }}>
       <canvas
         ref={mainRef}
-        width={width}
-        height={height}
         style={{ position: "absolute", top: 0, left: 0, zIndex: 1 }}
       />
     </div>
