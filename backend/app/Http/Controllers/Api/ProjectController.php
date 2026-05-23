@@ -94,7 +94,7 @@ class ProjectController extends Controller
             'settings'                => 'required|array',
             'settings.bpm'            => 'required|integer|min:40|max:180',
             'settings.duration'       => 'required|integer|min:5|max:90',
-            'settings.scale'          => 'required|in:major,minor',
+            'settings.scale'          => 'required|in:major,minor,pentatonic,dorian,blues',
             'settings.rhythm_pattern' => 'required|string|in:straight,waltz,rock,disco,jazz', // допустимые значения
             'settings.reverb'         => 'required|numeric|min:0|max:1',
             'settings.delay'          => 'required|numeric|min:0|max:1',

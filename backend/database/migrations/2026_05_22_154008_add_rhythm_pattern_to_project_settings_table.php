@@ -9,7 +9,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('project_settings', function (Blueprint $table) {
-            $table->string('rhythm_pattern', 20)->default('rock')->after('scale');
+            $table->string('rhythm_pattern', 20)->default('disco')->after('scale');
         });
     }
 

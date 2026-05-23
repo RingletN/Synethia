@@ -369,6 +369,7 @@ function buildSimultaneousSegsByTakt(processedSegs, T, role) {
   for (const seg of processedSegs) {
     if (seg.role !== role) continue;
     const { instrument, points } = seg;
+    if (!points || points.length === 0) continue; // защита от пустых сегментов
 
     if (!result.has(instrument)) {
       result.set(instrument, Array.from({ length: T }, () => []));
@@ -383,6 +384,7 @@ function buildSimultaneousSegsByTakt(processedSegs, T, role) {
     for (let k = minTakt; k <= maxTakt; k++) {
       // FIX: не добавляем один и тот же сегмент дважды в один такт
       // (защита от дублированных сегментов на входе)
+      if (!taktArr[k]) continue; // дополнительная защита
       if (!taktArr[k].includes(seg)) {
         taktArr[k].push(seg);
       }
