@@ -1,15 +1,5 @@
 // engines/MelodyEngine/noteBuilder.js
 // Фаза 1б: генерация сырых нот (питч + позиция, без ритмического наложения)
-//
-// Логика chord-роли:
-//   - Один сегмент в такте → одиночная квантизованная линия (accompStyle: 'single')
-//   - Несколько сегментов одного инструмента одновременно → настоящий аккорд
-//     из реальных Y-позиций рисунка (accompStyle: 'flatChord' / 'arpeggio')
-//
-// Логика bass-роли:
-//   - Один сегмент → bassWalk (корень + проходящая нота)
-//   - Несколько сегментов одного инструмента одновременно → интервал
-//     (нижняя нота = бас, верхняя = квинта/терция по рисунку)
 
 import { SCALES, ROLE_VOLUME_MULT, CHORD_PROGRESSION_SEMITONES } from "./constants.js";
 import {
@@ -24,7 +14,6 @@ import { detectInflections } from "./preprocessor.js";
 export function buildRawNotes(processedSegs, tonicMidi, T, scale, notesPerBeat) {
   const rawNotes = [];
 
-  // Предвычисляем одновременные сегменты для chord и bass
   const chordSegsByTakt = buildSimultaneousSegsByTakt(processedSegs, T, 'chord');
   const bassSegsByTakt  = buildSimultaneousSegsByTakt(processedSegs, T, 'bass');
 
@@ -56,6 +45,11 @@ export function buildRawNotes(processedSegs, tonicMidi, T, scale, notesPerBeat) 
       let taktPts    = points.filter(pt => pt.x >= taktXMin && pt.x < taktXMax);
 
       if (taktPts.length === 0) {
+        // Chord/ornament инструменты (короткие фрагменты вроде ксилофона):
+        // играют ТОЛЬКО в тактах где реально нарисованы — нет точек = тишина.
+        if (role === 'chord' || seg.isOrnament) continue;
+
+        // Мелодия и бас: экстраполируем на весь холст крайними значениями.
         if (taktYMap[k] === null) continue;
         taktPts = [{ x: (taktXMin + taktXMax) / 2, y: taktYMap[k], interpolated: true }];
       }
@@ -71,14 +65,16 @@ export function buildRawNotes(processedSegs, tonicMidi, T, scale, notesPerBeat) 
       }
 
       if (role === 'chord') {
-        // Смотрим, сколько chord-сегментов одного инструмента активны в этом такте
         const simultaneousSegs = (chordSegsByTakt.get(instrument) || [])[k] || [];
+
+        // Ornament-сегменты: одна нота в такт, тихо, как украшение
+        const ornamentVolMult = seg.isOrnament ? 0.45 : 1.0;
         const accompNotes = buildChordNote(
-          seg, k, taktPts, inflections, tonicMidi, scale, T, roleVolume,
+          seg, k, taktPts, inflections, tonicMidi, scale, T,
+          roleVolume * ornamentVolMult,
           simultaneousSegs, prevMidi
         );
         rawNotes.push(...accompNotes);
-        // Обновляем prevMidi для одиночной линии
         if (accompNotes.length > 0 && accompNotes[0].accompStyle === 'single') {
           prevMidi = accompNotes[accompNotes.length - 1].midi;
         }
@@ -92,7 +88,6 @@ export function buildRawNotes(processedSegs, tonicMidi, T, scale, notesPerBeat) 
         const rawFreq = yNormToFreq(yNorm);
         let { freq, midi } = quantizeToScale(rawFreq, tonicMidi, scale, prevMidi);
 
-        // Ограничение шага — до 7 полутонов, изредка разрешаем октавный прыжок
         if (prevMidi !== null) {
           let diff = midi - prevMidi;
           const maxStep = (Math.random() < 0.12) ? 12 : 7;
@@ -124,7 +119,6 @@ export function buildRawNotes(processedSegs, tonicMidi, T, scale, notesPerBeat) 
         prevMidi = midi;
       }
 
-      // Добираем ноты шагами по гамме если не хватает точек
       if (samples.length < N && prevMidi !== null) {
         const intervals  = SCALES[scale] || SCALES.major;
         const tonicClass = ((tonicMidi % 12) + 12) % 12;
@@ -160,20 +154,16 @@ export function buildBassNote(seg, k, taktPts, tonicMidi, scale, T, roleVolume, 
   const roleVolMult = ROLE_VOLUME_MULT[role] ?? 1.0;
   const vol = roleVolume ?? (volume * roleVolMult);
 
-  // Несколько сегментов баса одновременно → интервал из реальных нот рисунка
   if (simultaneousSegs.length >= 2) {
     return buildBassInterval(simultaneousSegs, k, T, tonicMidi, scale, vol, instrument, role);
   }
 
-  // Один сегмент → берём реальную ноту из рисунка + проходящая нота к следующему такту
   const sorted  = [...taktPts].sort((a, b) => a.y - b.y);
   const medY    = sorted[Math.floor(sorted.length / 2)].y;
   const { freq: bassFreq, midi: bassMidi } = quantizeToScale(yNormToFreq(medY), tonicMidi, scale);
 
-  // Проходящая нота: шаг по гамме в сторону следующего такта
   const intervals  = SCALES[scale] || SCALES.major;
   const tonicClass = ((tonicMidi % 12) + 12) % 12;
-  const taktXMin   = k / T;
   const taktXMax   = (k + 1) / T;
   const nextPts    = seg.points.filter(pt => pt.x >= taktXMax && pt.x < (k + 2) / T);
   let walkMidi     = bassMidi;
@@ -193,21 +183,21 @@ export function buildBassNote(seg, k, taktPts, tonicMidi, scale, T, roleVolume, 
       takt: k, posInTakt: 0,
       freq: bassFreq, midi: bassMidi,
       instrument, role, volume: vol,
-      isInflection: false, inflectionType: null, accompStyle: 'bassWalk',
+      isInflection: false, inflectionType: null,
+      accompStyle: 'bassWalk',
+      isWalk: false,
     },
     {
       takt: k, posInTakt: 0.75,
       freq: midiToFreq(walkMidi), midi: walkMidi,
-      instrument, role, volume: vol * 0.7,
-      isInflection: false, inflectionType: null, accompStyle: 'bassWalk',
+      instrument, role, volume: vol * 0.6,
+      isInflection: false, inflectionType: null,
+      accompStyle: 'bassWalk',
+      isWalk: true,
     },
   ];
 }
 
-/**
- * Бас-интервал: берём реальные Y-позиции нескольких сегментов в такте,
- * квантизуем каждый, играем одновременно (нижняя + верхняя нота).
- */
 function buildBassInterval(simultaneousSegs, k, T, tonicMidi, scale, vol, instrument, role) {
   const taktXMin = k / T;
   const taktXMax = (k + 1) / T;
@@ -227,8 +217,7 @@ function buildBassInterval(simultaneousSegs, k, T, tonicMidi, scale, vol, instru
   }
 
   if (notes.length === 0) return [];
-
-  notes.sort((a, b) => a.midi - b.midi); // нижняя нота первой
+  notes.sort((a, b) => a.midi - b.midi);
 
   return notes.map((n, i) => ({
     takt: k, posInTakt: 0,
@@ -240,37 +229,27 @@ function buildBassInterval(simultaneousSegs, k, T, tonicMidi, scale, vol, instru
   }));
 }
 
-// ─── Chord: одиночная линия ИЛИ настоящие аккорды ────────────────────────────
+// ─── Chord ────────────────────────────────────────────────────────────────────
 
 export function buildChordNote(seg, k, taktPts, inflections, tonicMidi, scale, T, roleVolume, simultaneousSegs, prevMidi = null) {
   const { instrument, role, volume } = seg;
   const roleVolMult = ROLE_VOLUME_MULT[role] ?? 1.0;
   const vol = roleVolume ?? (volume * roleVolMult);
 
-  // Если в этом такте только один chord-сегмент этого инструмента —
-  // играем одиночную квантизованную ноту (как мелодия, но реже)
   if (simultaneousSegs.length <= 1) {
     return buildSingleChordLine(seg, k, taktPts, tonicMidi, scale, vol, prevMidi);
   }
 
-  // Несколько сегментов одного инструмента одновременно → настоящие аккорды
-  // Берём Y каждого сегмента в этом такте и строим аккорд из реальных нот
   return buildTrueChord(simultaneousSegs, k, taktPts, tonicMidi, scale, T, inflections, vol, instrument, role);
 }
 
-/**
- * Одиночная линия аккомпанемента: квантизованная нота по рисунку,
- * без синтетических трезвучий. Ритм — более редкий (1 нота за такт).
- */
 function buildSingleChordLine(seg, k, taktPts, tonicMidi, scale, vol, prevMidi) {
   const { instrument, role } = seg;
-  // Медиана Y в такте
   const sorted = [...taktPts].sort((a, b) => a.y - b.y);
   const medY   = sorted[Math.floor(sorted.length / 2)].y;
   const rawFreq = yNormToFreq(medY);
   let { freq, midi } = quantizeToScale(rawFreq, tonicMidi, scale, prevMidi);
 
-  // Плавное ограничение шага (до октавы)
   if (prevMidi !== null && Math.abs(midi - prevMidi) > 12) {
     const dir = midi > prevMidi ? 1 : -1;
     midi = prevMidi + dir * 12;
@@ -284,21 +263,17 @@ function buildSingleChordLine(seg, k, taktPts, tonicMidi, scale, vol, prevMidi) 
     volume: vol,
     isInflection: false, inflectionType: null,
     accompStyle: 'single',
+    isOrnament: !!seg.isOrnament,
   }];
 }
 
-/**
- * Настоящий аккорд из нескольких одновременных сегментов одного инструмента.
- * Каждый сегмент даёт свою ноту — аккорд формируется из реального рисунка.
- */
 function buildTrueChord(simultaneousSegs, k, taktPts, tonicMidi, scale, T, inflections, vol, instrument, role) {
-  const notes     = [];
-  const taktXMin  = k / T;
-  const taktXMax  = (k + 1) / T;
-
-  // Для каждого одновременного сегмента берём его ноту в такте
-  const midiSet = new Set();
+  const notes    = [];
+  const taktXMin = k / T;
+  const taktXMax = (k + 1) / T;
+  const midiSet  = new Set();
   const segNotes = [];
+
   for (const s of simultaneousSegs) {
     const sPts = s.points.filter(pt => pt.x >= taktXMin && pt.x < taktXMax);
     if (sPts.length === 0) continue;
@@ -313,11 +288,8 @@ function buildTrueChord(simultaneousSegs, k, taktPts, tonicMidi, scale, T, infle
 
   if (segNotes.length === 0) return [];
 
-  // Определяем стиль: арпеджио если есть переломы, иначе блок-аккорд
-  const totalInflections = inflections.length;
-  const style = totalInflections >= 2 ? 'arpeggio' : 'flatChord';
-
-  segNotes.sort((a, b) => a.midi - b.midi); // снизу вверх
+  const style = inflections.length >= 2 ? 'arpeggio' : 'flatChord';
+  segNotes.sort((a, b) => a.midi - b.midi);
   segNotes.forEach(({ freq, midi }, i) => {
     notes.push({
       takt: k,
@@ -333,7 +305,6 @@ function buildTrueChord(simultaneousSegs, k, taktPts, tonicMidi, scale, T, infle
   return notes;
 }
 
-// ─── Оставляем для обратной совместимости (используется в MelodyEngine) ───────
 export function buildAccompanimentNote(seg, k, taktPts, inflections, tonicMidi, scale, T, avgMelodyMidi = null, roleVolume = null) {
   if (seg.role === 'bass') {
     return buildBassNote(seg, k, taktPts, tonicMidi, scale, T, roleVolume);
@@ -362,11 +333,6 @@ export function selectNotesPerBeat(bpm) {
   return 2;
 }
 
-/**
- * Для каждого инструмента с заданной ролью строим карту:
- * instrument → массив длиной T, где каждый элемент — список сегментов,
- * активных в этом такте одновременно.
- */
 function buildSimultaneousSegsByTakt(processedSegs, T, role) {
   const result = new Map();
 
@@ -385,7 +351,11 @@ function buildSimultaneousSegsByTakt(processedSegs, T, role) {
     const maxTakt = Math.min(T - 1, Math.floor(segMaxX * T));
 
     for (let k = minTakt; k <= maxTakt; k++) {
-      taktArr[k].push(seg);
+      // FIX: не добавляем один и тот же сегмент дважды в один такт
+      // (защита от дублированных сегментов на входе)
+      if (!taktArr[k].includes(seg)) {
+        taktArr[k].push(seg);
+      }
     }
   }
 
@@ -406,6 +376,8 @@ function buildTaktYMap(points, T) {
 
   const segMinTakt = Math.floor(points[0].x * T);
   const segMaxTakt = Math.min(T - 1, Math.floor(points[points.length - 1].x * T));
+
+  // Интерполяция внутри диапазона сегмента (пустые такты между точками)
   for (let k = segMinTakt; k <= segMaxTakt; k++) {
     if (taktYMap[k] !== null) continue;
     let leftK = k - 1, rightK = k + 1;
@@ -419,6 +391,19 @@ function buildTaktYMap(points, T) {
     } else if (leftY  !== null) { taktYMap[k] = leftY;  }
       else if (rightY !== null) { taktYMap[k] = rightY; }
   }
+
+  // FIX: экстраполяция ЗА пределы сегмента крайними значениями.
+  // Раньше такты до segMinTakt и после segMaxTakt оставались null →
+  // мелодия молчала если рисунок не покрывал весь холст.
+  const firstY = taktYMap[segMinTakt];
+  const lastY  = taktYMap[segMaxTakt];
+  for (let k = 0; k < segMinTakt; k++) {
+    if (taktYMap[k] === null) taktYMap[k] = firstY;
+  }
+  for (let k = segMaxTakt + 1; k < T; k++) {
+    if (taktYMap[k] === null) taktYMap[k] = lastY;
+  }
+
   return taktYMap;
 }
 

@@ -14,6 +14,46 @@ export const SCALES = {
   dorian:     [0, 2, 3, 5, 7, 9, 10],
 };
 
+// Настроения: label для UI + путь к картинке
+// Картинки пока не существуют — закомментированы, отображается текст
+export const MOODS = [
+  {
+    key:   "major",
+    label: "Радостно",
+    // img: MajorBlock,  // уже есть: "../../../assets/canvas/major-block.png"
+  },
+  {
+    key:   "minor",
+    label: "Грустно",
+    // img: MinorBlock,  // уже есть: "../../../assets/canvas/minor-block.png"
+  },
+  {
+    key:   "pentatonic",
+    label: "Спокойно",
+    // img: PentatonicBlock, // TODO: добавить "../../../assets/canvas/pentatonic-block.png"
+  },
+  {
+    key:   "dorian",
+    label: "Загадочно",
+    // img: DorianBlock,     // TODO: добавить "../../../assets/canvas/dorian-block.png"
+  },
+  {
+    key:   "blues",
+    label: "Томно",
+    // img: BluesBlock,      // TODO: добавить "../../../assets/canvas/blues-block.png"
+  },
+];
+
+// Ритмы: понятные пользователю названия
+export const RHYTHM_LABELS = {
+  straight: "Размеренно",
+  waltz:    "Вальсово",
+  rock:     "Отрывисто",
+  disco:    "Пульсирующе",
+  jazz:     "Свободно",
+};
+export const RHYTHM_ORDER = ["straight", "waltz", "rock", "disco", "jazz"];
+
 export const COLOR_TO_INSTRUMENT = {
   "#00ffd1": "piano",
   "#ff3366": "guitar",
@@ -35,16 +75,15 @@ export const INSTRUMENT_VOLUME = {
   clarinet:          0.24,
   saxophone:         0.20,
   "guitar-electric": 0.22,
-  cello:             0.20, //че...
+  cello:             0.20,
   xylophone:         0.30,
   harp:              0.26,
 };
 
-// Множители громкости по роли — бас тихий, чтобы не перекрывал мелодию
 export const ROLE_VOLUME_MULT = {
   melody: 1.0,
-  chord:  0.65,
-  bass:   0.60,
+  chord:  0.75,
+  bass:   0.70,
 };
 
 export const RHYTHM_PATTERNS = {
@@ -54,7 +93,6 @@ export const RHYTHM_PATTERNS = {
     bass:   [ { offset: 0, accentMult: 0.8,  durationMult: 0.7 } ],
   },
 
-  // Вальс: бас на 1, аккорд на 2 и 3 (классический «бас — аккорд — аккорд»)
   waltz: {
     melody: [
       { offset: 0,    accentMult: 1.3,  durationMult: 0.7  },
@@ -70,7 +108,6 @@ export const RHYTHM_PATTERNS = {
     ],
   },
 
-  // Рок: жёсткие акценты на 1 и 3, staccato
   rock: {
     melody: [
       { offset: 0,   accentMult: 1.8, durationMult: 0.4 },
@@ -131,12 +168,9 @@ export const INFLECTION_THRESHOLD = 0.035;
 export const GAUSSIAN_SIGMA       = 2;
 export const EDGE_IGNORE_RATIO    = 0.05;
 
-// ===== НАСТРОЙКИ ПО УМОЛЧАНИЮ =====
 export const DEFAULT_RHYTHM_PATTERN  = "disco";
 export const DEFAULT_LEGATO          = false;
 export const DEFAULT_VOICE_MODE      = "random";
 export const DEFAULT_NOTES_PER_BEAT  = 4;
 
-// Chord progressions: offsets от тоники в полутонах
-// Для каждого паттерна: [I, IV, V, I]
 export const CHORD_PROGRESSION_SEMITONES = [0, 5, 7, 0];
