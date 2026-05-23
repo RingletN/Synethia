@@ -102,6 +102,18 @@ export function buildRawNotes(processedSegs, tonicMidi, T, scale, notesPerBeat) 
             }
             freq = midiToFreq(midi);
           }
+
+          // FIX: если нота та же что предыдущая — принудительно двигаемся на шаг
+          // (мелодия не должна стоять на месте несколько тактов подряд)
+          if (midi === prevMidi && i === 0) {
+            const intervals  = SCALES[scale] || SCALES.major;
+            const tonicClass = ((tonicMidi % 12) + 12) % 12;
+            // Направление: смотрим на следующий такт — куда идёт линия рисунка
+            const nextTaktY = taktYMap[k + 1];
+            const direction = (nextTaktY !== null && nextTaktY < taktYMap[k]) ? +1 : -1;
+            midi = nextScaleStep(prevMidi, tonicClass, intervals, direction);
+            freq = midiToFreq(midi);
+          }
         }
 
         rawNotes.push({
@@ -149,6 +161,18 @@ export function buildRawNotes(processedSegs, tonicMidi, T, scale, notesPerBeat) 
 
 // ─── Bass ─────────────────────────────────────────────────────────────────────
 
+// Диапазон баса: E2(40) — E4(64). Ниже E2 — слишком грязно, выше E4 — теряет функцию баса.
+const BASS_MIDI_MIN = 40; // E2
+const BASS_MIDI_MAX = 64; // E4
+
+function clampBassOctave(midi) {
+  // Поднимаем на октаву пока не попадём в диапазон
+  while (midi < BASS_MIDI_MIN) midi += 12;
+  // Опускаем на октаву если слишком высоко
+  while (midi > BASS_MIDI_MAX) midi -= 12;
+  return midi;
+}
+
 export function buildBassNote(seg, k, taktPts, tonicMidi, scale, T, roleVolume, simultaneousSegs = []) {
   const { instrument, role, volume } = seg;
   const roleVolMult = ROLE_VOLUME_MULT[role] ?? 1.0;
@@ -160,7 +184,11 @@ export function buildBassNote(seg, k, taktPts, tonicMidi, scale, T, roleVolume, 
 
   const sorted  = [...taktPts].sort((a, b) => a.y - b.y);
   const medY    = sorted[Math.floor(sorted.length / 2)].y;
-  const { freq: bassFreq, midi: bassMidi } = quantizeToScale(yNormToFreq(medY), tonicMidi, scale);
+  let { midi: bassMidi } = quantizeToScale(yNormToFreq(medY), tonicMidi, scale);
+
+  // FIX: клипируем в нормальный диапазон гитары-баса
+  bassMidi = clampBassOctave(bassMidi);
+  const bassFreq = midiToFreq(bassMidi);
 
   const intervals  = SCALES[scale] || SCALES.major;
   const tonicClass = ((tonicMidi % 12) + 12) % 12;
@@ -170,13 +198,15 @@ export function buildBassNote(seg, k, taktPts, tonicMidi, scale, T, roleVolume, 
   if (nextPts.length > 0) {
     const nextSorted = [...nextPts].sort((a, b) => a.y - b.y);
     const nextY      = nextSorted[Math.floor(nextSorted.length / 2)].y;
-    const { midi: nextMidi } = quantizeToScale(yNormToFreq(nextY), tonicMidi, scale);
+    let { midi: nextMidi } = quantizeToScale(yNormToFreq(nextY), tonicMidi, scale);
+    nextMidi = clampBassOctave(nextMidi);
     walkMidi = nextMidi !== bassMidi
       ? nextScaleStep(bassMidi, tonicClass, intervals, Math.sign(nextMidi - bassMidi))
       : nextScaleStep(bassMidi, tonicClass, intervals, 1);
   } else {
     walkMidi = nextScaleStep(bassMidi, tonicClass, intervals, 1);
   }
+  walkMidi = clampBassOctave(walkMidi);
 
   return [
     {

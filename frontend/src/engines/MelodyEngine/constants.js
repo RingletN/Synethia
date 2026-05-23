@@ -69,21 +69,21 @@ export const COLOR_TO_INSTRUMENT = {
 
 export const INSTRUMENT_VOLUME = {
   piano:             0.28,
-  guitar:            0.28,
+  guitar:            0.38,  // FIX: поднят с 0.28 — гитара-бас должна быть основой
   flute:             0.22,
   strings:           0.16,
   clarinet:          0.24,
   saxophone:         0.20,
   "guitar-electric": 0.22,
   cello:             0.20,
-  xylophone:         0.30,
+  xylophone:         0.22,  // FIX: снижен с 0.30 — ксилофон играет роль украшения
   harp:              0.26,
 };
 
 export const ROLE_VOLUME_MULT = {
   melody: 1.0,
-  chord:  0.75,
-  bass:   0.70,
+  chord:  0.50,  // FIX: снижен с 0.75 — ксилофон-украшение должен быть тихим фоном
+  bass:   1.10,  // FIX: поднят с 0.70 — бас был почти не слышен (guitar 0.28 × 0.70 = 0.19)
 };
 
 export const RHYTHM_PATTERNS = {
@@ -120,8 +120,8 @@ export const RHYTHM_PATTERNS = {
       { offset: 0.75, accentMult: 0.5, durationMult: 0.3  },
     ],
     bass: [
-      { offset: 0,   accentMult: 1.4, durationMult: 0.55 },
-      { offset: 0.5, accentMult: 1.2, durationMult: 0.55 },
+      { offset: 0,   accentMult: 1.8, durationMult: 0.60 },  // FIX: 1.4→1.8, сильный удар на 1
+      { offset: 0.5, accentMult: 1.4, durationMult: 0.60 },  // FIX: 1.2→1.4, чёткий удар на 3
     ],
   },
 

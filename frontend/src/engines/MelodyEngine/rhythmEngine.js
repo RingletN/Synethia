@@ -162,6 +162,9 @@ export function applyRhythmPattern(rawNotes, beatDuration, rhythmPattern, legato
   events.push(...deduplicatedEvents);
 
   // ─── Контрапункт ─────────────────────────────────────────────────────────────
+  // FIX: вместо простого сдвига — делим доли паттерна между инструментами.
+  // Первый инструмент играет чётные доли (0, 2, 4...), второй — нечётные (1, 3, 5...).
+  // Это даёт настоящее чередование голосов, а не наслоение со сдвигом.
   const melodyEventsAll = events.filter(e => e.role === 'melody' && e.origTime !== undefined);
   const byTakt = new Map();
   for (const ev of melodyEventsAll) {
@@ -173,22 +176,36 @@ export function applyRhythmPattern(rawNotes, beatDuration, rhythmPattern, legato
   for (const [, evs] of byTakt) {
     const instruments = [...new Set(evs.map(ev => ev.instrument))];
     if (instruments.length <= 1) continue;
+
+    // Сортируем инструменты по времени первого появления в такте
     const firstTime  = Math.min(...evs.map(ev => ev.origTime));
     const firstInstr = evs.find(ev => ev.origTime === firstTime).instrument;
     const ordered    = [firstInstr, ...instruments.filter(i => i !== firstInstr)];
 
-    let shiftAmount = 0;
-    if      (voiceMode === 'offset') shiftAmount = 0.5 * beatDuration;
-    // FIX: random режим давал сдвиг 0.33-0.58 beatDuration — слишком большой разброс.
-    // Уменьшен до 0.25-0.40 чтобы инструменты не налезали на следующий такт.
-    else if (voiceMode === 'random') shiftAmount = beatDuration * (0.25 + Math.random() * 0.15);
+    if (instruments.length >= 2) {
+      // Разбиваем события такта по инструментам, сортируем по времени
+      const sortedEvs = [...evs].sort((a, b) => a.origTime - b.origTime);
+      // Нечётные позиции (1, 3, 5...) — второй инструмент, первый берёт чётные
+      // Остальные инструменты (3+) удаляем из этого такта — слишком много голосов
+      const keepSet = new Set();
+      sortedEvs.forEach((ev, idx) => {
+        const instrIdx = ordered.indexOf(ev.instrument);
+        if (instrIdx === 0 && idx % 2 === 0) keepSet.add(ev);
+        else if (instrIdx === 1 && idx % 2 === 1) keepSet.add(ev);
+        // instrIdx >= 2: убираем лишние голоса
+      });
 
-    for (let idx = 1; idx < ordered.length; idx++) {
-      const instr = ordered[idx];
+      // Удаляем события которые не попали в keep
       for (const ev of evs) {
-        if (ev.instrument === instr) {
-          ev.time   = Math.max(0, ev.time + shiftAmount);
-          ev.volume = Math.min(1, ev.volume * 0.9);
+        if (!keepSet.has(ev)) {
+          ev._remove = true;
+        }
+      }
+
+      // Второй инструмент делаем тише — он отвечает на первый
+      for (const ev of evs) {
+        if (!ev._remove && ordered.indexOf(ev.instrument) === 1) {
+          ev.volume = Math.min(1, ev.volume * 0.85);
         }
       }
     }
