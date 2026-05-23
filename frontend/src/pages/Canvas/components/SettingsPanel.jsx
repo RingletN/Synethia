@@ -6,15 +6,20 @@ import LeftChevron  from "../../../assets/icons/icon-chevron-left.svg";
 import RightChevron from "../../../assets/icons/icon-chevron-right.svg";
 import MajorBlock   from "../../../assets/canvas/major-block.png";
 import MinorBlock   from "../../../assets/canvas/minor-block.png";
-// TODO: раскомментировать когда появятся картинки:
-// import PentatonicBlock from "../../../assets/canvas/pentatonic-block.png";
-// import DorianBlock     from "../../../assets/canvas/dorian-block.png";
-// import BluesBlock      from "../../../assets/canvas/blues-block.png";
+import PentatonicBlock from "../../../assets/canvas/pentatonic-block.png";
+import DorianBlock     from "../../../assets/canvas/dorian-block.png";
+import BluesBlock      from "../../../assets/canvas/blues-block.png";
 import IconSettings from "../../../assets/icons/icon-settings.svg";
 import IconNotes    from "../../../assets/icons/icon-notes.svg";
 import IconEffects  from "../../../assets/icons/icon-effects.svg";
 import IconTurtle   from "../../../assets/icons/icon-turtle.svg";
 import IconHare     from "../../../assets/icons/icon-hare.svg";
+import IconBox   from "../../../assets/icons/icon-box.svg";
+import IconScene from "../../../assets/icons/icon-scene.svg";
+import IconNoDelay   from "../../../assets/icons/icon-no-delay.svg";
+import IconMaxDelay  from "../../../assets/icons/icon-max-delay.svg";
+import IconSine          from "../../../assets/icons/icon-sine.svg";
+import IconHighDistortion from "../../../assets/icons/icon-high-distortion.svg";
 import GradientSlider from "../../../components/ui/GradientSlider";
 
 import { MOODS, RHYTHM_LABELS, RHYTHM_ORDER } from "../../../engines/MelodyEngine/constants";
@@ -26,9 +31,9 @@ const OVERHEAD_PX = 144;
 const MOOD_IMAGES = {
   major:      MajorBlock,
   minor:      MinorBlock,
-  // pentatonic: PentatonicBlock,
-  // dorian:     DorianBlock,
-  // blues:      BluesBlock,
+  pentatonic: PentatonicBlock,
+  dorian:     DorianBlock,
+  blues:      BluesBlock,
 };
 
 const SettingsPanel = ({
@@ -235,33 +240,33 @@ const SettingsPanel = ({
         >
           {/* Реверб */}
           <div className="settings-panel-control-group temp">
-            <div className="settings-panel-control-label">РЕВЕРБ</div>
+            <div className="settings-panel-control-label">ПРОСТРАНСТВО</div>
             <div className="settings-panel-tempo-row">
-              <img src={IconTurtle} alt="min" className="icon settings-panel-tempo-icon" onClick={() => onReverbChange(Math.max(0, effectReverb - 0.05))} />
+              <img src={IconBox} alt="min" className="icon settings-panel-tempo-icon" onClick={() => onReverbChange(Math.max(0, effectReverb - 0.05))} />
               <span className="settings-panel-tempo-value">{Math.round(effectReverb * 100)}%</span>
-              <img src={IconHare}   alt="max" className="icon settings-panel-tempo-icon" onClick={() => onReverbChange(Math.min(1, effectReverb + 0.05))} />
+              <img src={IconScene}   alt="max" className="icon settings-panel-tempo-icon" onClick={() => onReverbChange(Math.min(1, effectReverb + 0.05))} />
             </div>
             <GradientSlider min={0} max={100} step={1} value={Math.round(effectReverb * 100)} onChange={(v) => onReverbChange(v / 100)} />
           </div>
 
           {/* Дилэй */}
           <div className="settings-panel-control-group temp">
-            <div className="settings-panel-control-label">ДИЛЭЙ</div>
+            <div className="settings-panel-control-label">ЭХО</div>
             <div className="settings-panel-tempo-row">
-              <img src={IconTurtle} alt="min" className="icon settings-panel-tempo-icon" onClick={() => onDelayChange(Math.max(0, effectDelay - 0.05))} />
+              <img src={IconNoDelay} alt="min" className="icon settings-panel-tempo-icon" onClick={() => onDelayChange(Math.max(0, effectDelay - 0.05))} />
               <span className="settings-panel-tempo-value">{Math.round(effectDelay * 100)}%</span>
-              <img src={IconHare}   alt="max" className="icon settings-panel-tempo-icon" onClick={() => onDelayChange(Math.min(1, effectDelay + 0.05))} />
+              <img src={IconMaxDelay}   alt="max" className="icon settings-panel-tempo-icon" onClick={() => onDelayChange(Math.min(1, effectDelay + 0.05))} />
             </div>
             <GradientSlider min={0} max={100} step={1} value={Math.round(effectDelay * 100)} onChange={(v) => onDelayChange(v / 100)} />
           </div>
 
           {/* Дисторшн */}
           <div className="settings-panel-control-group temp">
-            <div className="settings-panel-control-label">ДИСТОРШН</div>
+            <div className="settings-panel-control-label">ИСКАЖЕНИЕ</div>
             <div className="settings-panel-tempo-row">
-              <img src={IconTurtle} alt="min" className="icon settings-panel-tempo-icon" onClick={() => onDistortionChange(Math.max(0, effectDistortion - 0.05))} />
+              <img src={IconSine} alt="min" className="icon settings-panel-tempo-icon" onClick={() => onDistortionChange(Math.max(0, effectDistortion - 0.05))} />
               <span className="settings-panel-tempo-value">{Math.round(effectDistortion * 100)}%</span>
-              <img src={IconHare}   alt="max" className="icon settings-panel-tempo-icon" onClick={() => onDistortionChange(Math.min(1, effectDistortion + 0.05))} />
+              <img src={IconHighDistortion}   alt="max" className="icon settings-panel-tempo-icon" onClick={() => onDistortionChange(Math.min(1, effectDistortion + 0.05))} />
             </div>
             <GradientSlider min={0} max={100} step={1} value={Math.round(effectDistortion * 100)} onChange={(v) => onDistortionChange(v / 100)} />
           </div>

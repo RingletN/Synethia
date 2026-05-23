@@ -14,34 +14,12 @@ export const SCALES = {
   dorian:     [0, 2, 3, 5, 7, 9, 10],
 };
 
-// Настроения: label для UI + путь к картинке
-// Картинки пока не существуют — закомментированы, отображается текст
 export const MOODS = [
-  {
-    key:   "major",
-    label: "Радостно",
-    // img: MajorBlock,  // уже есть: "../../../assets/canvas/major-block.png"
-  },
-  {
-    key:   "minor",
-    label: "Грустно",
-    // img: MinorBlock,  // уже есть: "../../../assets/canvas/minor-block.png"
-  },
-  {
-    key:   "pentatonic",
-    label: "Спокойно",
-    // img: PentatonicBlock, // TODO: добавить "../../../assets/canvas/pentatonic-block.png"
-  },
-  {
-    key:   "dorian",
-    label: "Загадочно",
-    // img: DorianBlock,     // TODO: добавить "../../../assets/canvas/dorian-block.png"
-  },
-  {
-    key:   "blues",
-    label: "Томно",
-    // img: BluesBlock,      // TODO: добавить "../../../assets/canvas/blues-block.png"
-  },
+  { key: "major", label: "Радостно" },
+  { key: "minor", label: "Грустно" },
+  { key: "pentatonic", label: "Спокойно" },
+  { key: "dorian", label: "Загадочно" },
+  { key: "blues", label: "Томно" },
 ];
 
 // Ритмы: понятные пользователю названия
