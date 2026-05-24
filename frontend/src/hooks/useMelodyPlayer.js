@@ -548,6 +548,25 @@ const useMelodyPlayer = (
     };
   }, []);
 
+  // Добавить внутрь хука useMelodyPlayer, например, после всех useEffects
+useEffect(() => {
+  // Очищаем старый Part при смене событий или длительности
+  if (partRef.current) {
+    try {
+      partRef.current.stop();
+      partRef.current.dispose();
+    } catch (_) {}
+    partRef.current = null;
+  }
+  // Если мелодия играла – останавливаем транспорт
+  if (isPlayingRef.current) {
+    Tone.getTransport().stop();
+    isPlayingRef.current = false;
+    setIsPlaying(false);
+    setCurrentTime(0);
+  }
+}, [events, totalDuration]);
+
   return {
     isPlaying,
     currentTime,

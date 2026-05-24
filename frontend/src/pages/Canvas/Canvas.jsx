@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useCallback, memo } from "react";
+import React, { useState, useRef, useEffect, useCallback } from "react";
 import { useSearchParams, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import api from "../../api";
@@ -33,10 +33,6 @@ import MusicPlayer from "./components/MusicPlayer";
 import { useCanvasResize } from "./hooks/useCanvasResize";
 
 const melodyEngine = new MelodyEngine();
-
-// DrawingArea мемоизирован — ре-рендеры от хинтов (setHint при onMouseEnter)
-// не пересоздают canvas и не трогают движок
-const MemoDrawingArea = memo(DrawingArea);
 
 // ─── CanvasInner — рендерится ВНУТРИ HintProvider, поэтому useHint работает ───
 // Принимает всю логику через пропсы из Canvas.
@@ -89,6 +85,11 @@ const CanvasInner = ({
 }) => {
   // ── [HINT] Все хинты здесь, внутри HintProvider ──────────────────────────
 
+  const hintCanvas = useHint(
+    canUndo
+      ? "Продолжайте — каждая линия влияет на будущую мелодию ✦"
+      : "Начните рисовать — музыка рождается из линий ✦"
+  );
 
   // useHintPush: при клике пушим уже вычисленный следующий текст
   const hintFavorite = useHintPush(
@@ -206,8 +207,9 @@ const CanvasInner = ({
                 height: canvasSize.height,
                 backgroundColor: bgColor,
               }}
+              {...hintCanvas}
             >
-              <MemoDrawingArea
+              <DrawingArea
                 width={canvasSize.width}
                 height={canvasSize.height}
                 onReady={handleCanvasReady}
@@ -777,12 +779,9 @@ const Canvas = () => {
     (canvases) => {
       initEngine(canvases);
       if (engineRef.current) {
-        engineRef.current.onStrokeEnd = () => {
-          saveToHistory(bgColorRef.current);
-          setHasUnsavedChanges(true);
-          engineRef.current.onStrokeEnd = handleStrokeEnd;
-        };
+        engineRef.current.onStrokeEnd = handleStrokeEnd;
       }
+      // автоимпорт, если есть
       const raw = sessionStorage.getItem("pendingImportFile");
       if (raw && location.state?.autoImport) {
         sessionStorage.removeItem("pendingImportFile");
@@ -799,7 +798,7 @@ const Canvas = () => {
         }
       }
     },
-    [initEngine, saveToHistory, engineRef, handleStrokeEnd, handleImportPhoto, location.state],
+    [initEngine, handleStrokeEnd, handleImportPhoto, location.state]
   );
 
   const handleBgColorChange = useCallback(
