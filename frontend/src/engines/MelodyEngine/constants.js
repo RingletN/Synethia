@@ -4,7 +4,8 @@ export const A4_FREQ = 432;
 export const A4_MIDI = 69;
 
 export const MIN_FREQ = 130.81; // C3
-export const MAX_FREQ = 1046.5; // C6
+export const MAX_FREQ = 523.25;   // C5
+// export const MAX_FREQ = 1046.5; // C6
 
 export const SCALES = {
   major:      [0, 2, 4, 5, 7, 9, 11],
