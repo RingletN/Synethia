@@ -490,6 +490,12 @@ const Canvas = () => {
   useEffect(() => {
     if (!pendingSaveRef.current) return;
     const saved = pendingSaveRef.current;
+
+    if (!saved.projectTitle?.trim()) {
+      pendingSaveRef.current = null;
+      setShowSaveAsModal(true);
+      return;
+    }
     const melodyReady =
       !saved.melodyEvents?.length ||
       (isMelodyGenerated && melodyEvents.length === saved.melodyEvents.length);
@@ -503,7 +509,7 @@ const Canvas = () => {
       sessionStorage.setItem(
         PENDING_KEY,
         JSON.stringify({
-          projectTitle,
+          projectTitle: projectTitle.trim(),
           bgColor,
           canvasSize,
           bpm,
