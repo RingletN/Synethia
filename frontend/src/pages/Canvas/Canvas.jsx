@@ -1,7 +1,10 @@
-import React, { useState, useRef, useEffect, useCallback } from "react";
+import React, { useState, useRef, useEffect, useCallback, memo } from "react";
 import { useSearchParams, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import api from "../../api";
+import { HintProvider }  from "./context/HintContext";
+import HintPanel         from "./components/HintPanel";
+import { useHint, useHintPush } from "./hooks/useHint";
 import BgCanvasLine from "../../assets/backgrounds/bg-canvas-line.png";
 import DrawingArea from "./components/DrawingArea";
 import ToolsPanel from "./components/ToolsPanel";
@@ -31,8 +34,281 @@ import { useCanvasResize } from "./hooks/useCanvasResize";
 
 const melodyEngine = new MelodyEngine();
 
+// DrawingArea мемоизирован — ре-рендеры от хинтов (setHint при onMouseEnter)
+// не пересоздают canvas и не трогают движок
+const MemoDrawingArea = memo(DrawingArea);
+
+// ─── CanvasInner — рендерится ВНУТРИ HintProvider, поэтому useHint работает ───
+// Принимает всю логику через пропсы из Canvas.
+const CanvasInner = ({
+  // состояния
+  isBrushSelected, setIsBrushSelected,
+  isFavorite,
+  brushColor,
+  isImporting,
+  projectTitle, setProjectTitle,
+  bpm, setBpm,
+  duration, setDuration,
+  scale, setScale,
+  rhythmPattern, setRhythmPattern,
+  effectReverb, setEffectReverb,
+  effectDelay, setEffectDelay,
+  effectDistortion, setEffectDistortion,
+  isGenerating,
+  isMelodyGenerated,
+  totalDuration,
+  modalOpen, modalConfig,
+  bgColor,
+  isLoadingProject,
+  showSaveAsModal, setShowSaveAsModal,
+  existingProjectNames,
+  // рефы
+  toolsPanelRef, canvasPanelRef, drawBlockRef,
+  engineRef,
+  // хуки рисования
+  canUndo, canRedo,
+  canvasSize,
+  handleResizeMouseDown,
+  // плеер
+  isPlaying, currentTime, volume, setVolume,
+  // хэндлеры
+  handleUndo, handleRedo, handleClear,
+  handleBgColorChange, handleBrushColorChange,
+  handleImportPhoto,
+  handleCanvasReady,
+  handleToggleFavorite,
+  handleSave,
+  handleDownload,
+  handleDeleteProject,
+  handleGenerateMelody,
+  handlePlayPause,
+  handleSaveAsConfirm,
+  setCurrentTitle,
+  skip, seek,
+  openModal, closeModal,
+}) => {
+  // ── [HINT] Все хинты здесь, внутри HintProvider ──────────────────────────
+
+
+  // useHintPush: при клике пушим уже вычисленный следующий текст
+  const hintFavorite = useHintPush(
+    () => isFavorite ? "Убрать из избранного ✦" : "Добавить в избранное ✦"
+  );
+
+  const hintSave     = useHint("Сохранить проект ✦");
+  const hintDownload = useHint("Скачать рисунок или мелодию ✦");
+  const hintDelete   = useHint("Удалить проект или очистить холст ✦");
+  const hintQuestion = useHint("Как пользоваться приложением ✦");
+  const hintTitle    = useHint("Дайте название своему шедевру ✦");
+
+  const hintGenerate = useHint(
+    isGenerating
+      ? "Генерируем мелодию, подождите… ✦"
+      : isMelodyGenerated
+        ? "Перегенерировать мелодию по текущему рисунку ✦"
+        : "Преобразовать рисунок в музыку ✦"
+  );
+
+  return (
+    <div className="canvas-content">
+      {isLoadingProject && (
+        <div className="import-overlay" style={{ position: "fixed", zIndex: 1000 }}>
+          <Loader size={64} color="cyan" speed={1200} />
+        </div>
+      )}
+      <div className="canvas-bg-line">
+        <img src={BgCanvasLine} alt="фоновая линия" />
+      </div>
+      <div className="canvas-header">
+        <div className="canvas-header-text">
+          <div
+            className="project-title-input"
+            contentEditable
+            suppressContentEditableWarning
+            {...hintTitle}
+            onInput={(e) => {
+              setProjectTitle(e.currentTarget.textContent);
+              setCurrentTitle(e.currentTarget.textContent);
+            }}
+            data-placeholder="Введите название проекта..."
+          />
+          <div className="divider-project" />
+        </div>
+        <div className="canvas-header-icons">
+          {/* [HINT] избранное — toggle-хинт, меняется сразу при клике */}
+          <div
+            className="icon favourite-btn"
+            onClick={() => { handleToggleFavorite(); hintFavorite.push(isFavorite ? "Добавить в избранное ✦" : "Убрать из избранного ✦"); }}
+            onMouseEnter={hintFavorite.onMouseEnter}
+            onMouseLeave={hintFavorite.onMouseLeave}
+          >
+            <img src={isFavorite ? StarSelectedIcon : StarIcon} alt="Избранное" />
+          </div>
+          <div className="icon save-btn" onClick={handleSave} {...hintSave}>
+            <img src={SaveIcon} alt="Сохранить проект" />
+          </div>
+          <div
+            className="icon download-btn"
+            {...hintDownload}
+            onClick={() => {
+              if (!isMelodyGenerated) {
+                handleDownload("image");
+                return;
+              }
+              openModal({
+                title: "Скачать",
+                description: "Выберите формат для скачивания",
+                primaryText: "Мелодия (WAV)",
+                cancelText: "Картинка (PNG)",
+                variant: "warning",
+                onPrimary: () => handleDownload("wav"),
+                onCancel: () => handleDownload("image"),
+              });
+            }}
+          >
+            <img src={DownloadIcon} alt="Скачать" />
+          </div>
+          <div className="icon delete-btn" onClick={handleDeleteProject} {...hintDelete}>
+            <img src={TrashIcon} alt="Удалить проект" />
+          </div>
+          <div className="icon question-btn" {...hintQuestion}>
+            <img src={QuestionIcon} alt="Обучение" />
+          </div>
+        </div>
+      </div>
+
+      <div className="workspace-area">
+        <div className="canvas-block" ref={drawBlockRef}>
+          <div className="draw-block">
+            <ToolsPanel
+              ref={toolsPanelRef}
+              engine={engineRef.current}
+              onUndo={handleUndo}
+              onRedo={handleRedo}
+              canUndo={canUndo}
+              canRedo={canRedo}
+              onClear={handleClear}
+              isBrushSelected={isBrushSelected}
+              setIsBrushSelected={setIsBrushSelected}
+              onBackgroundColorChange={handleBgColorChange}
+              currentBgColor={bgColor}
+              currentBrushColor={brushColor}
+              onBrushColorChange={handleBrushColorChange}
+              onImportPhoto={handleImportPhoto}
+              isImporting={isImporting}
+            />
+
+            <div
+              className="canvas-panel"
+              ref={canvasPanelRef}
+              style={{
+                width: canvasSize.width,
+                height: canvasSize.height,
+                backgroundColor: bgColor,
+              }}
+            >
+              <MemoDrawingArea
+                width={canvasSize.width}
+                height={canvasSize.height}
+                onReady={handleCanvasReady}
+              />
+
+              <div
+                className="resize-handle-horizontal"
+                onMouseDown={handleResizeMouseDown("horizontal")}
+              />
+              <div
+                className="resize-handle-vertical"
+                onMouseDown={handleResizeMouseDown("vertical")}
+              />
+              <div
+                className="resize-handle-corner"
+                onMouseDown={handleResizeMouseDown("both")}
+              />
+
+              {isImporting && (
+                <div className="import-overlay">
+                  <Loader size={64} color="cyan" speed={1200} />
+                </div>
+              )}
+            </div>
+            <HintPanel />
+          </div>
+
+          <div className="settings-block">
+            <SettingsPanel
+              bpm={bpm}
+              onBpmChange={setBpm}
+              duration={duration}
+              onDurationChange={setDuration}
+              scale={scale}
+              onScaleChange={setScale}
+              rhythmPattern={rhythmPattern}
+              onRhythmPatternChange={setRhythmPattern}
+              effectReverb={effectReverb}
+              onReverbChange={setEffectReverb}
+              effectDelay={effectDelay}
+              onDelayChange={setEffectDelay}
+              effectDistortion={effectDistortion}
+              onDistortionChange={setEffectDistortion}
+            />
+          </div>
+        </div>
+
+        {isMelodyGenerated && (
+          <MusicPlayer
+            isPlaying={isPlaying}
+            currentTime={currentTime}
+            totalDuration={totalDuration}
+            volume={volume}
+            onVolumeChange={setVolume}
+            onPlayPause={handlePlayPause}
+            onSkip={skip}
+            onSeek={seek}
+          />
+        )}
+      </div>
+
+      <Button
+        variant="accent"
+        onClick={handleGenerateMelody}
+        disabled={isGenerating}
+        {...hintGenerate}
+      >
+        {isGenerating ? "ИДЁТ ГЕНЕРАЦИЯ…" : "СГЕНЕРИРОВАТЬ МЕЛОДИЮ"}
+      </Button>
+
+      <Modal
+        isOpen={modalOpen}
+        onClose={closeModal}
+        title={modalConfig.title}
+        description={modalConfig.description}
+        variant={modalConfig.variant || "default"}
+        primaryText={modalConfig.primaryText || "ОК"}
+        cancelText={modalConfig.cancelText}
+        onPrimary={() => {
+          closeModal();
+          modalConfig.onPrimary?.();
+        }}
+        onCancel={() => {
+          closeModal();
+          modalConfig.onCancel?.();
+        }}
+      />
+
+      <SaveAsModal
+        isOpen={showSaveAsModal}
+        onClose={() => setShowSaveAsModal(false)}
+        onSave={handleSaveAsConfirm}
+        existingNames={existingProjectNames}
+      />
+    </div>
+  );
+};
+
+// ─── Canvas — содержит всю логику, рендерит HintProvider → CanvasInner ────────
 const Canvas = () => {
-  // --- Состояния (без activeNote) ---
+  // --- Состояния ---
   const [isBrushSelected, setIsBrushSelected] = useState(true);
   const [isFavorite, setIsFavorite] = useState(false);
   const [brushColor, setBrushColor] = useState("#00ffd1");
@@ -68,12 +344,8 @@ const Canvas = () => {
   const bgColorRef = useRef("#0B0B1F");
   const brushColorRef = useRef("#00ffd1");
 
-  useEffect(() => {
-    bgColorRef.current = bgColor;
-  }, [bgColor]);
-  useEffect(() => {
-    brushColorRef.current = brushColor;
-  }, [brushColor]);
+  useEffect(() => { bgColorRef.current = bgColor; }, [bgColor]);
+  useEffect(() => { brushColorRef.current = brushColor; }, [brushColor]);
 
   const toolsPanelRef = useRef(null);
   const canvasPanelRef = useRef(null);
@@ -110,7 +382,7 @@ const Canvas = () => {
   const PENDING_KEY = "pendingCanvas";
   const pendingSaveRef = useRef(false);
 
-  // Восстановление pendingSave (без изменений)
+  // Восстановление pendingSave
   useEffect(() => {
     if (!location.state?.pendingSave) return;
     const raw = sessionStorage.getItem(PENDING_KEY);
@@ -135,11 +407,9 @@ const Canvas = () => {
         if (saved.duration) setDuration(saved.duration);
         if (saved.scale) setScale(saved.scale);
         if (saved.rhythmPattern) setRhythmPattern(saved.rhythmPattern);
-        if (saved.effectReverb !== undefined)
-          setEffectReverb(saved.effectReverb);
+        if (saved.effectReverb !== undefined) setEffectReverb(saved.effectReverb);
         if (saved.effectDelay !== undefined) setEffectDelay(saved.effectDelay);
-        if (saved.effectDistortion !== undefined)
-          setEffectDistortion(saved.effectDistortion);
+        if (saved.effectDistortion !== undefined) setEffectDistortion(saved.effectDistortion);
         if (saved.segments?.length) {
           engineRef.current.loadState({ segments: saved.segments });
           saveToHistory(saved.bgColor || bgColorRef.current);
@@ -237,7 +507,7 @@ const Canvas = () => {
           bpm,
           duration,
           scale,
-          rhythmPattern,  
+          rhythmPattern,
           effectReverb,
           effectDelay,
           effectDistortion,
@@ -293,17 +563,16 @@ const Canvas = () => {
       try {
         const currentLineWidth = engineRef.current.getLineWidth?.() || 5;
 
-        // Строим палитру из полного спектра инструментов движка мелодии
         const palette = Object.entries(COLOR_TO_INSTRUMENT).map(
           ([color, instrument]) => ({ color, instrument })
         );
 
         const segments = await imageToSegments(file, {
-          threshold:     90,   // высокий порог — только чёткие края, без шума
-          maxWidth:      700,   // немного меньше для скорости обработки
-          minSegmentLen: 20,    // отсекаем мелкий шум
-          maxSegments:   400,   // жёсткий потолок чтобы не перегружать плеер
-          simplifyEps:   0.004, // Douglas-Peucker — убирает лишние точки
+          threshold:     90,
+          maxWidth:      700,
+          minSegmentLen: 20,
+          maxSegments:   400,
+          simplifyEps:   0.004,
           lineWidth:     currentLineWidth,
           palette,
         });
@@ -318,11 +587,7 @@ const Canvas = () => {
         engineRef.current.addSegments(segments);
       } catch (err) {
         console.error("Ошибка обработки изображения:", err);
-        showModal(
-          "Ошибка обработки фото",
-          "Не удалось обработать изображение.",
-          "error",
-        );
+        showModal("Ошибка обработки фото", "Не удалось обработать изображение.", "error");
       } finally {
         setIsImporting(false);
       }
@@ -330,7 +595,6 @@ const Canvas = () => {
     [engineRef, showModal],
   );
 
-  // useMelodyPlayer без обработчика activeNote
   const {
     isPlaying,
     currentTime,
@@ -341,7 +605,7 @@ const Canvas = () => {
     stop,
     skip,
     seek,
-  } = useMelodyPlayer(melodyEvents, totalDuration, null, effects); // передаём null вместо обработчика
+  } = useMelodyPlayer(melodyEvents, totalDuration, null, effects);
 
   const handleStrokeEnd = useCallback(() => {
     saveToHistory(bgColorRef.current);
@@ -367,7 +631,7 @@ const Canvas = () => {
           setBpm(s.bpm);
           setDuration(s.duration);
           setScale(s.scale);
-          setRhythmPattern(s.rhythm_pattern || 'rock'); 
+          setRhythmPattern(s.rhythm_pattern || 'rock');
           setEffectReverb(parseFloat(s.reverb));
           setEffectDelay(parseFloat(s.delay));
           setEffectDistortion(parseFloat(s.distortion));
@@ -376,14 +640,7 @@ const Canvas = () => {
           const { segments, bg_color, width, height } = project.canvas;
           const newW = width || 750;
           const newH = height || 600;
-          // setCanvasSize({ width: newW, height: newH });
-          // if (canvasPanelRef.current) {
-          //   canvasPanelRef.current.style.width = `${newW}px`;
-          //   canvasPanelRef.current.style.height = `${newH}px`;
-          // }
-          // engineRef.current.resize(newW, newH);
           setCanvasSize({ width: newW, height: newH });
-          // движок перерисует содержимое после того как React обновит canvas-атрибуты
           requestAnimationFrame(() => {
             engineRef.current?._doResize(newW, newH);
           });
@@ -407,24 +664,12 @@ const Canvas = () => {
         setProjectId(parseInt(projectId, 10));
         setHasUnsavedChanges(false);
       } catch (err) {
-        showModal(
-          "Ошибка",
-          `Не удалось загрузить проект: ${err.message}`,
-          "error",
-        );
+        showModal("Ошибка", `Не удалось загрузить проект: ${err.message}`, "error");
       } finally {
         setIsLoadingProject(false);
       }
     },
-    [
-      engineRef,
-      saveToHistory,
-      setProjectId,
-      setCurrentTitle,
-      showModal,
-      canvasPanelRef,
-      setCanvasSize,
-    ],
+    [engineRef, saveToHistory, setProjectId, setCurrentTitle, showModal, canvasPanelRef, setCanvasSize],
   );
 
   useEffect(() => {
@@ -460,14 +705,11 @@ const Canvas = () => {
       }
       let events;
       try {
-        ({ events } = melodyEngine.buildNoteEvents(
-          segments,
-          melodyParamsForGen,
-        ));
+        ({ events } = melodyEngine.buildNoteEvents(segments, melodyParamsForGen));
         // --- DEBUG EXPORT ---
         const { events: eventsForLog, tonicMidi, roles } = melodyEngine.buildNoteEvents(
-            segments,
-            melodyParamsForGen,
+          segments,
+          melodyParamsForGen,
         );
         const log  = melodyEngine.exportDebugLog(eventsForLog, roles, tonicMidi, melodyParamsForGen);
         const blob = new Blob([log], { type: "text/plain;charset=utf-8" });
@@ -478,22 +720,13 @@ const Canvas = () => {
         a.click();
         URL.revokeObjectURL(url);
         // --- END DEBUG ---
-
       } catch (engineErr) {
         console.error("MelodyEngine error:", engineErr);
-        showModal(
-          "Ошибка генерации",
-          "Не удалось обработать рисунок. Попробуйте ещё раз.",
-          "error",
-        );
+        showModal("Ошибка генерации", "Не удалось обработать рисунок. Попробуйте ещё раз.", "error");
         return;
       }
       if (!events || events.length === 0) {
-        showModal(
-          "Нечего генерировать",
-          "Не удалось извлечь ноты из рисунка.",
-          "warning",
-        );
+        showModal("Нечего генерировать", "Не удалось извлечь ноты из рисунка.", "warning");
         return;
       }
       setMelodyEvents(events);
@@ -507,15 +740,7 @@ const Canvas = () => {
     } finally {
       setIsGenerating(false);
     }
-  }, [
-    engineRef,
-    showModal,
-    stop,
-    bpm,
-    duration,
-    scale,
-    melodyParamsForGen,
-  ]);
+  }, [engineRef, showModal, stop, bpm, duration, scale, melodyParamsForGen]);
 
   const handlePlayPause = useCallback(() => {
     if (isPlaying) pause();
@@ -574,14 +799,7 @@ const Canvas = () => {
         }
       }
     },
-    [
-      initEngine,
-      saveToHistory,
-      engineRef,
-      handleStrokeEnd,
-      handleImportPhoto,
-      location.state,
-    ],
+    [initEngine, saveToHistory, engineRef, handleStrokeEnd, handleImportPhoto, location.state],
   );
 
   const handleBgColorChange = useCallback(
@@ -620,11 +838,7 @@ const Canvas = () => {
       await api.patch(`/api/projects/${projectId}/favorite`);
     } catch (err) {
       setIsFavorite((prev) => !prev);
-      showModal(
-        "Ошибка",
-        "Не удалось обновить избранное. Попробуйте ещё раз.",
-        "error",
-      );
+      showModal("Ошибка", "Не удалось обновить избранное. Попробуйте ещё раз.", "error");
     }
   }, [projectId, showModal]);
 
@@ -643,11 +857,7 @@ const Canvas = () => {
           try {
             await api.delete(`/api/projects/${projectId}`);
           } catch (err) {
-            showModal(
-              "Ошибка",
-              "Не удалось удалить проект. Попробуйте ещё раз.",
-              "error",
-            );
+            showModal("Ошибка", "Не удалось удалить проект. Попробуйте ещё раз.", "error");
             return;
           }
         }
@@ -658,206 +868,80 @@ const Canvas = () => {
     });
   }, [projectId, projectTitle, openModal, showModal, handleClear]);
 
-  // Эффект для синхронизации лейаута (reflow)
   useEffect(() => {
     const obs = new ResizeObserver(() => requestAnimationFrame(syncLayout));
     if (drawBlockRef.current) obs.observe(drawBlockRef.current);
     return () => obs.disconnect();
   }, [syncLayout]);
 
+  // ── Всё рендерим через HintProvider → CanvasInner ───────────────────────
+  // КЛЮЧЕВОЕ ИСПРАВЛЕНИЕ: HintProvider оборачивает CanvasInner,
+  // поэтому все useHint внутри CanvasInner получают контекст корректно.
   return (
-    <div className="canvas-content">
-      {isLoadingProject && (
-        <div
-          className="import-overlay"
-          style={{ position: "fixed", zIndex: 1000 }}
-        >
-          <Loader size={64} color="cyan" speed={1200} />
-        </div>
-      )}
-      <div className="canvas-bg-line">
-        <img src={BgCanvasLine} alt="фоновая линия" />
-      </div>
-      <div className="canvas-header">
-        <div className="canvas-header-text">
-          <div
-            className="project-title-input"
-            contentEditable
-            suppressContentEditableWarning
-            onInput={(e) => {
-              setProjectTitle(e.currentTarget.textContent);
-              setCurrentTitle(e.currentTarget.textContent);
-            }}
-            data-placeholder="Введите название проекта..."
-          />
-          <div className="divider-project" />
-        </div>
-        <div className="canvas-header-icons">
-          <div className="icon favourite-btn" onClick={handleToggleFavorite}>
-            <img
-              src={isFavorite ? StarSelectedIcon : StarIcon}
-              alt="Избранное"
-            />
-          </div>
-          <div className="icon save-btn" onClick={handleSave}>
-            <img src={SaveIcon} alt="Сохранить проект" />
-          </div>
-          <div
-            className="icon download-btn"
-            onClick={() => {
-              if (!isMelodyGenerated) {
-                handleDownload("image");
-                return;
-              }
-              openModal({
-                title: "Скачать",
-                description: "Выберите формат для скачивания",
-                primaryText: "Мелодия (WAV)",
-                cancelText: "Картинка (PNG)",
-                variant: "warning",
-                onPrimary: () => handleDownload("wav"),
-                onCancel: () => handleDownload("image"),
-              });
-            }}
-          >
-            <img src={DownloadIcon} alt="Скачать" />
-          </div>
-          <div className="icon delete-btn" onClick={handleDeleteProject}>
-            <img src={TrashIcon} alt="Удалить проект" />
-          </div>
-          <div className="icon question-btn">
-            <img src={QuestionIcon} alt="Обучение" />
-          </div>
-        </div>
-      </div>
-
-      <div className="workspace-area">
-        <div className="canvas-block" ref={drawBlockRef}>
-          <div className="draw-block">
-            <ToolsPanel
-              ref={toolsPanelRef}
-              engine={engineRef.current}
-              onUndo={handleUndo}
-              onRedo={handleRedo}
-              canUndo={canUndo}
-              canRedo={canRedo}
-              onClear={handleClear}
-              isBrushSelected={isBrushSelected}
-              setIsBrushSelected={setIsBrushSelected}
-              onBackgroundColorChange={handleBgColorChange}
-              currentBgColor={bgColor}
-              currentBrushColor={brushColor}
-              onBrushColorChange={handleBrushColorChange}
-              onImportPhoto={handleImportPhoto}
-              isImporting={isImporting}
-            />
-
-            <div
-              className="canvas-panel"
-              ref={canvasPanelRef}
-              style={{
-                width: canvasSize.width,
-                height: canvasSize.height,
-                backgroundColor: bgColor,
-              }}
-            >
-              <DrawingArea
-                width={canvasSize.width}
-                height={canvasSize.height}
-                onReady={handleCanvasReady}
-              />
-
-              <div
-                className="resize-handle-horizontal"
-                onMouseDown={handleResizeMouseDown("horizontal")}
-              />
-              <div
-                className="resize-handle-vertical"
-                onMouseDown={handleResizeMouseDown("vertical")}
-              />
-              <div
-                className="resize-handle-corner"
-                onMouseDown={handleResizeMouseDown("both")}
-              />
-
-              {isImporting && (
-                <div className="import-overlay">
-                  <Loader size={64} color="cyan" speed={1200} />
-                </div>
-              )}
-            </div>
-            <div className="hint-panel" >
-            <p>Рисуй на холсте и содавай свою мелодию!</p>
-          </div>
-          </div>
-
-          <div className="settings-block">
-            <SettingsPanel
-              bpm={bpm}
-              onBpmChange={setBpm}
-              duration={duration}
-              onDurationChange={setDuration}
-              scale={scale}
-              onScaleChange={setScale}
-              rhythmPattern={rhythmPattern}
-              onRhythmPatternChange={setRhythmPattern}
-              effectReverb={effectReverb}
-              onReverbChange={setEffectReverb}
-              effectDelay={effectDelay}
-              onDelayChange={setEffectDelay}
-              effectDistortion={effectDistortion}
-              onDistortionChange={setEffectDistortion}
-            />
-          </div>
-        </div>
-
-        {isMelodyGenerated && (
-          <MusicPlayer
-            isPlaying={isPlaying}
-            currentTime={currentTime}
-            totalDuration={totalDuration}
-            volume={volume}
-            onVolumeChange={setVolume}
-            onPlayPause={handlePlayPause}
-            onSkip={skip}
-            onSeek={seek}
-          />
-        )}
-      </div>
-
-      <Button
-        variant="accent"
-        onClick={handleGenerateMelody}
-        disabled={isGenerating}
-      >
-        {isGenerating ? "ИДЁТ ГЕНЕРАЦИЯ…" : "СГЕНЕРИРОВАТЬ МЕЛОДИЮ"}
-      </Button>
-
-      <Modal
-        isOpen={modalOpen}
-        onClose={closeModal}
-        title={modalConfig.title}
-        description={modalConfig.description}
-        variant={modalConfig.variant || "default"}
-        primaryText={modalConfig.primaryText || "ОК"}
-        cancelText={modalConfig.cancelText}
-        onPrimary={() => {
-          setModalOpen(false);
-          modalConfig.onPrimary?.();
-        }}
-        onCancel={() => {
-          setModalOpen(false);
-          modalConfig.onCancel?.();
-        }}
+    <HintProvider>
+      <CanvasInner
+        // состояния
+        isBrushSelected={isBrushSelected}
+        setIsBrushSelected={setIsBrushSelected}
+        isFavorite={isFavorite}
+        brushColor={brushColor}
+        isImporting={isImporting}
+        projectTitle={projectTitle}
+        setProjectTitle={setProjectTitle}
+        bpm={bpm} setBpm={setBpm}
+        duration={duration} setDuration={setDuration}
+        scale={scale} setScale={setScale}
+        rhythmPattern={rhythmPattern} setRhythmPattern={setRhythmPattern}
+        effectReverb={effectReverb} setEffectReverb={setEffectReverb}
+        effectDelay={effectDelay} setEffectDelay={setEffectDelay}
+        effectDistortion={effectDistortion} setEffectDistortion={setEffectDistortion}
+        isGenerating={isGenerating}
+        isMelodyGenerated={isMelodyGenerated}
+        totalDuration={totalDuration}
+        modalOpen={modalOpen}
+        modalConfig={modalConfig}
+        bgColor={bgColor}
+        isLoadingProject={isLoadingProject}
+        showSaveAsModal={showSaveAsModal}
+        setShowSaveAsModal={setShowSaveAsModal}
+        existingProjectNames={existingProjectNames}
+        // рефы
+        toolsPanelRef={toolsPanelRef}
+        canvasPanelRef={canvasPanelRef}
+        drawBlockRef={drawBlockRef}
+        engineRef={engineRef}
+        // хуки рисования
+        canUndo={canUndo}
+        canRedo={canRedo}
+        canvasSize={canvasSize}
+        handleResizeMouseDown={handleResizeMouseDown}
+        // плеер
+        isPlaying={isPlaying}
+        currentTime={currentTime}
+        volume={volume}
+        setVolume={setVolume}
+        // хэндлеры
+        handleUndo={handleUndo}
+        handleRedo={handleRedo}
+        handleClear={handleClear}
+        handleBgColorChange={handleBgColorChange}
+        handleBrushColorChange={handleBrushColorChange}
+        handleImportPhoto={handleImportPhoto}
+        handleCanvasReady={handleCanvasReady}
+        handleToggleFavorite={handleToggleFavorite}
+        handleSave={handleSave}
+        handleDownload={handleDownload}
+        handleDeleteProject={handleDeleteProject}
+        handleGenerateMelody={handleGenerateMelody}
+        handlePlayPause={handlePlayPause}
+        handleSaveAsConfirm={handleSaveAsConfirm}
+        setCurrentTitle={setCurrentTitle}
+        skip={skip}
+        seek={seek}
+        openModal={openModal}
+        closeModal={closeModal}
       />
-
-      <SaveAsModal
-        isOpen={showSaveAsModal}
-        onClose={() => setShowSaveAsModal(false)}
-        onSave={handleSaveAsConfirm}
-        existingNames={existingProjectNames}
-      />
-    </div>
+    </HintProvider>
   );
 };
 

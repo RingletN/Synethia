@@ -1,4 +1,6 @@
-// ToolsPanel.jsx
+// ToolsPanel.jsx — с подключёнными подсказками
+// Изменения помечены комментарием // [HINT]
+
 import React, { forwardRef, useState, useRef, useEffect } from "react";
 import ImportPhotoIcon from "../../../assets/icons/icon-import-photo.svg";
 import BrushIcon from "../../../assets/icons/icon-brush.svg";
@@ -13,31 +15,42 @@ import ClearCanvasIcon from "../../../assets/icons/icon-clear-canvas.svg";
 import IconCanvasBg from "../../../components/ui/CustomIcons/IconCanvasBg";
 import IconBrushColor from "../../../components/ui/CustomIcons/IconBrushColor";
 
-// ─── Маппинг: цвет → инструмент (должен совпадать с MelodyEngine и useMelodyPlayer) ──
+// [HINT] импортируем хуки
+import { useHint, useHintPush, useHintFactory } from "../hooks/useHint"; // поправь путь
+
 export const INSTRUMENT_COLORS = [
-  // Оригинальная четвёрка
-  { color: "#00ffd1", instrument: "piano", label: "Пианино", icon: "🎹" },
-  { color: "#ff3366", instrument: "guitar", label: "Гитара", icon: "🎸" },
-  { color: "#ffcc00", instrument: "flute", label: "Флейта", icon: "🪈" },
-  { color: "#9900ff", instrument: "strings", label: "Скрипка", icon: "🎻" },
-  // Новые инструменты
-  { color: "#ff6b35", instrument: "clarinet", label: "Кларнет", icon: "🎷" },
-  { color: "#00b4d8", instrument: "saxophone", label: "Саксофон", icon: "🎷" },
-  {
-    color: "#f72585",
-    instrument: "guitar-electric",
-    label: "Электрогитара",
-    icon: "🎸",
-  },
-  { color: "#7bed9f", instrument: "cello", label: "Виолончель", icon: "🎻" },
-  { color: "#ffd60a", instrument: "xylophone", label: "Ксилофон", icon: "🎶" },
-  { color: "#a855f7", instrument: "harp", label: "Арфа", icon: "🎵" },
+  { color: "#00ffd1", instrument: "piano",          label: "Пианино",       icon: "🎹" },
+  { color: "#ff3366", instrument: "guitar",         label: "Гитара",        icon: "🎸" },
+  { color: "#ffcc00", instrument: "flute",          label: "Флейта",        icon: "🪈" },
+  { color: "#9900ff", instrument: "strings",        label: "Скрипка",       icon: "🎻" },
+  { color: "#ff6b35", instrument: "clarinet",       label: "Кларнет",       icon: "🎷" },
+  { color: "#00b4d8", instrument: "saxophone",      label: "Саксофон",      icon: "🎷" },
+  { color: "#f72585", instrument: "guitar-electric",label: "Электрогитара", icon: "🎸" },
+  { color: "#7bed9f", instrument: "cello",          label: "Виолончель",    icon: "🎻" },
+  { color: "#ffd60a", instrument: "xylophone",      label: "Ксилофон",      icon: "🎶" },
+  { color: "#a855f7", instrument: "harp",           label: "Арфа",          icon: "🎵" },
 ];
+
+// [HINT] подсказки для каждого инструмента
+const INSTRUMENT_HINTS = {
+  piano:          "Чистый и прозрачный — пианино звучит как рассвет ✦",
+  guitar:         "Тёплый и живой — гитара дышит вместе с вами ✦",
+  flute:          "Лёгкая и воздушная — флейта парит над мелодией ✦",
+  strings:        "Глубокий и волнующий — скрипка говорит там, где слов не хватает ✦",
+  clarinet:       "Мягкий и певучий — кларнет обволакивает теплом ✦",
+  saxophone:      "Дерзкий и джазовый — саксофон знает все ваши секреты ✦",
+  "guitar-electric": "Острый и дерзкий — электрогитара не знает покоя ✦",
+  cello:          "Бархатный и задумчивый — виолончель говорит из глубины ✦",
+  xylophone:      "Звонкий и игривый — ксилофон превращает всё в праздник ✦",
+  harp:           "Нежная и сказочная — арфа звучит как сон ✦",
+};
 
 // ─── Попап выбора инструмента/цвета ──────────────────────────────────────────
 const InstrumentPicker = ({ currentColor, onChange, onClose, anchorRef }) => {
   const pickerRef = useRef(null);
   const [pos, setPos] = useState({ top: 0, left: 0 });
+  // [HINT] фабрика хинтов для использования в обычном map (не в хуке напрямую)
+  const getHint = useHintFactory();
 
   useEffect(() => {
     if (anchorRef?.current) {
@@ -95,15 +108,15 @@ const InstrumentPicker = ({ currentColor, onChange, onClose, anchorRef }) => {
       >
         Инструмент
       </span>
-      {INSTRUMENT_COLORS.map(({ color, label, icon }) => {
+      {INSTRUMENT_COLORS.map(({ color, label, icon, instrument }) => {
         const isActive = color === currentColor;
+        // [HINT] каждая кнопка инструмента имеет свою подсказку
+        const hint = getHint(INSTRUMENT_HINTS[instrument] ?? `${label} ✦`);
         return (
           <button
             key={color}
-            onClick={() => {
-              onChange(color);
-              onClose();
-            }}
+            onClick={() => { onChange(color); onClose(); }}
+            {...hint} // [HINT]
             style={{
               display: "flex",
               alignItems: "center",
@@ -121,7 +134,6 @@ const InstrumentPicker = ({ currentColor, onChange, onClose, anchorRef }) => {
               textAlign: "left",
             }}
           >
-            {/* Цветной кружок через наш компонент */}
             <IconBrushColor
               color={color}
               size={22}
@@ -133,9 +145,7 @@ const InstrumentPicker = ({ currentColor, onChange, onClose, anchorRef }) => {
             <span style={{ fontSize: 14 }}>{icon}</span>
             <span style={{ letterSpacing: "0.03em" }}>{label}</span>
             {isActive && (
-              <span style={{ marginLeft: "auto", fontSize: 11, opacity: 0.7 }}>
-                ✓
-              </span>
+              <span style={{ marginLeft: "auto", fontSize: 11, opacity: 0.7 }}>✓</span>
             )}
           </button>
         );
@@ -173,7 +183,28 @@ const ToolsPanel = forwardRef(
     const bgIconRef = useRef(null);
     const fileInputRef = useRef(null);
 
-    // ── Закрытие пикера фона при клике снаружи ────────────────────────────────
+    // [HINT] хинты для статичных кнопок
+    const hintImport     = useHint("Загрузите фото — мы извлечём контуры и превратим их в мелодию ✦");
+    const hintInstrument = useHint("Выберите инструмент — у каждого свой голос ✦");
+    const hintUndo       = useHint(canUndo ? "Отменить последнее действие ✦" : "Нечего отменять ✦");
+    // [HINT] ИСПРАВЛЕНО: «повторить» → «вернуть отменённое действие»
+    const hintRedo       = useHint(canRedo ? "Вернуть отменённое действие ✦" : "Нечего возвращать ✦");
+    const hintClear      = useHint("Начать с чистого листа — музыка тоже сотрётся ✦");
+    // [HINT] ИСПРАВЛЕНО: фон не влияет на мелодию — убираем это из подсказки
+    const hintBg         = useHint("Задайте атмосферу — выберите цвет фона холста ✦");
+
+    // useHintPush: push вызывается с уже вычисленным следующим текстом — нет проблемы async setState
+    const hintBrush = useHintPush(
+      () => isBrushSelected
+        ? "Кисть активна — каждая линия влияет на мелодию ✦"
+        : "Переключиться на кисть ✦"
+    );
+    const hintEraser = useHintPush(
+      () => !isBrushSelected
+        ? "Ластик активен — сотрите лишнее ✦"
+        : "Ластик — сотрите лишнее, музыка станет чище ✦"
+    );
+
     useEffect(() => {
       const handleClickOutside = (e) => {
         if (
@@ -186,8 +217,7 @@ const ToolsPanel = forwardRef(
         }
       };
       document.addEventListener("mousedown", handleClickOutside);
-      return () =>
-        document.removeEventListener("mousedown", handleClickOutside);
+      return () => document.removeEventListener("mousedown", handleClickOutside);
     }, []);
 
     const handleBgIconClick = () => {
@@ -202,7 +232,6 @@ const ToolsPanel = forwardRef(
 
     const handleInstrumentChange = (color) => {
       onBrushColorChange(color);
-      // Синхронизируем режим кисти с движком
       if (engine) {
         engine.currentColor = color;
         engine.setEraserMode?.(false);
@@ -213,11 +242,15 @@ const ToolsPanel = forwardRef(
     const selectBrush = () => {
       setIsBrushSelected(true);
       engine?.setEraserMode?.(false);
+      // push с уже известным следующим текстом (после клика кисть будет активна)
+      hintBrush.push("Кисть активна — каждая линия влияет на мелодию ✦");
     };
 
     const selectEraser = () => {
       setIsBrushSelected(false);
       engine?.setEraserMode?.(true);
+      // push с уже известным следующим текстом (после клика ластик будет активен)
+      hintEraser.push("Ластик активен — сотрите лишнее ✦");
     };
 
     const handleImportClick = () => {
@@ -232,12 +265,10 @@ const ToolsPanel = forwardRef(
       if (onImportPhoto) onImportPhoto(file);
     };
 
-    // Данные текущего инструмента для отображения
     const currentInstrData =
       INSTRUMENT_COLORS.find((i) => i.color === currentBrushColor) ||
       INSTRUMENT_COLORS[0];
 
-    // Позиция попапа цвета фона
     const bgPickerPos = (() => {
       if (!bgIconRef.current) return { top: 0, left: 0 };
       const rect = bgIconRef.current.getBoundingClientRect();
@@ -246,7 +277,6 @@ const ToolsPanel = forwardRef(
 
     return (
       <div className="tools-panel" ref={ref}>
-        {/* Скрытый input для выбора файла */}
         <input
           ref={fileInputRef}
           type="file"
@@ -260,29 +290,22 @@ const ToolsPanel = forwardRef(
           className={`icon import-photo-btn${isImporting ? " importing" : ""}`}
           onClick={handleImportClick}
           title="Импортировать фото и извлечь контуры"
-          style={{
-            opacity: isImporting ? 0.5 : 1,
-            cursor: isImporting ? "wait" : "pointer",
-          }}
+          style={{ opacity: isImporting ? 0.5 : 1, cursor: isImporting ? "wait" : "pointer" }}
+          {...hintImport} // [HINT]
         >
-          {isImporting ? (
-            <ImportingSpinner />
-          ) : (
-            <img src={ImportPhotoIcon} alt="Импортировать фото" />
-          )}
+          {isImporting ? <ImportingSpinner /> : <img src={ImportPhotoIcon} alt="Импортировать фото" />}
         </div>
 
-        {/* Выбор инструмента/цвета кисти — используем IconBrushColor */}
+        {/* Выбор инструмента/цвета */}
         <div
           ref={instrPickerAnchorRef}
           className="icon brush-color-btn"
           onClick={handleInstrColorClick}
           title={`Инструмент: ${currentInstrData.label}`}
+          {...hintInstrument} // [HINT]
           style={{
             position: "relative",
-            outline: showInstrumentPicker
-              ? `2px solid ${currentInstrData.color}`
-              : "2px solid transparent",
+            outline: showInstrumentPicker ? `2px solid ${currentInstrData.color}` : "2px solid transparent",
             borderRadius: "50%",
             transition: "outline 0.15s",
             display: "flex",
@@ -293,14 +316,10 @@ const ToolsPanel = forwardRef(
           <IconBrushColor
             color={currentBrushColor}
             size={52}
-            style={{
-              filter: `drop-shadow(0 0 6px ${currentBrushColor}80)`,
-              transition: "filter 0.2s",
-            }}
+            style={{ filter: `drop-shadow(0 0 6px ${currentBrushColor}80)`, transition: "filter 0.2s" }}
           />
         </div>
 
-        {/* Попап выбора инструмента */}
         {showInstrumentPicker && (
           <InstrumentPicker
             currentColor={currentBrushColor}
@@ -311,43 +330,45 @@ const ToolsPanel = forwardRef(
         )}
 
         {/* Кисть */}
-        <div className="icon" onClick={selectBrush} title="Кисть">
-          <img
-            src={isBrushSelected ? BrushSelectedIcon : BrushIcon}
-            alt="Кисть"
-          />
+        {/* [HINT] onMouseEnter/onMouseLeave из useHintToggle, клик вызывает onAfterClick */}
+        <div
+          className="icon"
+          onClick={selectBrush}
+          title="Кисть"
+          onMouseEnter={hintBrush.onMouseEnter}
+          onMouseLeave={hintBrush.onMouseLeave}
+        >
+          <img src={isBrushSelected ? BrushSelectedIcon : BrushIcon} alt="Кисть" />
         </div>
 
         {/* Ластик */}
-        <div className="icon" onClick={selectEraser} title="Ластик">
-          <img
-            src={!isBrushSelected ? EraserSelectedIcon : EraserIcon}
-            alt="Ластик"
-          />
+        <div
+          className="icon"
+          onClick={selectEraser}
+          title="Ластик"
+          onMouseEnter={hintEraser.onMouseEnter}
+          onMouseLeave={hintEraser.onMouseLeave}
+        >
+          <img src={!isBrushSelected ? EraserSelectedIcon : EraserIcon} alt="Ластик" />
         </div>
 
         {/* Undo */}
-        <div className="icon" onClick={onUndo} title="Отменить">
-          <img src={canUndo ? UndoIcon : UndoBlockedIcon} alt="Назад" />
+        <div className="icon" onClick={onUndo} title="Отменить" {...hintUndo}> {/* [HINT] */}
+          <img src={canUndo ? UndoIcon : UndoBlockedIcon} alt="Отменить" />
         </div>
 
-        {/* Redo */}
-        <div className="icon" onClick={onRedo} title="Повторить">
-          <img src={canRedo ? RedoIcon : RedoBlockedIcon} alt="Вперёд" />
+        {/* Redo — ИСПРАВЛЕНО: alt и title тоже поправлены */}
+        <div className="icon" onClick={onRedo} title="Вернуть" {...hintRedo}> {/* [HINT] */}
+          <img src={canRedo ? RedoIcon : RedoBlockedIcon} alt="Вернуть" />
         </div>
 
         {/* Очистить */}
-        <div className="icon" onClick={onClear} title="Очистить холст">
+        <div className="icon" onClick={onClear} title="Очистить холст" {...hintClear}> {/* [HINT] */}
           <img src={ClearCanvasIcon} alt="Очистить" />
         </div>
 
         {/* Цвет фона */}
-        <div
-          className="icon"
-          ref={bgIconRef}
-          onClick={handleBgIconClick}
-          title="Цвет фона"
-        >
+        <div className="icon" ref={bgIconRef} onClick={handleBgIconClick} title="Цвет фона" {...hintBg}> {/* [HINT] */}
           <IconCanvasBg color={currentBgColor} />
         </div>
 
@@ -355,26 +376,16 @@ const ToolsPanel = forwardRef(
           <div
             ref={bgPickerRef}
             className="color-picker-popup"
-            style={{
-              position: "fixed",
-              top: bgPickerPos.top,
-              left: 2 * bgPickerPos.left,
-              zIndex: 1000,
-            }}
+            style={{ position: "fixed", top: bgPickerPos.top, left: 2 * bgPickerPos.left, zIndex: 1000 }}
           >
             <input
               type="color"
               value={currentBgColor}
               onChange={(e) => onBackgroundColorChange(e.target.value)}
               style={{
-                width: "160px",
-                height: "160px",
-                padding: "4px",
-                border: "none",
-                borderRadius: "14px",
-                cursor: "pointer",
-                boxShadow: "0 10px 40px rgba(0,0,0,0.6)",
-                background: "#1a1a2e",
+                width: "160px", height: "160px", padding: "4px",
+                border: "none", borderRadius: "14px", cursor: "pointer",
+                boxShadow: "0 10px 40px rgba(0,0,0,0.6)", background: "#1a1a2e",
               }}
             />
           </div>
@@ -384,25 +395,10 @@ const ToolsPanel = forwardRef(
   },
 );
 
-// Маленький SVG-спиннер
 const ImportingSpinner = () => (
   <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-    <circle
-      cx="12"
-      cy="12"
-      r="9"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeDasharray="40 20"
-    >
-      <animateTransform
-        attributeName="transform"
-        type="rotate"
-        from="0 12 12"
-        to="360 12 12"
-        dur="0.8s"
-        repeatCount="indefinite"
-      />
+    <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="2" strokeDasharray="40 20">
+      <animateTransform attributeName="transform" type="rotate" from="0 12 12" to="360 12 12" dur="0.8s" repeatCount="indefinite" />
     </circle>
   </svg>
 );
