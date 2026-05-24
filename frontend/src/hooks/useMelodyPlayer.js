@@ -197,12 +197,19 @@ const DEFAULT_INSTRUMENT_EFFECTS = Object.fromEntries(
 );
 
 // ─── ГЛОБАЛЬНЫЙ КЭШ СЭМПЛЕРОВ ────────────────────────────────────────────────
+// FIX: сэмплеры кешируются, но при каждой генерации мелодии
+// они переподключаются к свежей fx-цепочке через reconnectSamplers().
 const _samplerCache = {};
 const _samplerReady = {};
 const _samplerPromise = {};
 
 async function getOrLoadSampler(instrName, getFxChain) {
-  if (_samplerReady[instrName]) return _samplerCache[instrName];
+  if (_samplerReady[instrName]) {
+    // Сэмплер уже загружен — переподключаем к актуальной fx-цепочке
+    _samplerCache[instrName].disconnect();
+    _samplerCache[instrName].connect(getFxChain(instrName));
+    return _samplerCache[instrName];
+  }
   if (_samplerPromise[instrName]) return _samplerPromise[instrName];
 
   const cfg = SAMPLER_URLS[instrName];
@@ -254,7 +261,6 @@ function ensureGlobalFxChain() {
     _globalDelay.connect(_globalReverb);
     console.log("[Player] Глобальная цепочка эффектов создана");
   }
-  // Синхронизация с текущими сохранёнными значениями
   _globalReverb.wet.value = _currentGlobalEffects.reverb;
   _globalDelay.wet.value = _currentGlobalEffects.delay;
   _globalDistortion.wet.value = _currentGlobalEffects.distortion;
@@ -267,9 +273,6 @@ function updateGlobalEffects(reverb, delay, distortion) {
     _globalReverb.wet.value = reverb;
     _globalDelay.wet.value = delay;
     _globalDistortion.wet.value = distortion;
-    //console.log('[Player] Глобальные эффекты обновлены (wet):', { reverb, delay, distortion });
-  } else {
-    //console.log('[Player] Глобальные эффекты сохранены, цепочка будет создана позже');
   }
 }
 
@@ -296,6 +299,22 @@ function getInstrFxChain(instrName) {
     _instrFxCache[instrName] = { reverb, delay, distortion };
   }
   return _instrFxCache[instrName].distortion;
+}
+
+// FIX: переподключаем только те сэмплеры, которые нужны для текущей мелодии.
+// Сэмплеры инструментов, которых НЕТ в событиях, отключаются — они не будут
+// слышны даже если ещё живут в кеше.
+function reconnectSamplers(neededInstruments) {
+  for (const [instrName, sampler] of Object.entries(_samplerCache)) {
+    if (!_samplerReady[instrName]) continue;
+    try {
+      sampler.disconnect();
+    } catch (_) {}
+    if (neededInstruments.has(instrName)) {
+      sampler.connect(getInstrFxChain(instrName));
+    }
+    // Инструменты НЕ из текущей мелодии остаются отключёнными от выхода
+  }
 }
 
 // ─── ХУК ─────────────────────────────────────────────────────────────────────
@@ -332,14 +351,12 @@ const useMelodyPlayer = (
     onNotePlayRef.current = onNotePlay;
   }, [onNotePlay]);
 
-  // Применяем глобальные эффекты
   useEffect(() => {
     globalEffectsRef.current = globalEffects;
     const { reverb = 0, delay = 0, distortion = 0 } = globalEffects;
     updateGlobalEffects(reverb, delay, distortion);
   }, [globalEffects]);
 
-  // Применяем инструментальные эффекты
   useEffect(() => {
     instrumentEffectsRef.current = instrumentEffects;
     for (const [instr, fxNodes] of Object.entries(_instrFxCache)) {
@@ -379,12 +396,30 @@ const useMelodyPlayer = (
         setLoadingState((prev) => ({ ...prev, [name]: s ? "ready" : "error" }));
       }),
     );
+    // FIX: после загрузки/переподключения — изолируем ненужные инструменты
+    reconnectSamplers(needed);
   }, []);
 
+  // FIX: при смене events — сбрасываем Part и останавливаем воспроизведение.
+  // Это единственный useEffect на [events, totalDuration], конфликта нет.
   useEffect(() => {
-    if (!events?.length) return;
-    preloadSamplers(events);
-  }, [events, preloadSamplers]);
+    if (partRef.current) {
+      try {
+        partRef.current.stop();
+        partRef.current.dispose();
+      } catch (_) {}
+      partRef.current = null;
+    }
+    if (isPlayingRef.current) {
+      Tone.getTransport().stop();
+      isPlayingRef.current = false;
+      setIsPlaying(false);
+      setCurrentTime(0);
+    }
+    if (events?.length) {
+      preloadSamplers(events);
+    }
+  }, [events, totalDuration]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const createPart = useCallback(() => {
     if (partRef.current) {
@@ -424,12 +459,8 @@ const useMelodyPlayer = (
           synth.triggerAttackRelease(freq, duration, time);
           const cleanupDelay = (Tone.Time(duration).toSeconds() + 0.5) * 1000;
           setTimeout(() => {
-            try {
-              synth.dispose();
-            } catch (_) {}
-            try {
-              gainNode.dispose();
-            } catch (_) {}
+            try { synth.dispose(); } catch (_) {}
+            try { gainNode.dispose(); } catch (_) {}
           }, cleanupDelay);
         }
 
@@ -496,43 +527,42 @@ const useMelodyPlayer = (
     Tone.getDestination().volume.value =
       volumeRef.current === 0 ? -Infinity : 20 * Math.log10(volumeRef.current);
 
-    // ⭐ ПРИНУДИТЕЛЬНАЯ СИНХРОНИЗАЦИЯ ЭФФЕКТОВ ПЕРЕД ВОСПРОИЗВЕДЕНИЕМ
     const { reverb = 0, delay = 0, distortion = 0 } = globalEffectsRef.current;
     updateGlobalEffects(reverb, delay, distortion);
-    // Также убедимся, что цепочка создана
     ensureGlobalFxChain();
 
     const transport = Tone.getTransport();
 
-    if (!partRef.current) {
-      await preloadSamplers(eventsRef.current);
-      const newPart = createPart();
-      if (!newPart) return;
-      partRef.current = newPart;
-      partRef.current.start(0);
+    // FIX: ВСЕГДА пересоздаём Part перед воспроизведением.
+    // Это гарантирует, что играют только события из текущей мелодии,
+    // а не из предыдущей генерации.
+    if (partRef.current) {
+      try {
+        partRef.current.stop();
+        partRef.current.dispose();
+      } catch (_) {}
+      partRef.current = null;
     }
+
+    // FIX: сбрасываем транспорт в начало, чтобы старые события
+    // из предыдущего Part не оказались в очереди Tone.js.
+    transport.stop();
+
+    await preloadSamplers(eventsRef.current);
+    const newPart = createPart();
+    if (!newPart) return;
+    partRef.current = newPart;
+    partRef.current.start(0);
 
     transport.start();
     isPlayingRef.current = true;
     setIsPlaying(true);
 
-    const remaining = (totalDurationRef.current - transport.seconds) * 1000;
-    endTimerRef.current = setTimeout(
-      () => {
-        stop();
-      },
-      Math.max(remaining, 0),
-    );
+    const remaining = totalDurationRef.current * 1000;
+    endTimerRef.current = setTimeout(() => {
+      stop();
+    }, Math.max(remaining, 0));
   }, [createPart, stop, preloadSamplers]);
-
-  useEffect(() => {
-    if (!isPlaying && partRef.current) {
-      try {
-        partRef.current.dispose();
-      } catch (_) {}
-      partRef.current = null;
-    }
-  }, [isPlaying]);
 
   useEffect(() => {
     return () => {
@@ -547,25 +577,6 @@ const useMelodyPlayer = (
       Tone.getTransport().stop();
     };
   }, []);
-
-  // Добавить внутрь хука useMelodyPlayer, например, после всех useEffects
-useEffect(() => {
-  // Очищаем старый Part при смене событий или длительности
-  if (partRef.current) {
-    try {
-      partRef.current.stop();
-      partRef.current.dispose();
-    } catch (_) {}
-    partRef.current = null;
-  }
-  // Если мелодия играла – останавливаем транспорт
-  if (isPlayingRef.current) {
-    Tone.getTransport().stop();
-    isPlayingRef.current = false;
-    setIsPlaying(false);
-    setCurrentTime(0);
-  }
-}, [events, totalDuration]);
 
   return {
     isPlaying,
