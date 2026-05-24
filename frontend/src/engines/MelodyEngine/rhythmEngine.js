@@ -1,5 +1,11 @@
 // engines/MelodyEngine/rhythmEngine.js
-// Фаза 2: наложение ритмического паттерна + контрапункт + устранение коллизий
+// Фаза 2: наложение ритмического паттерна + устранение коллизий
+//
+// ИЗМЕНЕНИЯ:
+//   - Убран старый контрапункт (чередование инструментов по чётным/нечётным долям)
+//     — теперь этим управляет roleAssigner через temporalRoleByTakt
+//   - В зоне перехода (overlap) оба инструмента звучат, но с fade (temporalFade)
+//   - Аккомпанирующий голос не заглушает мелодию благодаря отдельной дедупликации
 
 import { RHYTHM_PATTERNS } from "./constants.js";
 
@@ -7,7 +13,6 @@ export function applyRhythmPattern(rawNotes, beatDuration, rhythmPattern, legato
   const pattern = RHYTHM_PATTERNS[rhythmPattern] || RHYTHM_PATTERNS.straight;
   const events  = [];
 
-  // FIX: уменьшен jitter — слишком большой jitter создавал грязь особенно на медленных BPM
   const jitterScale = Math.max(0.001, 0.008 * (80 / Math.max(60, bpm)));
 
   const groups = new Map();
@@ -66,7 +71,7 @@ export function applyRhythmPattern(rawNotes, beatDuration, rhythmPattern, legato
           }
         }
       } else {
-        // bassWalk: паттерно-зависимое место проходящей ноты
+        // bassWalk
         const rootNote = notes.find(n => !n.isWalk) ?? notes[0];
         const walkNote = notes.find(n =>  n.isWalk) ?? null;
 
@@ -77,13 +82,13 @@ export function applyRhythmPattern(rawNotes, beatDuration, rhythmPattern, legato
           let useWalk = false;
           if (walkNote && patternBeats.length > 1) {
             if (rhythmPattern === 'waltz') {
-              useWalk = bi === 2;                          // 3я доля
+              useWalk = bi === 2;
             } else if (rhythmPattern === 'jazz') {
-              useWalk = bi === patternBeats.length - 2;   // предпоследний (офф-бит)
+              useWalk = bi === patternBeats.length - 2;
             } else if (rhythmPattern === 'rock') {
-              useWalk = bi === 1;                          // 2й бит (синкопа)
+              useWalk = bi === 1;
             } else {
-              useWalk = bi === patternBeats.length - 1;   // straight/disco: последний
+              useWalk = bi === patternBeats.length - 1;
             }
           }
 
@@ -101,9 +106,11 @@ export function applyRhythmPattern(rawNotes, beatDuration, rhythmPattern, legato
       }
 
     } else {
-      // chord / ornament
+      // chord / ornament (аккомпанемент)
       const accompStyle = notes[0].accompStyle;
       const isOrnament  = notes.some(n => n.isOrnament);
+      // temporalFade — множитель из зоны перехода (0.4 .. 1.0)
+      const temporalFade = notes[0].temporalFade ?? 1.0;
 
       if (accompStyle === 'arpeggio') {
         for (const note of notes) {
@@ -114,18 +121,16 @@ export function applyRhythmPattern(rawNotes, beatDuration, rhythmPattern, legato
             duration:   beatDuration / notes.length * 0.85,
             freq:       note.freq,
             instrument: note.instrument,
-            volume:     Math.min(1, note.volume),
+            volume:     Math.min(1, note.volume * temporalFade),
             role:       note.role,
             midi:       note.midi,
           });
         }
       } else {
-        const distinctNotes = deduplicateByMidi(notes);
-        const taktStart     = notes[0].takt * beatDuration;
-
-        // Ornament: берём только первую долю паттерна (одна нота в такт),
-        // со сдвигом ~треть такта — звучит как ответ на главную мелодию
-        const beatsToUse = isOrnament ? [patternBeats[0]] : patternBeats;
+        const distinctNotes  = deduplicateByMidi(notes);
+        const taktStart      = notes[0].takt * beatDuration;
+        const beatsToUse     = isOrnament ? [patternBeats[0]] : patternBeats;
+        // Аккомпанирующий голос: небольшой сдвиг чтобы не сливаться с мелодией
         const ornamentOffset = isOrnament ? beatDuration * (0.28 + Math.random() * 0.10) : 0;
 
         for (const beat of beatsToUse) {
@@ -136,7 +141,8 @@ export function applyRhythmPattern(rawNotes, beatDuration, rhythmPattern, legato
               duration:   beatDuration * beat.durationMult * (isOrnament ? 0.7 : 1.0),
               freq:       n.freq,
               instrument: n.instrument,
-              volume:     Math.min(1, n.volume * beat.accentMult),
+              // Применяем temporalFade к аккомп-ноте: плавное появление/затухание
+              volume:     Math.min(1, n.volume * beat.accentMult * temporalFade),
               role:       n.role,
               midi:       n.midi,
             });
@@ -146,10 +152,7 @@ export function applyRhythmPattern(rawNotes, beatDuration, rhythmPattern, legato
     }
   }
 
-  // ─── Дедупликация баса ───────────────────────────────────────────────────────
-  // FIX: если один инструмент-бас имел несколько сегментов, группировка takt::instr::role
-  // объединяет их в одну группу, но buildBassNote может сгенерировать дублирующие события.
-  // Убираем точные дубли (одинаковые time+midi+instrument).
+  // ─── Дедупликация баса ─────────────────────────────────────────────────────
   const seenBassKeys = new Set();
   const deduplicatedEvents = events.filter(ev => {
     if (ev.role !== 'bass') return true;
@@ -161,57 +164,8 @@ export function applyRhythmPattern(rawNotes, beatDuration, rhythmPattern, legato
   events.length = 0;
   events.push(...deduplicatedEvents);
 
-  // ─── Контрапункт ─────────────────────────────────────────────────────────────
-  // FIX: вместо простого сдвига — делим доли паттерна между инструментами.
-  // Первый инструмент играет чётные доли (0, 2, 4...), второй — нечётные (1, 3, 5...).
-  // Это даёт настоящее чередование голосов, а не наслоение со сдвигом.
-  const melodyEventsAll = events.filter(e => e.role === 'melody' && e.origTime !== undefined);
-  const byTakt = new Map();
-  for (const ev of melodyEventsAll) {
-    const takt = Math.floor(ev.origTime / beatDuration);
-    if (!byTakt.has(takt)) byTakt.set(takt, []);
-    byTakt.get(takt).push(ev);
-  }
-
-  for (const [, evs] of byTakt) {
-    const instruments = [...new Set(evs.map(ev => ev.instrument))];
-    if (instruments.length <= 1) continue;
-
-    // Сортируем инструменты по времени первого появления в такте
-    const firstTime  = Math.min(...evs.map(ev => ev.origTime));
-    const firstInstr = evs.find(ev => ev.origTime === firstTime).instrument;
-    const ordered    = [firstInstr, ...instruments.filter(i => i !== firstInstr)];
-
-    if (instruments.length >= 2) {
-      // Разбиваем события такта по инструментам, сортируем по времени
-      const sortedEvs = [...evs].sort((a, b) => a.origTime - b.origTime);
-      // Нечётные позиции (1, 3, 5...) — второй инструмент, первый берёт чётные
-      // Остальные инструменты (3+) удаляем из этого такта — слишком много голосов
-      const keepSet = new Set();
-      sortedEvs.forEach((ev, idx) => {
-        const instrIdx = ordered.indexOf(ev.instrument);
-        if (instrIdx === 0 && idx % 2 === 0) keepSet.add(ev);
-        else if (instrIdx === 1 && idx % 2 === 1) keepSet.add(ev);
-        // instrIdx >= 2: убираем лишние голоса
-      });
-
-      // Удаляем события которые не попали в keep
-      for (const ev of evs) {
-        if (!keepSet.has(ev)) {
-          ev._remove = true;
-        }
-      }
-
-      // Второй инструмент делаем тише — он отвечает на первый
-      for (const ev of evs) {
-        if (!ev._remove && ordered.indexOf(ev.instrument) === 1) {
-          ev.volume = Math.min(1, ev.volume * 0.85);
-        }
-      }
-    }
-  }
-
-  // ─── Дедупликация мелодии ─────────────────────────────────────────────────────
+  // ─── Дедупликация мелодии ──────────────────────────────────────────────────
+  // Каждый инструмент в каждый момент времени звучит только один раз
   const melodyEvents = events.filter(e => e.role === 'melody');
   const otherEvents  = events.filter(e => e.role !== 'melody');
 
@@ -236,12 +190,7 @@ export function applyRhythmPattern(rawNotes, beatDuration, rhythmPattern, legato
     lastInfoByInstr.set(ev.instrument, { time: ev.time, midi: ev.midi, duration: ev.duration });
   }
 
-  // ─── Устранение секунд внутри мелодии ────────────────────────────────────────
-  // FIX: вместо raw % 12 берём min(raw%12, 12 - raw%12) — настоящий хром. интервал.
-  // Это ловит случай B3(59)↔C4(60): было 1%12=1 ✓, но также ловило ложные срабатывания
-  // когда interval после % давал 6 (тритон) на самом деле являясь квинтой через октаву.
-  // Фильтруем только реальные секунды (1,2) — тритон внутри одного голоса не убираем,
-  // т.к. мелодия генерируется по гамме и тритонов там не бывает.
+  // ─── Устранение секунд внутри мелодии ─────────────────────────────────────
   const noSecondsMelody = [];
   const activeByInstr   = new Map();
 
@@ -250,10 +199,11 @@ export function applyRhythmPattern(rawNotes, beatDuration, rhythmPattern, legato
     const stillActive = active.filter(n => n.endTime > ev.time);
 
     const hasIntraConflict = stillActive.some(n => {
-      const interval = Math.abs(n.midi - ev.midi) % 12;
-      // FIX: добавлен унисон (0) внутри одного инструмента — две одинаковые ноты подряд
-      // создают дублирование. Секунды (1,2) по-прежнему фильтруем.
-      return interval === 0 || interval === 1 || interval === 2;
+      const rawDiff = Math.abs(n.midi - ev.midi);
+      if (rawDiff === 0) return true;
+      if (rawDiff >= 14) return false;
+      const chromatic = Math.min(rawDiff % 12, 12 - (rawDiff % 12));
+      return chromatic <= 2;
     });
     if (hasIntraConflict) continue;
 
@@ -262,10 +212,7 @@ export function applyRhythmPattern(rawNotes, beatDuration, rhythmPattern, legato
     activeByInstr.set(ev.instrument, stillActive);
   }
 
-  // ─── Устранение секунд между melody и bass ───────────────────────────────────
-  // Фильтруем только малые секунды (1,2 пт) — самые неприятные на слух.
-  // Унисон (0) и тритон (6) НЕ фильтруем: унисон между разными октавами звучит нормально,
-  // тритон в разных регистрах (бас внизу, мелодия вверху) — это просто характерный цвет.
+  // ─── Устранение секунд между melody и bass ─────────────────────────────────
   const bassEvents = otherEvents.filter(e => e.role === 'bass');
   const restEvents = otherEvents.filter(e => e.role !== 'bass');
 
@@ -275,26 +222,28 @@ export function applyRhythmPattern(rawNotes, beatDuration, rhythmPattern, legato
       const bassEnd = bassEv.time + bassEv.duration;
       const overlap = Math.min(melEnd, bassEnd) - Math.max(melEv.time, bassEv.time);
       if (overlap <= 0.05) return false;
-      // Просто % 12 — без инверсии. Иначе септима(10) воспринимается как секунда(2).
       const interval = Math.abs(melEv.midi - bassEv.midi) % 12;
       return interval === 1 || interval === 2;
     });
   });
 
-  // FIX: дополнительный проход — убираем секунды между разными melody-инструментами.
-  // Когда 3 инструмента играют мелодию одновременно, их ноты могут образовывать кластеры.
+  // ─── Устранение секунд между двумя melody-инструментами ────────────────────
+  // ВАЖНО: не удаляем тихий аккомпанирующий голос целиком — он важен для красоты.
+  // Просто убираем явные диссонансы (секунды + тритон в одном регистре).
   const crossMelodyFiltered = [];
   const activeCrossMelody   = [];
 
   for (const ev of filteredMelody.sort((a, b) => a.time - b.time)) {
-    // Очищаем завершившиеся ноты других инструментов
     const stillActive = activeCrossMelody.filter(n =>
       n.instrument !== ev.instrument && n.endTime > ev.time
     );
 
     const hasCrossConflict = stillActive.some(n => {
-      const interval = Math.abs(n.midi - ev.midi) % 12;
-      return interval === 1 || interval === 2;
+      const rawDiff = Math.abs(n.midi - ev.midi);
+      if (rawDiff === 0) return true;
+      if (rawDiff >= 14) return false;
+      const chromatic = Math.min(rawDiff % 12, 12 - (rawDiff % 12));
+      return chromatic <= 2 || chromatic === 6;
     });
 
     if (!hasCrossConflict) {
