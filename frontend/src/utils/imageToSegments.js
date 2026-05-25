@@ -13,18 +13,7 @@
  * Палитра по умолчанию — полный спектр инструментов из constants.js.
  * Передай свою через options.palette чтобы переопределить.
  */
-export const DEFAULT_PALETTE = [
-  { color: "#00ffd1", instrument: "piano" },
-  { color: "#ff3366", instrument: "guitar" },
-  { color: "#ffcc00", instrument: "flute" },
-  { color: "#9900ff", instrument: "strings" },
-  { color: "#ff6b35", instrument: "clarinet" },
-  { color: "#00b4d8", instrument: "saxophone" },
-  { color: "#f72585", instrument: "guitar-electric" },
-  { color: "#7bed9f", instrument: "cello" },
-  { color: "#ffd60a", instrument: "xylophone" },
-  { color: "#a855f7", instrument: "harp" },
-];
+import { COLOR_TO_INSTRUMENT } from "../engines/MelodyEngine/constants";
 
 /**
  * Основная функция. Принимает File/Blob, возвращает массив сегментов.
@@ -42,6 +31,10 @@ export const DEFAULT_PALETTE = [
  * @param {Array}  options.palette        - [{ color, instrument }] — полный спектр инструментов
  * @returns {Promise<Array>} массив сегментов
  */
+export const DEFAULT_PALETTE = Object.entries(COLOR_TO_INSTRUMENT).map(
+  ([color, instrument]) => ({ color, instrument })
+);
+
 export async function imageToSegments(file, options = {}) {
   const {
     threshold = 100,
