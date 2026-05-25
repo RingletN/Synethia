@@ -1,6 +1,5 @@
-// engines/DrawingEngine.js
 class DrawingEngine {
-  constructor(mainCanvas, duration = 8) {
+  constructor(mainCanvas, duration = 20) {
     this.mainCanvas = mainCanvas;
     this.ctx = mainCanvas.getContext("2d");
 
@@ -9,25 +8,14 @@ class DrawingEngine {
     this.segments = [];
     this.currentSegment = null;
 
-    this.currentInstrument = "sine";
     this.currentColor = "#00ffd1";
     this.lineWidth = 5;
     this.eraserWidth = 22;
-
-    this.instrumentColors = {
-      sine: "#00ffd1",
-      square: "#ff3366",
-      sawtooth: "#ffcc00",
-      triangle: "#9900ff",
-    };
 
     this.onStrokeEnd = null;
     this._resizeRafId = null;
     this._eraserTrail = [];
 
-    // Выставляем начальный размер canvas здесь, так как DrawingArea
-    // больше не передаёт width/height атрибуты — React не будет
-    // сбрасывать canvas при ре-рендере.
     if (!mainCanvas.width || mainCanvas.width < 10) mainCanvas.width = 780;
     if (!mainCanvas.height || mainCanvas.height < 10) mainCanvas.height = 700;
 
@@ -100,7 +88,6 @@ class DrawingEngine {
         color: this.currentColor,
         lineWidth: this.lineWidth,
         isErase: false,
-        instrument: this.currentInstrument,
       };
     }
   }
@@ -278,9 +265,7 @@ class DrawingEngine {
 
     this.ctx.globalCompositeOperation = "source-over";
   }
-
-  // resize — синхронный, без RAF. Вызывающий код (useCanvasResize) сам
-  // управляет очередью через RAF во время drag.
+  
   resize(newWidth, newHeight) {
     if (newWidth < 100 || newHeight < 100) return;
     this._doResize(newWidth, newHeight);
@@ -320,9 +305,7 @@ class DrawingEngine {
       offCtx.stroke();
     });
 
-    // 2. Атомарно меняем размер основного canvas и сразу копируем готовый кадр.
-    // Браузер не успевает показать пустой кадр — drawImage идёт сразу после
-    // изменения размера в том же стеке вызовов.
+    // 2. Атомарно меняем размер основного canvas и сразу копируем готовый кадр
     this.mainCanvas.width = newWidth;
     this.mainCanvas.height = newHeight;
 
@@ -330,12 +313,6 @@ class DrawingEngine {
     this.ctx.lineJoin = "round";
     this.ctx.globalCompositeOperation = "source-over";
     this.ctx.drawImage(offscreen, 0, 0);
-  }
-
-  setInstrument(instrument) {
-    this.currentInstrument = instrument;
-    this.currentColor = this.instrumentColors[instrument] || "#00ffd1";
-    this.isErasing = false;
   }
 
   setEraserMode(isEraser) {
