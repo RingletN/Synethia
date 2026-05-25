@@ -173,8 +173,8 @@ class DrawingEngine {
   _erasePoints(eraserTrail, eraserWidthPx) {
     const w = this.mainCanvas.width;
     const h = this.mainCanvas.height;
-    const rx = (eraserWidthPx / 2) / w;
-    const ry = (eraserWidthPx / 2) / h;
+    const rx = eraserWidthPx / 2 / w;
+    const ry = eraserWidthPx / 2 / h;
 
     let changed = false;
 

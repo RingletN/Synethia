@@ -9,8 +9,14 @@ import { HintContext } from "../context/HintContext";
 export const useHint = (text) => {
   const ctx = useContext(HintContext);
   if (!ctx) return {};
-  const onMouseEnter = useCallback(() => { ctx.clearForced(); ctx.setHint(text); }, [ctx, text]);
-  const onMouseLeave = useCallback(() => { ctx.clearForced(); ctx.resetHint(); }, [ctx]);
+  const onMouseEnter = useCallback(() => {
+    ctx.clearForced();
+    ctx.setHint(text);
+  }, [ctx, text]);
+  const onMouseLeave = useCallback(() => {
+    ctx.clearForced();
+    ctx.resetHint();
+  }, [ctx]);
   return { onMouseEnter, onMouseLeave };
 };
 
@@ -40,7 +46,8 @@ export const useHintPush = (currentTextGetter) => {
   getterRef.current = currentTextGetter;
   const hoveredRef = useRef(false);
 
-  if (!ctx) return { onMouseEnter: undefined, onMouseLeave: undefined, push: () => {} };
+  if (!ctx)
+    return { onMouseEnter: undefined, onMouseLeave: undefined, push: () => {} };
 
   const onMouseEnter = useCallback(() => {
     hoveredRef.current = true;
@@ -54,11 +61,14 @@ export const useHintPush = (currentTextGetter) => {
     ctx.resetHint();
   }, [ctx]);
 
-  const push = useCallback((nextText) => {
-    if (hoveredRef.current) {
-      ctx.forceHint(() => nextText);
-    }
-  }, [ctx]);
+  const push = useCallback(
+    (nextText) => {
+      if (hoveredRef.current) {
+        ctx.forceHint(() => nextText);
+      }
+    },
+    [ctx],
+  );
 
   return { onMouseEnter, onMouseLeave, push };
 };
@@ -69,8 +79,17 @@ export const useHintPush = (currentTextGetter) => {
 export const useHintFactory = () => {
   const ctx = useContext(HintContext);
   if (!ctx) return () => ({});
-  return useCallback((text) => ({
-    onMouseEnter: () => { ctx.clearForced(); ctx.setHint(text); },
-    onMouseLeave: () => { ctx.clearForced(); ctx.resetHint(); },
-  }), [ctx]);
+  return useCallback(
+    (text) => ({
+      onMouseEnter: () => {
+        ctx.clearForced();
+        ctx.setHint(text);
+      },
+      onMouseLeave: () => {
+        ctx.clearForced();
+        ctx.resetHint();
+      },
+    }),
+    [ctx],
+  );
 };

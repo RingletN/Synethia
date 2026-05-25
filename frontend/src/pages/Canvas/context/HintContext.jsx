@@ -1,8 +1,15 @@
 // HintContext.jsx
 
-import React, { createContext, useContext, useState, useCallback, useRef } from "react";
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useCallback,
+  useRef,
+} from "react";
 
-const DEFAULT_HINT = "Добро пожаловать ✦ Начните рисовать и создайте свою музыку";
+const DEFAULT_HINT =
+  "Добро пожаловать ✦ Начните рисовать и создайте свою музыку";
 
 export const HintContext = createContext(null);
 
@@ -37,7 +44,9 @@ export const HintProvider = ({ children }) => {
   }, []);
 
   return (
-    <HintContext.Provider value={{ hint, setHint, resetHint, forceHint, clearForced, DEFAULT_HINT }}>
+    <HintContext.Provider
+      value={{ hint, setHint, resetHint, forceHint, clearForced, DEFAULT_HINT }}
+    >
       {children}
     </HintContext.Provider>
   );

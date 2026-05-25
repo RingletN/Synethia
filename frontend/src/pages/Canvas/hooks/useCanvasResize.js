@@ -21,12 +21,15 @@ export const useCanvasResize = (engineRef, canvasPanelRef, drawBlockRef) => {
   // 2. Потом state — React обновит только CSS-размер панели, canvas-элемент не тронет
   //    (у него больше нет width/height атрибутов из пропсов).
   // Итог: браузер видит ровно один кадр с готовым рисунком, мигания нет.
-  const applySize = useCallback((newW, newH) => {
-    if (engineRef.current) {
-      engineRef.current._doResize(newW, newH);
-    }
-    setCanvasSize({ width: newW, height: newH });
-  }, [engineRef]);
+  const applySize = useCallback(
+    (newW, newH) => {
+      if (engineRef.current) {
+        engineRef.current._doResize(newW, newH);
+      }
+      setCanvasSize({ width: newW, height: newH });
+    },
+    [engineRef],
+  );
 
   const handleResizeMouseDown = useCallback(
     (dir) => (e) => {
@@ -42,7 +45,12 @@ export const useCanvasResize = (engineRef, canvasPanelRef, drawBlockRef) => {
     let rafId = null;
 
     const onMove = (e) => {
-      if (!isDraggingRef.current || !canvasPanelRef.current || !engineRef.current) return;
+      if (
+        !isDraggingRef.current ||
+        !canvasPanelRef.current ||
+        !engineRef.current
+      )
+        return;
 
       const clientX = e.clientX;
       const clientY = e.clientY;
@@ -62,12 +70,14 @@ export const useCanvasResize = (engineRef, canvasPanelRef, drawBlockRef) => {
         const rawW = Math.round(clientX - rect.left);
         const rawH = Math.round(clientY - rect.top);
 
-        const newW = dragDirRef.current !== "vertical"
-          ? Math.min(maxW, Math.max(CANVAS_MIN_WIDTH, rawW))
-          : canvasPanelRef.current.clientWidth;
-        const newH = dragDirRef.current !== "horizontal"
-          ? Math.max(CANVAS_MIN_HEIGHT, rawH)
-          : canvasPanelRef.current.clientHeight;
+        const newW =
+          dragDirRef.current !== "vertical"
+            ? Math.min(maxW, Math.max(CANVAS_MIN_WIDTH, rawW))
+            : canvasPanelRef.current.clientWidth;
+        const newH =
+          dragDirRef.current !== "horizontal"
+            ? Math.max(CANVAS_MIN_HEIGHT, rawH)
+            : canvasPanelRef.current.clientHeight;
 
         applySize(newW, newH);
       });

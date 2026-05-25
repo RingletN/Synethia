@@ -5,8 +5,8 @@ const DrawingArea = ({ width, height, onReady }) => {
   const initializedRef = useRef(false);
   const sizeSetRef = useRef(false);
 
-   // Устанавливаем реальные размеры canvas один раз при монтировании
-   useEffect(() => {
+  // Устанавливаем реальные размеры canvas один раз при монтировании
+  useEffect(() => {
     const canvas = mainRef.current;
     if (canvas && width && height && !sizeSetRef.current) {
       canvas.width = width;
@@ -18,7 +18,13 @@ const DrawingArea = ({ width, height, onReady }) => {
   // Сообщаем родителю, что холст готов, только когда размеры заданы
   useEffect(() => {
     const canvas = mainRef.current;
-    if (!initializedRef.current && canvas && canvas.width > 0 && canvas.height > 0 && onReady) {
+    if (
+      !initializedRef.current &&
+      canvas &&
+      canvas.width > 0 &&
+      canvas.height > 0 &&
+      onReady
+    ) {
       initializedRef.current = true;
       onReady({ main: canvas });
     }

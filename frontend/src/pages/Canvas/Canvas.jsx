@@ -2,8 +2,8 @@ import React, { useState, useRef, useEffect, useCallback } from "react";
 import { useSearchParams, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import api from "../../api";
-import { HintProvider }  from "./context/HintContext";
-import HintPanel         from "./components/HintPanel";
+import { HintProvider } from "./context/HintContext";
+import HintPanel from "./components/HintPanel";
 import { useHint, useHintPush } from "./hooks/useHint";
 import BgCanvasLine from "../../assets/backgrounds/bg-canvas-line.png";
 import DrawingArea from "./components/DrawingArea";
@@ -38,38 +38,58 @@ const melodyEngine = new MelodyEngine();
 // Принимает всю логику через пропсы из Canvas.
 const CanvasInner = ({
   // состояния
-  isBrushSelected, setIsBrushSelected,
+  isBrushSelected,
+  setIsBrushSelected,
   isFavorite,
   brushColor,
   isImporting,
-  projectTitle, setProjectTitle,
-  bpm, setBpm,
-  duration, setDuration,
-  scale, setScale,
-  rhythmPattern, setRhythmPattern,
-  effectReverb, setEffectReverb,
-  effectDelay, setEffectDelay,
-  effectDistortion, setEffectDistortion,
+  projectTitle,
+  setProjectTitle,
+  bpm,
+  setBpm,
+  duration,
+  setDuration,
+  scale,
+  setScale,
+  rhythmPattern,
+  setRhythmPattern,
+  effectReverb,
+  setEffectReverb,
+  effectDelay,
+  setEffectDelay,
+  effectDistortion,
+  setEffectDistortion,
   isGenerating,
   isMelodyGenerated,
   totalDuration,
-  modalOpen, modalConfig,
+  modalOpen,
+  modalConfig,
   bgColor,
   isLoadingProject,
-  showSaveAsModal, setShowSaveAsModal,
+  showSaveAsModal,
+  setShowSaveAsModal,
   existingProjectNames,
   // рефы
-  toolsPanelRef, canvasPanelRef, drawBlockRef,
+  toolsPanelRef,
+  canvasPanelRef,
+  drawBlockRef,
   engineRef,
   // хуки рисования
-  canUndo, canRedo,
+  canUndo,
+  canRedo,
   canvasSize,
   handleResizeMouseDown,
   // плеер
-  isPlaying, currentTime, volume, setVolume,
+  isPlaying,
+  currentTime,
+  volume,
+  setVolume,
   // хэндлеры
-  handleUndo, handleRedo, handleClear,
-  handleBgColorChange, handleBrushColorChange,
+  handleUndo,
+  handleRedo,
+  handleClear,
+  handleBgColorChange,
+  handleBrushColorChange,
   handleImportPhoto,
   handleCanvasReady,
   handleToggleFavorite,
@@ -80,40 +100,45 @@ const CanvasInner = ({
   handlePlayPause,
   handleSaveAsConfirm,
   setCurrentTitle,
-  skip, seek,
-  openModal, closeModal,
+  skip,
+  seek,
+  openModal,
+  closeModal,
 }) => {
   // ── [HINT] Все хинты здесь, внутри HintProvider ──────────────────────────
 
   const hintCanvas = useHint(
     canUndo
       ? "Продолжайте — каждая линия влияет на будущую мелодию ✦"
-      : "Начните рисовать — музыка рождается из линий ✦"
+      : "Начните рисовать — музыка рождается из линий ✦",
   );
 
   // useHintPush: при клике пушим уже вычисленный следующий текст
-  const hintFavorite = useHintPush(
-    () => isFavorite ? "Убрать из избранного ✦" : "Добавить в избранное ✦"
+  const hintFavorite = useHintPush(() =>
+    isFavorite ? "Убрать из избранного ✦" : "Добавить в избранное ✦",
   );
 
-  const hintSave     = useHint("Сохранить проект ✦");
+  const hintSave = useHint("Сохранить проект ✦");
   const hintDownload = useHint("Скачать рисунок или мелодию ✦");
-  const hintDelete   = useHint("Удалить проект или очистить холст ✦");
+  const hintDelete = useHint("Удалить проект или очистить холст ✦");
   const hintQuestion = useHint("Как пользоваться приложением ✦");
-  const hintTitle    = useHint("Дайте название своему шедевру ✦");
+  const hintTitle = useHint("Дайте название своему шедевру ✦");
 
   const hintGenerate = useHint(
     isGenerating
       ? "Генерируем мелодию, подождите… ✦"
       : isMelodyGenerated
         ? "Перегенерировать мелодию по текущему рисунку ✦"
-        : "Преобразовать рисунок в музыку ✦"
+        : "Преобразовать рисунок в музыку ✦",
   );
 
   return (
     <div className="canvas-content">
       {isLoadingProject && (
-        <div className="import-overlay" style={{ position: "fixed", zIndex: 1000 }}>
+        <div
+          className="import-overlay"
+          style={{ position: "fixed", zIndex: 1000 }}
+        >
           <Loader size={64} color="cyan" speed={1200} />
         </div>
       )}
@@ -139,11 +164,21 @@ const CanvasInner = ({
           {/* [HINT] избранное — toggle-хинт, меняется сразу при клике */}
           <div
             className="icon favourite-btn"
-            onClick={() => { handleToggleFavorite(); hintFavorite.push(isFavorite ? "Добавить в избранное ✦" : "Убрать из избранного ✦"); }}
+            onClick={() => {
+              handleToggleFavorite();
+              hintFavorite.push(
+                isFavorite
+                  ? "Добавить в избранное ✦"
+                  : "Убрать из избранного ✦",
+              );
+            }}
             onMouseEnter={hintFavorite.onMouseEnter}
             onMouseLeave={hintFavorite.onMouseLeave}
           >
-            <img src={isFavorite ? StarSelectedIcon : StarIcon} alt="Избранное" />
+            <img
+              src={isFavorite ? StarSelectedIcon : StarIcon}
+              alt="Избранное"
+            />
           </div>
           <div className="icon save-btn" onClick={handleSave} {...hintSave}>
             <img src={SaveIcon} alt="Сохранить проект" />
@@ -169,7 +204,11 @@ const CanvasInner = ({
           >
             <img src={DownloadIcon} alt="Скачать" />
           </div>
-          <div className="icon delete-btn" onClick={handleDeleteProject} {...hintDelete}>
+          <div
+            className="icon delete-btn"
+            onClick={handleDeleteProject}
+            {...hintDelete}
+          >
             <img src={TrashIcon} alt="Удалить проект" />
           </div>
           <div className="icon question-btn" {...hintQuestion}>
@@ -346,8 +385,12 @@ const Canvas = () => {
   const bgColorRef = useRef("#0B0B1F");
   const brushColorRef = useRef("#00ffd1");
 
-  useEffect(() => { bgColorRef.current = bgColor; }, [bgColor]);
-  useEffect(() => { brushColorRef.current = brushColor; }, [brushColor]);
+  useEffect(() => {
+    bgColorRef.current = bgColor;
+  }, [bgColor]);
+  useEffect(() => {
+    brushColorRef.current = brushColor;
+  }, [brushColor]);
 
   const toolsPanelRef = useRef(null);
   const canvasPanelRef = useRef(null);
@@ -409,9 +452,11 @@ const Canvas = () => {
         if (saved.duration) setDuration(saved.duration);
         if (saved.scale) setScale(saved.scale);
         if (saved.rhythmPattern) setRhythmPattern(saved.rhythmPattern);
-        if (saved.effectReverb !== undefined) setEffectReverb(saved.effectReverb);
+        if (saved.effectReverb !== undefined)
+          setEffectReverb(saved.effectReverb);
         if (saved.effectDelay !== undefined) setEffectDelay(saved.effectDelay);
-        if (saved.effectDistortion !== undefined) setEffectDistortion(saved.effectDistortion);
+        if (saved.effectDistortion !== undefined)
+          setEffectDistortion(saved.effectDistortion);
         if (saved.segments?.length) {
           engineRef.current.loadState({ segments: saved.segments });
           saveToHistory(saved.bgColor || bgColorRef.current);
@@ -572,16 +617,16 @@ const Canvas = () => {
         const currentLineWidth = engineRef.current.getLineWidth?.() || 5;
 
         const palette = Object.entries(COLOR_TO_INSTRUMENT).map(
-          ([color, instrument]) => ({ color, instrument })
+          ([color, instrument]) => ({ color, instrument }),
         );
 
         const segments = await imageToSegments(file, {
-          threshold:     90,
-          maxWidth:      700,
+          threshold: 90,
+          maxWidth: 700,
           minSegmentLen: 20,
-          maxSegments:   400,
-          simplifyEps:   0.004,
-          lineWidth:     currentLineWidth,
+          maxSegments: 400,
+          simplifyEps: 0.004,
+          lineWidth: currentLineWidth,
           palette,
         });
 
@@ -595,7 +640,11 @@ const Canvas = () => {
         engineRef.current.addSegments(segments);
       } catch (err) {
         console.error("Ошибка обработки изображения:", err);
-        showModal("Ошибка обработки фото", "Не удалось обработать изображение.", "error");
+        showModal(
+          "Ошибка обработки фото",
+          "Не удалось обработать изображение.",
+          "error",
+        );
       } finally {
         setIsImporting(false);
       }
@@ -639,7 +688,7 @@ const Canvas = () => {
           setBpm(s.bpm);
           setDuration(s.duration);
           setScale(s.scale);
-          setRhythmPattern(s.rhythm_pattern || 'rock');
+          setRhythmPattern(s.rhythm_pattern || "rock");
           setEffectReverb(parseFloat(s.reverb));
           setEffectDelay(parseFloat(s.delay));
           setEffectDistortion(parseFloat(s.distortion));
@@ -672,12 +721,24 @@ const Canvas = () => {
         setProjectId(parseInt(projectId, 10));
         setHasUnsavedChanges(false);
       } catch (err) {
-        showModal("Ошибка", `Не удалось загрузить проект: ${err.message}`, "error");
+        showModal(
+          "Ошибка",
+          `Не удалось загрузить проект: ${err.message}`,
+          "error",
+        );
       } finally {
         setIsLoadingProject(false);
       }
     },
-    [engineRef, saveToHistory, setProjectId, setCurrentTitle, showModal, canvasPanelRef, setCanvasSize],
+    [
+      engineRef,
+      saveToHistory,
+      setProjectId,
+      setCurrentTitle,
+      showModal,
+      canvasPanelRef,
+      setCanvasSize,
+    ],
   );
 
   useEffect(() => {
@@ -702,7 +763,10 @@ const Canvas = () => {
     await new Promise((resolve) => setTimeout(resolve, 100));
     try {
       const segments = engineRef.current.getAllSegments();
-      console.log('🎨 segments при генерации:', segments.map(s => ({ color: s.color, points: s.points?.length })));
+      console.log(
+        "🎨 segments при генерации:",
+        segments.map((s) => ({ color: s.color, points: s.points?.length })),
+      );
       if (!segments || segments.length === 0) {
         showModal(
           "Нечего генерировать",
@@ -713,28 +777,45 @@ const Canvas = () => {
       }
       let events;
       try {
-        ({ events } = melodyEngine.buildNoteEvents(segments, melodyParamsForGen));
-        // --- DEBUG EXPORT ---
-        const { events: eventsForLog, tonicMidi, roles } = melodyEngine.buildNoteEvents(
+        ({ events } = melodyEngine.buildNoteEvents(
           segments,
           melodyParamsForGen,
+        ));
+        // --- DEBUG EXPORT ---
+        const {
+          events: eventsForLog,
+          tonicMidi,
+          roles,
+        } = melodyEngine.buildNoteEvents(segments, melodyParamsForGen);
+        const log = melodyEngine.exportDebugLog(
+          eventsForLog,
+          roles,
+          tonicMidi,
+          melodyParamsForGen,
         );
-        const log  = melodyEngine.exportDebugLog(eventsForLog, roles, tonicMidi, melodyParamsForGen);
         const blob = new Blob([log], { type: "text/plain;charset=utf-8" });
-        const url  = URL.createObjectURL(blob);
-        const a    = document.createElement("a");
-        a.href     = url;
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
         a.download = `melody-debug-${Date.now()}.txt`;
         a.click();
         URL.revokeObjectURL(url);
         // --- END DEBUG ---
       } catch (engineErr) {
         console.error("MelodyEngine error:", engineErr);
-        showModal("Ошибка генерации", "Не удалось обработать рисунок. Попробуйте ещё раз.", "error");
+        showModal(
+          "Ошибка генерации",
+          "Не удалось обработать рисунок. Попробуйте ещё раз.",
+          "error",
+        );
         return;
       }
       if (!events || events.length === 0) {
-        showModal("Нечего генерировать", "Не удалось извлечь ноты из рисунка.", "warning");
+        showModal(
+          "Нечего генерировать",
+          "Не удалось извлечь ноты из рисунка.",
+          "warning",
+        );
         return;
       }
       setMelodyEvents(events);
@@ -804,7 +885,7 @@ const Canvas = () => {
         }
       }
     },
-    [initEngine, handleStrokeEnd, handleImportPhoto, location.state]
+    [initEngine, handleStrokeEnd, handleImportPhoto, location.state],
   );
 
   const handleBgColorChange = useCallback(
@@ -843,7 +924,11 @@ const Canvas = () => {
       await api.patch(`/api/projects/${projectId}/favorite`);
     } catch (err) {
       setIsFavorite((prev) => !prev);
-      showModal("Ошибка", "Не удалось обновить избранное. Попробуйте ещё раз.", "error");
+      showModal(
+        "Ошибка",
+        "Не удалось обновить избранное. Попробуйте ещё раз.",
+        "error",
+      );
     }
   }, [projectId, showModal]);
 
@@ -862,7 +947,11 @@ const Canvas = () => {
           try {
             await api.delete(`/api/projects/${projectId}`);
           } catch (err) {
-            showModal("Ошибка", "Не удалось удалить проект. Попробуйте ещё раз.", "error");
+            showModal(
+              "Ошибка",
+              "Не удалось удалить проект. Попробуйте ещё раз.",
+              "error",
+            );
             return;
           }
         }
@@ -893,13 +982,20 @@ const Canvas = () => {
         isImporting={isImporting}
         projectTitle={projectTitle}
         setProjectTitle={setProjectTitle}
-        bpm={bpm} setBpm={setBpm}
-        duration={duration} setDuration={setDuration}
-        scale={scale} setScale={setScale}
-        rhythmPattern={rhythmPattern} setRhythmPattern={setRhythmPattern}
-        effectReverb={effectReverb} setEffectReverb={setEffectReverb}
-        effectDelay={effectDelay} setEffectDelay={setEffectDelay}
-        effectDistortion={effectDistortion} setEffectDistortion={setEffectDistortion}
+        bpm={bpm}
+        setBpm={setBpm}
+        duration={duration}
+        setDuration={setDuration}
+        scale={scale}
+        setScale={setScale}
+        rhythmPattern={rhythmPattern}
+        setRhythmPattern={setRhythmPattern}
+        effectReverb={effectReverb}
+        setEffectReverb={setEffectReverb}
+        effectDelay={effectDelay}
+        setEffectDelay={setEffectDelay}
+        effectDistortion={effectDistortion}
+        setEffectDistortion={setEffectDistortion}
         isGenerating={isGenerating}
         isMelodyGenerated={isMelodyGenerated}
         totalDuration={totalDuration}

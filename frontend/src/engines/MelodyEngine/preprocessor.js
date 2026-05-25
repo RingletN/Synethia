@@ -12,13 +12,13 @@ import { freqToMidi, yNormToFreq } from "./musicTheory.js";
 
 export function preprocessSegments(segments) {
   return segments
-    .filter(seg => seg.points?.length >= 5)
-    .map(seg => {
+    .filter((seg) => seg.points?.length >= 5)
+    .map((seg) => {
       const instrument = COLOR_TO_INSTRUMENT[seg.color] || "piano";
       const sorted = seg.points
-        .filter(pt => Number.isFinite(pt.x) && Number.isFinite(pt.y))
+        .filter((pt) => Number.isFinite(pt.x) && Number.isFinite(pt.y))
         .sort((a, b) => a.x - b.x);
-      const deduped  = deduplicateByX(sorted);
+      const deduped = deduplicateByX(sorted);
       const smoothed = gaussianSmoothY(deduped, GAUSSIAN_SIGMA);
       return {
         ...seg,
@@ -44,8 +44,8 @@ export function detectInflections(seg, T) {
     if (Math.abs(dy) < INFLECTION_THRESHOLD) continue;
     const dir = dy > 0 ? -1 : +1;
     if (prevDir !== null && dir !== prevDir) {
-      const pt   = inner[i];
-      const type = dir === +1 ? 'valley' : 'peak';
+      const pt = inner[i];
+      const type = dir === +1 ? "valley" : "peak";
       const takt = Math.min(T - 1, Math.max(0, Math.floor(pt.x * T)));
       inflections.push({ x: pt.x, y: pt.y, type, takt });
       prevDir = dir;
@@ -59,11 +59,11 @@ export function detectInflections(seg, T) {
 export function detectTonic(processedSegs) {
   // Берём самую левую точку (первую ноту рисунка) как тонику
   let leftmostPoint = null;
-  let leftmostX     = Infinity;
+  let leftmostX = Infinity;
   for (const seg of processedSegs) {
     for (const pt of seg.points) {
       if (pt.x < leftmostX) {
-        leftmostX     = pt.x;
+        leftmostX = pt.x;
         leftmostPoint = pt;
       }
     }
@@ -97,14 +97,15 @@ function deduplicateByX(sortedPoints) {
 function gaussianSmoothY(points, sigma) {
   if (points.length <= 2) return points;
   const kernel = gaussianKernel(sigma);
-  const half   = Math.floor(kernel.length / 2);
+  const half = Math.floor(kernel.length / 2);
   return points.map((pt, i) => {
-    let weightedY = 0, totalW = 0;
+    let weightedY = 0,
+      totalW = 0;
     for (let k = 0; k < kernel.length; k++) {
       const idx = i + k - half;
       if (idx >= 0 && idx < points.length) {
         weightedY += points[idx].y * kernel[k];
-        totalW    += kernel[k];
+        totalW += kernel[k];
       }
     }
     return { x: pt.x, y: weightedY / totalW };
@@ -121,5 +122,5 @@ function gaussianKernel(sigma) {
     kernel.push(v);
     sum += v;
   }
-  return kernel.map(v => v / sum);
+  return kernel.map((v) => v / sum);
 }

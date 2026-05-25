@@ -459,8 +459,12 @@ const useMelodyPlayer = (
           synth.triggerAttackRelease(freq, duration, time);
           const cleanupDelay = (Tone.Time(duration).toSeconds() + 0.5) * 1000;
           setTimeout(() => {
-            try { synth.dispose(); } catch (_) {}
-            try { gainNode.dispose(); } catch (_) {}
+            try {
+              synth.dispose();
+            } catch (_) {}
+            try {
+              gainNode.dispose();
+            } catch (_) {}
           }, cleanupDelay);
         }
 
@@ -559,9 +563,12 @@ const useMelodyPlayer = (
     setIsPlaying(true);
 
     const remaining = totalDurationRef.current * 1000;
-    endTimerRef.current = setTimeout(() => {
-      stop();
-    }, Math.max(remaining, 0));
+    endTimerRef.current = setTimeout(
+      () => {
+        stop();
+      },
+      Math.max(remaining, 0),
+    );
   }, [createPart, stop, preloadSamplers]);
 
   useEffect(() => {

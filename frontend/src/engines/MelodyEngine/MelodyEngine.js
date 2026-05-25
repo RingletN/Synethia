@@ -16,27 +16,31 @@ import {
   DEFAULT_NOTES_PER_BEAT,
 } from "./constants.js";
 import { preprocessSegments, detectTonic } from "./preprocessor.js";
-import { assignRoles }                      from "./roleAssigner.js";
-import { buildRawNotes, getSegmentDirection, selectNotesPerBeat } from "./noteBuilder.js";
-import { applyRhythmPattern }               from "./rhythmEngine.js";
-import { exportDebugLog }                   from "./debugLogger.js";
+import { assignRoles } from "./roleAssigner.js";
+import {
+  buildRawNotes,
+  getSegmentDirection,
+  selectNotesPerBeat,
+} from "./noteBuilder.js";
+import { applyRhythmPattern } from "./rhythmEngine.js";
+import { exportDebugLog } from "./debugLogger.js";
 
 class MelodyEngine {
   constructor() {
     this.defaultRhythmPattern = DEFAULT_RHYTHM_PATTERN;
-    this.defaultLegato        = DEFAULT_LEGATO;
-    this.defaultVoiceMode     = DEFAULT_VOICE_MODE;
-    this.defaultNotesPerBeat  = DEFAULT_NOTES_PER_BEAT;
+    this.defaultLegato = DEFAULT_LEGATO;
+    this.defaultVoiceMode = DEFAULT_VOICE_MODE;
+    this.defaultNotesPerBeat = DEFAULT_NOTES_PER_BEAT;
   }
 
   buildNoteEvents(segments, options = {}) {
     const {
-      bpm           = 80,
-      duration      = 8,
-      scale         = "major",
+      bpm = 80,
+      duration = 8,
+      scale = "major",
       rhythmPattern = "straight",
-      legato        = this.defaultLegato,
-      voiceMode     = this.defaultVoiceMode,
+      legato = this.defaultLegato,
+      voiceMode = this.defaultVoiceMode,
     } = options;
 
     // Адаптируем количество нот к BPM, если не задано явно
@@ -45,36 +49,68 @@ class MelodyEngine {
     if (!segments?.length) return { events: [], tonicMidi: 60, roles: {} };
 
     const processedSegs = preprocessSegments(segments);
-    if (processedSegs.length === 0) return { events: [], tonicMidi: 60, roles: {} };
+    if (processedSegs.length === 0)
+      return { events: [], tonicMidi: 60, roles: {} };
 
-    const tonicMidi   = detectTonic(processedSegs);
-    const T           = Math.max(1, Math.ceil((bpm * duration) / (60 * 4)));
+    const tonicMidi = detectTonic(processedSegs);
+    const T = Math.max(1, Math.ceil((bpm * duration) / (60 * 4)));
     const beatDuration = duration / T;
 
     assignRoles(processedSegs, T);
-    const rawNotes = buildRawNotes(processedSegs, tonicMidi, T, scale, notesPerBeat);
+    const rawNotes = buildRawNotes(
+      processedSegs,
+      tonicMidi,
+      T,
+      scale,
+      notesPerBeat,
+    );
     // FIX: передаём bpm в applyRhythmPattern для динамического jitter
-    const events   = applyRhythmPattern(rawNotes, beatDuration, rhythmPattern, legato, voiceMode, bpm);
+    const events = applyRhythmPattern(
+      rawNotes,
+      beatDuration,
+      rhythmPattern,
+      legato,
+      voiceMode,
+      bpm,
+    );
 
     const roles = {};
     for (const seg of processedSegs) roles[seg.instrument] = seg.role;
     return { events, tonicMidi, roles };
   }
 
-  regenerateRhythm(rawNotes, beatDuration, rhythmPattern, legato = this.defaultLegato, voiceMode = this.defaultVoiceMode, bpm = 120) {
-    return applyRhythmPattern(rawNotes, beatDuration, rhythmPattern, legato, voiceMode, bpm);
+  regenerateRhythm(
+    rawNotes,
+    beatDuration,
+    rhythmPattern,
+    legato = this.defaultLegato,
+    voiceMode = this.defaultVoiceMode,
+    bpm = 120,
+  ) {
+    return applyRhythmPattern(
+      rawNotes,
+      beatDuration,
+      rhythmPattern,
+      legato,
+      voiceMode,
+      bpm,
+    );
   }
 
   exportDebugLog(events, roles, tonicMidi, options = {}) {
     return exportDebugLog(events, roles, tonicMidi, {
-      legato:    this.defaultLegato,
+      legato: this.defaultLegato,
       voiceMode: this.defaultVoiceMode,
       ...options,
     });
   }
 
-  getSegmentDirection(segment)  { return getSegmentDirection(segment); }
-  selectNotesPerBeat(bpm)       { return selectNotesPerBeat(bpm); }
+  getSegmentDirection(segment) {
+    return getSegmentDirection(segment);
+  }
+  selectNotesPerBeat(bpm) {
+    return selectNotesPerBeat(bpm);
+  }
 }
 
 export default MelodyEngine;
