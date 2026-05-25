@@ -87,3 +87,21 @@ const api = {
 };
 
 export default api;
+export { getCsrfCookie, getXsrfToken };
+
+export const postFormData = async (path, formData) => {
+  await getCsrfCookie();
+  const xsrfToken = getXsrfToken();
+  const headers = {};
+  if (xsrfToken) headers["X-XSRF-TOKEN"] = xsrfToken;
+
+  const res = await fetch(`${API_URL}${path}`, {
+    method: "POST",
+    headers,
+    credentials: "include",
+    body: formData,
+  });
+
+  if (res.status === 204) return null;
+  return res;
+};

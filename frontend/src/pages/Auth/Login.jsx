@@ -44,8 +44,8 @@ function Login({ onSwitchToRegister, onForgotPassword }) {
     setLoading(true);
     setGeneralError("");
     try {
-      const success = await login(formData.email, formData.password);
-      if (success) {
+      const result = await login(formData.email, formData.password);
+      if (result?.ok) {
         setShowSuccessModal(true);
       } else {
         setErrorMessage("Неверный email или пароль");

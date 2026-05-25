@@ -123,8 +123,8 @@ function ForgotPassword({ onBack }) {
 
     setLoading(true);
     try {
-      const ok = await resetPassword(email, code, password);
-      if (ok) {
+      const result = await resetPassword(email, code, password);
+      if (result?.ok) {
         setShowSuccessModal(true);
       } else {
         setPasswordError("Ошибка смены пароля. Попробуйте заново.");

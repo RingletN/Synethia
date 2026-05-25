@@ -110,8 +110,8 @@ function Register({ onSwitchToLogin }) {
     }
     setLoading(true);
     try {
-      const success = await register(formData);
-      if (success) {
+      const result = await register(formData);
+      if (result?.ok) {
         setShowSuccessModal(true);
       } else {
         setGeneralError("Ошибка регистрации...");
