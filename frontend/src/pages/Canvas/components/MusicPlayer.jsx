@@ -37,20 +37,20 @@ const MusicPlayer = ({
   const isDraggingVolumeRef = useRef(false);
 
   // [HINT] статичные хинты (состояние не меняется в момент клика)
-  const hintSkipBack = useHint("Перемотать на 5 секунд назад ✦");
-  const hintSkipForward = useHint("Перемотать на 5 секунд вперёд ✦");
-  const hintProgress = useHint("Нажмите или перетащите, чтобы перемотать ✦");
-  const hintTime = useHint("Текущее время / общая длительность ✦");
-  const hintVolumeSlider = useHint("Перетащите, чтобы изменить громкость ✦");
+  const hintSkipBack = useHint("Перемотать на 5 секунд назад");
+  const hintSkipForward = useHint("Перемотать на 5 секунд вперёд");
+  const hintProgress = useHint("Нажмите или перетащите для перемотки");
+  const hintTime = useHint("Текущее время / общая длительность ");
+  const hintVolumeSlider = useHint("Перетащите, чтобы изменить громкость");
 
   // [HINT] ИСПРАВЛЕНО: toggle-хинты — обновляются сразу при клике, без ухода курсора.
   // Используем useHintToggle: при клике вызываем onAfterClick() и подсказка меняется мгновенно.
   // useHintPush: push вызывается с уже вычисленным следующим текстом
   const hintPlayPause = useHintPush(() =>
-    isPlaying ? "Поставить на паузу ✦" : "Воспроизвести музыку ✦",
+    isPlaying ? "Поставить на паузу " : "Воспроизвести музыку ",
   );
   const hintVolumeIcon = useHintPush(() =>
-    volume === 0 ? "Включить звук ✦" : "Выключить звук ✦",
+    volume === 0 ? "Включить звук " : "Выключить звук ",
   );
 
   const handleProgressClick = useCallback(
@@ -154,7 +154,7 @@ const MusicPlayer = ({
         onClick={() => {
           onPlayPause();
           hintPlayPause.push(
-            isPlaying ? "Воспроизвести музыку ✦" : "Поставить на паузу ✦",
+            isPlaying ? "Воспроизвести музыку " : "Поставить на паузу ",
           );
         }}
         onMouseEnter={hintPlayPause.onMouseEnter}
@@ -219,7 +219,7 @@ const MusicPlayer = ({
               const nextVol = volume === 0 ? 0.5 : 0;
               onVolumeChange(nextVol);
               hintVolumeIcon.push(
-                nextVol === 0 ? "Включить звук ✦" : "Выключить звук ✦",
+                nextVol === 0 ? "Включить звук " : "Выключить звук ",
               );
             }}
           />

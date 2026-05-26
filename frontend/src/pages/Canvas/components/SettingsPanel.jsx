@@ -42,20 +42,20 @@ const MOOD_IMAGES = {
 };
 
 const MOOD_HINTS = {
-  major: "Светлое и уверенное — мажор звучит как солнечный день ✦",
-  minor: "Меланхоличное и глубокое — минор трогает за душу ✦",
-  pentatonic: "Древнее и медитативное — пентатоника уводит очень далеко ✦",
-  dorian: "Загадочное и немного джазовое — дориан живёт между светом и тенью ✦",
-  blues: "Страстное и надрывное — блюз звучит как честная история ✦",
+  major: "Светлое и уверенное",
+  minor: "Меланхоличное и глубокое",
+  pentatonic: "Древнее и медитативное",
+  dorian: "Загадочное и немного джазовое",
+  blues: "Страстное и надрывное",
 };
 
 const RHYTHM_HINTS = {
-  quarter: "Ровный и уверенный — четверти держат пульс ✦",
-  eighth: "Живой и подвижный — восьмые добавляют энергии ✦",
-  triplet: "Качающий и джазовый — триоли дают ощущение свинга ✦",
-  syncopated: "Неожиданный и танцевальный — синкопы сдвигают акценты ✦",
-  dotted: "Пунктирный и маршевый — точка добавляет импульс ✦",
-  mixed: "Непредсказуемый и живой — смешанный ритм всегда удивляет ✦",
+  quarter: "Ровный и уверенный",
+  eighth: "Живой и подвижный",
+  triplet: "Качающий и джазовый",
+  syncopated: "Неожиданный и танцевальный",
+  dotted: "Пунктирный и маршевый",
+  mixed: "Непредсказуемый и живой",
 };
 
 const SettingsPanel = ({
@@ -84,33 +84,23 @@ const SettingsPanel = ({
   const effectsHeaderRef = useRef(null);
 
   // ── Статичные хинты на целые блоки ──────────────────────────────────────
-  const hintSettingsTitle = useHint("Настройте музыку под своё настроение ✦");
-  const hintGeneralCard = useHint("Базовые параметры вашей композиции ✦");
-  const hintEffectsCard = useHint("Добавьте глубину и характер звуку ✦");
-  const hintDurationBlock = useHint(
-    "Изменяйте итоговую длительность мелодии ✦",
-  );
-  const hintTempoBlock = useHint(
-    "Быстро или медленно — выберите дыхание музыки ✦",
-  );
-  const hintReverbBlock = useHint(
-    "Реверб — насколько большой зал, в котором звучит музыка ✦",
-  );
-  const hintDelayBlock = useHint(
-    "Дилэй — звук отражается и возвращается волнами ✦",
-  );
-  const hintDistortBlock = useHint(
-    "Дисторшн — добавьте шероховатость и характер ✦",
-  );
+  const hintSettingsTitle = useHint("Настройте музыку под своё настроение");
+  const hintGeneralCard = useHint("Базовые параметры вашей композиции");
+  const hintEffectsCard = useHint("Добавьте глубину и характер звуку");
+  const hintDurationBlock = useHint("Изменяйте длительность мелодии");
+  const hintTempoBlock = useHint("Выберите скорость звучания");
+  const hintReverbBlock = useHint("Пространство, в котором звучит музыка ");
+  const hintDelayBlock = useHint("Звук отражается и возвращается эхом");
+  const hintDistortBlock = useHint("Добавьте шероховатость и характер ");
 
   // ── Хинты для шевронов настроения и ритма ───────────────────────────────
   // useHintPush: при наведении показывает текущий хинт,
   // при клике на шеврон — сразу правильный следующий (без ожидания рендера)
   const moodHint = useHintPush(
-    () => MOOD_HINTS[scale] ?? "Выберите настроение ✦",
+    () => MOOD_HINTS[scale] ?? "Выберите настроение ",
   );
   const rhythmHint = useHintPush(
-    () => RHYTHM_HINTS[rhythmPattern] ?? "Задайте пульс мелодии ✦",
+    () => RHYTHM_HINTS[rhythmPattern] ?? "Задайте пульс мелодии ",
   );
 
   // ── Утилиты ─────────────────────────────────────────────────────────────
@@ -163,13 +153,13 @@ const SettingsPanel = ({
     const nextIdx = (moodIndex - 1 + MOODS.length) % MOODS.length;
     const nextKey = MOODS[nextIdx].key;
     onScaleChange(nextKey);
-    moodHint.push(MOOD_HINTS[nextKey] ?? "Выберите настроение ✦");
+    moodHint.push(MOOD_HINTS[nextKey] ?? "Выберите настроение ");
   };
   const nextMood = () => {
     const nextIdx = (moodIndex + 1) % MOODS.length;
     const nextKey = MOODS[nextIdx].key;
     onScaleChange(nextKey);
-    moodHint.push(MOOD_HINTS[nextKey] ?? "Выберите настроение ✦");
+    moodHint.push(MOOD_HINTS[nextKey] ?? "Выберите настроение ");
   };
 
   const rhythmIndex = RHYTHM_ORDER.indexOf(rhythmPattern);
@@ -178,13 +168,13 @@ const SettingsPanel = ({
       (rhythmIndex - 1 + RHYTHM_ORDER.length) % RHYTHM_ORDER.length;
     const nextKey = RHYTHM_ORDER[nextIdx];
     onRhythmPatternChange(nextKey);
-    rhythmHint.push(RHYTHM_HINTS[nextKey] ?? "Задайте пульс мелодии ✦");
+    rhythmHint.push(RHYTHM_HINTS[nextKey] ?? "Задайте пульс мелодии ");
   };
   const nextRhythm = () => {
     const nextIdx = (rhythmIndex + 1) % RHYTHM_ORDER.length;
     const nextKey = RHYTHM_ORDER[nextIdx];
     onRhythmPatternChange(nextKey);
-    rhythmHint.push(RHYTHM_HINTS[nextKey] ?? "Задайте пульс мелодии ✦");
+    rhythmHint.push(RHYTHM_HINTS[nextKey] ?? "Задайте пульс мелодии ");
   };
 
   const formatDuration = (sec) => {

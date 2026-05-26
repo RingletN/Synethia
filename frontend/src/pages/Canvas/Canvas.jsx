@@ -108,28 +108,26 @@ const CanvasInner = ({
   // ── [HINT] Все хинты здесь, внутри HintProvider ──────────────────────────
 
   const hintCanvas = useHint(
-    canUndo
-      ? "Продолжайте — каждая линия влияет на будущую мелодию ✦"
-      : "Начните рисовать — музыка рождается из линий ✦",
+    canUndo ? "Каждый штрих повлияет на мелодию" : "Музыка рождается из линий",
   );
 
   // useHintPush: при клике пушим уже вычисленный следующий текст
   const hintFavorite = useHintPush(() =>
-    isFavorite ? "Убрать из избранного ✦" : "Добавить в избранное ✦",
+    isFavorite ? "Убрать из избранного" : "Добавить в избранное",
   );
 
-  const hintSave = useHint("Сохранить проект ✦");
-  const hintDownload = useHint("Скачать рисунок или мелодию ✦");
-  const hintDelete = useHint("Удалить проект или очистить холст ✦");
-  const hintQuestion = useHint("Как пользоваться приложением ✦");
-  const hintTitle = useHint("Дайте название своему шедевру ✦");
+  const hintSave = useHint("Сохранить проект");
+  const hintDownload = useHint("Скачать рисунок или мелодию");
+  const hintDelete = useHint("Удалить проект или очистить холст");
+  const hintQuestion = useHint("Как пользоваться приложением");
+  const hintTitle = useHint("Дайте название своему шедевру");
 
   const hintGenerate = useHint(
     isGenerating
-      ? "Генерируем мелодию, подождите… ✦"
+      ? "Генерируем мелодию, подождите…"
       : isMelodyGenerated
-        ? "Перегенерировать мелодию по текущему рисунку ✦"
-        : "Преобразовать рисунок в музыку ✦",
+        ? "Перегенерировать мелодию по рисунку"
+        : "Преобразовать рисунок в музыку",
   );
 
   return (
@@ -167,9 +165,7 @@ const CanvasInner = ({
             onClick={() => {
               handleToggleFavorite();
               hintFavorite.push(
-                isFavorite
-                  ? "Добавить в избранное ✦"
-                  : "Убрать из избранного ✦",
+                isFavorite ? "Добавить в избранное" : "Убрать из избранного",
               );
             }}
             onMouseEnter={hintFavorite.onMouseEnter}
@@ -626,7 +622,8 @@ const Canvas = () => {
           minSegmentLen: 20,
           maxSegments: 400,
           simplifyEps: 0.004,
-          lineWidth: currentLineWidth,
+          // lineWidth: currentLineWidth,
+          lineWidth: 12,
           palette,
         });
 

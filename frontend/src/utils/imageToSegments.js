@@ -32,7 +32,7 @@ import { COLOR_TO_INSTRUMENT } from "../engines/MelodyEngine/constants";
  * @returns {Promise<Array>} массив сегментов
  */
 export const DEFAULT_PALETTE = Object.entries(COLOR_TO_INSTRUMENT).map(
-  ([color, instrument]) => ({ color, instrument })
+  ([color, instrument]) => ({ color, instrument }),
 );
 
 export async function imageToSegments(file, options = {}) {
@@ -44,7 +44,7 @@ export async function imageToSegments(file, options = {}) {
     simplifyEps = 0.004,
     color = null,
     instrument = null,
-    lineWidth = 2,
+    lineWidth = 5,
     palette = DEFAULT_PALETTE,
   } = options;
 

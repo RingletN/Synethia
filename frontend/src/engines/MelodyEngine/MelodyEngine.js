@@ -1,14 +1,3 @@
-// engines/MelodyEngine/MelodyEngine.js
-//
-// Двухфазная архитектура:
-//   Фаза 1: предобработка, переломы, роли, сырые ноты (питч без ритма)
-//   Фаза 2: наложение ритмического шаблона + устранение коллизий для мелодии
-//
-// Публичный API:
-//   buildNoteEvents(segments, options) → { events, tonicMidi, roles }
-//   regenerateRhythm(rawNotes, beatDuration, rhythmPattern, legato, voiceMode) → events
-//   exportDebugLog(events, roles, tonicMidi, options) → string
-
 import {
   DEFAULT_RHYTHM_PATTERN,
   DEFAULT_LEGATO,
@@ -64,7 +53,7 @@ class MelodyEngine {
       scale,
       notesPerBeat,
     );
-    // FIX: передаём bpm в applyRhythmPattern для динамического jitter
+    //ередаём bpm в applyRhythmPattern для динамического jitter
     const events = applyRhythmPattern(
       rawNotes,
       beatDuration,

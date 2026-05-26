@@ -41,7 +41,7 @@ export const COLOR_TO_INSTRUMENT = {
   "#ff6b35": "clarinet",
   "#00b4d8": "saxophone",
   "#f72585": "guitar-electric",
-  "#7bed9f": "cello",
+  "#0000FF": "cello",
   "#ffd60a": "xylophone",
   "#a855f7": "harp",
 };

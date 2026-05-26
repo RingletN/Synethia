@@ -177,7 +177,6 @@ function Login({ onSwitchToRegister, onForgotPassword }) {
         />
       </div>
       {/* Модалки */}
-      // Модалка успеха:
       <Modal
         isOpen={showSuccessModal}
         onClose={handleSuccessClose}

@@ -38,8 +38,6 @@ export function buildRawNotes(
     const { points, instrument, role, volume } = seg;
     if (points.length < 2) continue;
 
-    // temporalRoleByTakt[k] и temporalVolMultByTakt[k] — поперечная роль в такте k
-    // Если roleAssigner не заполнил (старый код или один инструмент) — фолбэк на статику
     const temporalRoles = seg.temporalRoleByTakt || new Array(T).fill(role);
     const temporalVolMult = seg.temporalVolMultByTakt || new Array(T).fill(1.0);
 
@@ -56,7 +54,7 @@ export function buildRawNotes(
       const taktRole = temporalRoles[k]; // роль в этом такте
       const volMult = temporalVolMult[k]; // множитель громкости в этом такте
 
-      // Нулевой множитель → инструмент здесь не звучит совсем
+      // Нулевой множитель - инструмент здесь не звучит совсем
       if (volMult <= 0) continue;
 
       let taktPts = points.filter((pt) => pt.x >= taktXMin && pt.x < taktXMax);
@@ -77,7 +75,7 @@ export function buildRawNotes(
       const isInflectionTakt = inflectionTakts.has(k);
       const N = isInflectionTakt ? Math.min(4, notesPerBeat + 1) : notesPerBeat;
 
-      // ── Бас (статическая роль — не меняется по времени) ──────────────────
+      // Бас (статическая роль — не меняется по времени)
       if (role === "bass") {
         const simultaneousSegs =
           (bassSegsByTakt.get(instrument) || [])[k] || [];
@@ -127,7 +125,7 @@ export function buildRawNotes(
         continue;
       }
 
-      // ── Мелодия в этом такте ──────────────────────────────────────────────
+      // Мелодия в этом такте
       const samples = samplePoints(taktPts, N);
       for (let i = 0; i < samples.length; i++) {
         const yNorm = samples[i].y;
@@ -218,7 +216,7 @@ export function buildRawNotes(
   return rawNotes;
 }
 
-// ─── Bass ─────────────────────────────────────────────────────────────────────
+// Bass
 
 const BASS_MIDI_MIN = 40; // E2
 const BASS_MIDI_MAX = 64; // E4
@@ -368,7 +366,7 @@ function buildBassInterval(
   }));
 }
 
-// ─── Chord ────────────────────────────────────────────────────────────────────
+// Chord
 
 export function buildChordNote(
   seg,
@@ -531,7 +529,7 @@ export function buildAccompanimentNote(
   );
 }
 
-// ─── Вспомогательные ─────────────────────────────────────────────────────────
+// Вспомогательные функции
 
 export function getSegmentDirection(segment) {
   const pts = segment.points;

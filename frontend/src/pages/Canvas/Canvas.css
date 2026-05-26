@@ -284,7 +284,6 @@
   backdrop-filter: blur(4px);
 }
 
-/* Если хочешь чуть более атмосферный вариант */
 .import-overlay::before {
   content: "";
   position: absolute;
@@ -432,3 +431,8 @@
   max-width: none;
   display: block;
 }
+
+/* .hint-panel p {
+  color: var(--color-pale);
+  margin: 0;
+} */

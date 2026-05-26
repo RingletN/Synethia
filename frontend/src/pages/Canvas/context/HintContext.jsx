@@ -8,8 +8,7 @@ import React, {
   useRef,
 } from "react";
 
-const DEFAULT_HINT =
-  "Добро пожаловать ✦ Начните рисовать и создайте свою музыку";
+const DEFAULT_HINT = "Рисуйте и создавайте свою музыку!";
 
 export const HintContext = createContext(null);
 

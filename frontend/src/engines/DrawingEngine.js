@@ -265,7 +265,7 @@ class DrawingEngine {
 
     this.ctx.globalCompositeOperation = "source-over";
   }
-  
+
   resize(newWidth, newHeight) {
     if (newWidth < 100 || newHeight < 100) return;
     this._doResize(newWidth, newHeight);

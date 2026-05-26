@@ -31,23 +31,23 @@ export const INSTRUMENT_COLORS = [
     label: "Электрогитара",
     icon: "🎸",
   },
-  { color: "#7bed9f", instrument: "cello", label: "Виолончель", icon: "🎻" },
+  { color: "#0000FF", instrument: "cello", label: "Виолончель", icon: "🎻" },
   { color: "#ffd60a", instrument: "xylophone", label: "Ксилофон", icon: "🎶" },
   { color: "#a855f7", instrument: "harp", label: "Арфа", icon: "🎵" },
 ];
 
 // [HINT] подсказки для каждого инструмента
 const INSTRUMENT_HINTS = {
-  piano: "Чистый и прозрачный — пианино звучит как рассвет ✦",
-  guitar: "Тёплый и живой — гитара дышит вместе с вами ✦",
-  flute: "Лёгкая и воздушная — флейта парит над мелодией ✦",
-  strings: "Глубокий и волнующий — скрипка говорит там, где слов не хватает ✦",
-  clarinet: "Мягкий и певучий — кларнет обволакивает теплом ✦",
-  saxophone: "Дерзкий и джазовый — саксофон знает все ваши секреты ✦",
-  "guitar-electric": "Острый и дерзкий — электрогитара не знает покоя ✦",
-  cello: "Бархатный и задумчивый — виолончель говорит из глубины ✦",
-  xylophone: "Звонкий и игривый — ксилофон превращает всё в праздник ✦",
-  harp: "Нежная и сказочная — арфа звучит как сон ✦",
+  piano: "Чистое и прозрачное пианино",
+  guitar: "Тёплая и живая гитара",
+  flute: "Лёгкая и воздушная флейта",
+  strings: "Глубокая и волнующая скрипка",
+  clarinet: "Мягкий и певучий кларнет",
+  saxophone: "Дерзкий и джазовый саксофон",
+  "guitar-electric": "Острая и дерзкая электрогитара",
+  cello: "Бархатная и задумчивая виолончель",
+  xylophone: "Звонкий и игривый ксилофон",
+  harp: "Нежная и сказочная арфа",
 };
 
 // ─── Попап выбора инструмента/цвета ──────────────────────────────────────────
@@ -116,7 +116,7 @@ const InstrumentPicker = ({ currentColor, onChange, onClose, anchorRef }) => {
       {INSTRUMENT_COLORS.map(({ color, label, icon, instrument }) => {
         const isActive = color === currentColor;
         // [HINT] каждая кнопка инструмента имеет свою подсказку
-        const hint = getHint(INSTRUMENT_HINTS[instrument] ?? `${label} ✦`);
+        const hint = getHint(INSTRUMENT_HINTS[instrument] ?? `${label} `);
         return (
           <button
             key={color}
@@ -194,35 +194,27 @@ const ToolsPanel = forwardRef(
     const fileInputRef = useRef(null);
 
     // [HINT] хинты для статичных кнопок
-    const hintImport = useHint(
-      "Загрузите фото — мы извлечём контуры и превратим их в мелодию ✦",
-    );
-    const hintInstrument = useHint(
-      "Выберите инструмент — у каждого свой голос ✦",
-    );
+    const hintImport = useHint("Загрузите фото");
+    const hintInstrument = useHint("Выберите инструмент");
     const hintUndo = useHint(
-      canUndo ? "Отменить последнее действие ✦" : "Нечего отменять ✦",
+      canUndo ? "Отменить последнее действие " : "Нечего отменять ",
     );
     // [HINT] ИСПРАВЛЕНО: «повторить» → «вернуть отменённое действие»
     const hintRedo = useHint(
-      canRedo ? "Вернуть отменённое действие ✦" : "Нечего возвращать ✦",
+      canRedo ? "Вернуть отменённое действие " : "Нечего возвращать ",
     );
-    const hintClear = useHint(
-      "Начать с чистого листа — музыка тоже сотрётся ✦",
-    );
+    const hintClear = useHint("Очистить холст — музыка тоже сотрётся ");
     // [HINT] ИСПРАВЛЕНО: фон не влияет на мелодию — убираем это из подсказки
-    const hintBg = useHint("Задайте атмосферу — выберите цвет фона холста ✦");
+    const hintBg = useHint("Задайте атмосферу фона");
 
     // useHintPush: push вызывается с уже вычисленным следующим текстом — нет проблемы async setState
     const hintBrush = useHintPush(() =>
-      isBrushSelected
-        ? "Кисть активна — каждая линия влияет на мелодию ✦"
-        : "Переключиться на кисть ✦",
+      isBrushSelected ? "Кисть активна" : "Переключиться на кисть ",
     );
     const hintEraser = useHintPush(() =>
       !isBrushSelected
-        ? "Ластик активен — сотрите лишнее ✦"
-        : "Ластик — сотрите лишнее, музыка станет чище ✦",
+        ? "Ластик активен — сотрите лишнее "
+        : "Ластик — музыка станет чище ",
     );
 
     useEffect(() => {
@@ -264,14 +256,14 @@ const ToolsPanel = forwardRef(
       setIsBrushSelected(true);
       engine?.setEraserMode?.(false);
       // push с уже известным следующим текстом (после клика кисть будет активна)
-      hintBrush.push("Кисть активна — каждая линия влияет на мелодию ✦");
+      hintBrush.push("Кисть активна");
     };
 
     const selectEraser = () => {
       setIsBrushSelected(false);
       engine?.setEraserMode?.(true);
       // push с уже известным следующим текстом (после клика ластик будет активен)
-      hintEraser.push("Ластик активен — сотрите лишнее ✦");
+      hintEraser.push("Ластик активен — сотрите лишнее ");
     };
 
     const handleImportClick = () => {

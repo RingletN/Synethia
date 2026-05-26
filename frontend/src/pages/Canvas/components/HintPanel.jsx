@@ -29,11 +29,6 @@ const HintPanel = () => {
           padding: "0 8px",
           transition: "opacity 0.12s ease",
           opacity: visible ? 1 : 0,
-          color: "var(--color-bright, #fff)",
-          fontSize: "var(--font-size-small, 14px)",
-          fontFamily: "var(--font-montserrat, sans-serif)",
-          fontWeight: 500,
-          letterSpacing: "0.03em",
           pointerEvents: "none",
           userSelect: "none",
         }}
