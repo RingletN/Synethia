@@ -3,6 +3,9 @@
 //
 // ИЗМЕНЕНИЯ: используем temporalRoleByTakt / temporalVolMultByTakt из roleAssigner
 // чтобы инструменты переключали роли (мелодия ↔ аккомпанемент) по ходу времени
+//
+// ДОПОЛНИТЕЛЬНО: добавлено ограничение максимального количества одновременных нот
+// в аккордах (бас и аккомпанемент) до 4 с равномерным выбором из всего диапазона.
 
 import {
   SCALES,
@@ -18,6 +21,19 @@ import {
 } from "./musicTheory.js";
 import { detectInflections } from "./preprocessor.js";
 
+// ─── ВСПОМОГАТЕЛЬНАЯ ФУНКЦИЯ ДЛЯ ОГРАНИЧЕНИЯ АККОРДОВ ─────────────────────
+function limitSimultaneousNotes(notes, maxNotes = 4) {
+  if (notes.length <= maxNotes) return notes;
+  const sorted = [...notes].sort((a, b) => a.midi - b.midi);
+  const result = [];
+  for (let i = 0; i < maxNotes; i++) {
+    const idx = Math.floor(i * (sorted.length - 1) / (maxNotes - 1));
+    result.push(sorted[idx]);
+  }
+  return result;
+}
+
+// ─── ОСНОВНАЯ ЭКСПОРТИРУЕМАЯ ФУНКЦИЯ ────────────────────────────────────────
 export function buildRawNotes(
   processedSegs,
   tonicMidi,
@@ -51,18 +67,15 @@ export function buildRawNotes(
     for (let k = 0; k < T; k++) {
       const taktXMin = k / T;
       const taktXMax = (k + 1) / T;
-      const taktRole = temporalRoles[k]; // роль в этом такте
-      const volMult = temporalVolMult[k]; // множитель громкости в этом такте
+      const taktRole = temporalRoles[k];
+      const volMult = temporalVolMult[k];
 
-      // Нулевой множитель - инструмент здесь не звучит совсем
       if (volMult <= 0) continue;
 
       let taktPts = points.filter((pt) => pt.x >= taktXMin && pt.x < taktXMax);
 
       if (taktPts.length === 0) {
-        // Аккомпанирующие инструменты молчат там где не нарисованы
         if (taktRole === "chord" || seg.isOrnament) continue;
-        // Бас и мелодия: экстраполируем
         if (taktYMap[k] === null) continue;
         taktPts = [
           { x: (taktXMin + taktXMax) / 2, y: taktYMap[k], interpolated: true },
@@ -75,7 +88,7 @@ export function buildRawNotes(
       const isInflectionTakt = inflectionTakts.has(k);
       const N = isInflectionTakt ? Math.min(4, notesPerBeat + 1) : notesPerBeat;
 
-      // Бас (статическая роль — не меняется по времени)
+      // Бас
       if (role === "bass") {
         const simultaneousSegs =
           (bassSegsByTakt.get(instrument) || [])[k] || [];
@@ -93,14 +106,11 @@ export function buildRawNotes(
         continue;
       }
 
-      // ── Аккомпанемент (chord/ornament) в этом такте ──────────────────────
+      // Аккомпанемент
       if (taktRole === "chord") {
         const simultaneousSegs =
           (chordSegsByTakt.get(instrument) || [])[k] || [];
-
-        // isOrnament в данном такте — всегда true для аккомпанирующего голоса
         const ornamentVolMult = 0.45;
-
         const accompNotes = buildChordNote(
           seg,
           k,
@@ -113,10 +123,9 @@ export function buildRawNotes(
           simultaneousSegs,
           prevMidi,
         );
-        // Помечаем как ornament для правильной обработки в rhythmEngine
         accompNotes.forEach((n) => {
           n.isOrnament = true;
-          n.temporalFade = volMult; // передаём fade для плавности в зоне перехода
+          n.temporalFade = volMult;
         });
         rawNotes.push(...accompNotes);
         if (accompNotes.length > 0 && accompNotes[0].accompStyle === "single") {
@@ -125,7 +134,7 @@ export function buildRawNotes(
         continue;
       }
 
-      // Мелодия в этом такте
+      // Мелодия
       const samples = samplePoints(taktPts, N);
       for (let i = 0; i < samples.length; i++) {
         const yNorm = samples[i].y;
@@ -216,8 +225,7 @@ export function buildRawNotes(
   return rawNotes;
 }
 
-// Bass
-
+// ─── БАС ─────────────────────────────────────────────────────────────────────
 const BASS_MIDI_MIN = 40; // E2
 const BASS_MIDI_MAX = 64; // E4
 
@@ -257,7 +265,6 @@ export function buildBassNote(
   const sorted = [...taktPts].sort((a, b) => a.y - b.y);
   const medY = sorted[Math.floor(sorted.length / 2)].y;
   let { midi: bassMidi } = quantizeToScale(yNormToFreq(medY), tonicMidi, scale);
-
   bassMidi = clampBassOctave(bassMidi);
   const bassFreq = midiToFreq(bassMidi);
 
@@ -351,8 +358,11 @@ function buildBassInterval(
 
   if (notes.length === 0) return [];
   notes.sort((a, b) => a.midi - b.midi);
+  
+  // Ограничиваем басовый аккорд до 4 нот
+  const limitedNotes = limitSimultaneousNotes(notes, 4);
 
-  return notes.map((n, i) => ({
+  return limitedNotes.map((n, i) => ({
     takt: k,
     posInTakt: 0,
     freq: n.freq,
@@ -366,8 +376,7 @@ function buildBassInterval(
   }));
 }
 
-// Chord
-
+// ─── АККОМПАНЕМЕНТ ──────────────────────────────────────────────────────────
 export function buildChordNote(
   seg,
   k,
@@ -464,7 +473,7 @@ function buildTrueChord(
   const taktXMin = k / T;
   const taktXMax = (k + 1) / T;
   const midiSet = new Set();
-  const segNotes = [];
+  let segNotes = [];
 
   for (const s of simultaneousSegs) {
     const sPts = s.points.filter((pt) => pt.x >= taktXMin && pt.x < taktXMax);
@@ -482,6 +491,10 @@ function buildTrueChord(
 
   const style = inflections.length >= 2 ? "arpeggio" : "flatChord";
   segNotes.sort((a, b) => a.midi - b.midi);
+  
+  // Ограничиваем аккорд до 4 нот (работает и для flatChord, и для arpeggio)
+  segNotes = limitSimultaneousNotes(segNotes, 4);
+
   segNotes.forEach(({ freq, midi }, i) => {
     notes.push({
       takt: k,
@@ -529,8 +542,7 @@ export function buildAccompanimentNote(
   );
 }
 
-// Вспомогательные функции
-
+// ─── ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ (экспортируемые) ───────────────────────────────
 export function getSegmentDirection(segment) {
   const pts = segment.points;
   if (pts.length < 2) return 0;
@@ -568,27 +580,24 @@ export function selectNotesPerBeat(bpm) {
   return 2;
 }
 
+// ─── ПРИВАТНЫЕ ХЕЛПЕРЫ ──────────────────────────────────────────────────────
 function buildSimultaneousSegsByTakt(processedSegs, T, role) {
   const result = new Map();
-
   for (const seg of processedSegs) {
     if (seg.role !== role) continue;
     const { instrument, points } = seg;
     if (!points || points.length === 0) continue;
-
     if (!result.has(instrument)) {
       result.set(
         instrument,
         Array.from({ length: T }, () => []),
       );
     }
-
     const taktArr = result.get(instrument);
     const segMinX = points[0].x;
     const segMaxX = points[points.length - 1].x;
     const minTakt = Math.floor(segMinX * T);
     const maxTakt = Math.min(T - 1, Math.floor(segMaxX * T));
-
     for (let k = minTakt; k <= maxTakt; k++) {
       if (!taktArr[k]) continue;
       if (!taktArr[k].includes(seg)) {
@@ -596,7 +605,6 @@ function buildSimultaneousSegsByTakt(processedSegs, T, role) {
       }
     }
   }
-
   return result;
 }
 
@@ -611,13 +619,11 @@ function buildTaktYMap(points, T) {
       taktYMap[k] = sorted[Math.floor(sorted.length / 2)].y;
     }
   }
-
   const segMinTakt = Math.floor(points[0].x * T);
   const segMaxTakt = Math.min(
     T - 1,
     Math.floor(points[points.length - 1].x * T),
   );
-
   for (let k = segMinTakt; k <= segMaxTakt; k++) {
     if (taktYMap[k] !== null) continue;
     let leftK = k - 1,
@@ -635,7 +641,6 @@ function buildTaktYMap(points, T) {
       taktYMap[k] = rightY;
     }
   }
-
   const firstY = taktYMap[segMinTakt];
   const lastY = taktYMap[segMaxTakt];
   for (let k = 0; k < segMinTakt; k++) {
@@ -644,7 +649,6 @@ function buildTaktYMap(points, T) {
   for (let k = segMaxTakt + 1; k < T; k++) {
     if (taktYMap[k] === null) taktYMap[k] = lastY;
   }
-
   return taktYMap;
 }
 
