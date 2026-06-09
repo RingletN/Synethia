@@ -38,4 +38,22 @@ class UserController extends Controller
         $user = User::create($validated);
         return response()->json($user, 201);
     }
+
+        /**
+     * Обновление профиля текущего аутентифицированного пользователя.
+     */
+    public function update(Request $request)
+    {
+        $user = $request->user();
+
+        $validated = $request->validate(User::updateRules($user->id));
+
+        if (isset($validated['password'])) {
+            $validated['password'] = Hash::make($validated['password']);
+        }
+
+        $user->update($validated);
+
+        return response()->json($user);
+    }
 }

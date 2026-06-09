@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\Api\ProfilePhotoController;
 use App\Http\Controllers\Api\PasswordResetController;
 use App\Http\Controllers\Api\ProjectController;
+use App\Http\Controllers\Api\CheckUniqueController;
 
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
@@ -19,10 +20,11 @@ Route::get('/users/{id}', [UserController::class, 'show']);
 
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('/me', [AuthController::class, 'me']);
-
+    Route::post('/check-unique', [CheckUniqueController::class, 'check']);
     Route::put('/profile', [AuthController::class, 'updateProfile']);
     Route::post('/profile/photo', [ProfilePhotoController::class, 'upload']);
     Route::delete('/profile/photo', [ProfilePhotoController::class, 'destroy']);
+    Route::put('/profile', [UserController::class, 'update']);
     Route::post('/logout', [AuthController::class, 'logout']);
 
     Route::get('/projects',                      [ProjectController::class, 'index']);

@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useAuth } from "../../context/AuthContext";
-
+import api from "../../api"; 
 import BgProfileLine from "../../assets/backgrounds/bg-profile-line.png";
 import ConfirmIcon from "../../assets/icons/icon-confirm.svg";
 import CloseIcon from "../../assets/icons/icon-close.svg";
@@ -12,7 +12,7 @@ import Loader from "../../components/ui/Loader";
 import Modal from "../../components/ui/Modal/Modal";
 
 import { getValidationErrorMessage } from "../../utils/validationErrors";
-import { useUnsavedChanges } from "../../hooks/useUnsavedChanges"; // ← новый хук
+import { useUnsavedChanges } from "../../hooks/useUnsavedChanges";
 
 import "./Profile.css";
 
@@ -52,6 +52,12 @@ const Profile = () => {
   const [showModal, setShowModal] = useState(false);
   const [modalConfig, setModalConfig] = useState({});
 
+  // Для debounce-проверки уникальности
+const nicknameTimeoutRef = useRef(null);
+const emailTimeoutRef = useRef(null);
+const [checkingNickname, setCheckingNickname] = useState(false);
+const [checkingEmail, setCheckingEmail] = useState(false);
+  
   // === ЭФФЕКТЫ ===
   useEffect(() => {
     if (user) {
@@ -86,8 +92,6 @@ const Profile = () => {
 
   const closeModal = () => {
     setShowModal(false);
-    // Если у конфига есть кастомный onClose — вызываем его
-    // (нужно для blocker.reset() из useUnsavedChanges)
     if (modalConfig.onClose) modalConfig.onClose();
   };
 
@@ -116,8 +120,8 @@ const Profile = () => {
       cancelText: "Отмена",
       variant: "warning",
       onPrimary: async () => {
-        const success = await deletePhoto();
-        if (success) {
+        const result = await deletePhoto();
+        if (result.ok) {   // ← исправлено: проверяем .ok, а не сам объект
           setPhotoPreview(null);
           openModal({
             title: "Готово",
@@ -129,79 +133,140 @@ const Profile = () => {
       },
     });
   };
+  const checkUniqueness = useCallback(async (field, value) => {
+    if (!value || value.length < 2) return; // не проверяем короткие значения
+  
+    try {
+      const result = await api.post('/api/check-unique', { [field]: value });
+      // Сервер возвращает { nickname: null } или { nickname: "текст ошибки" }
+      const errorMsg = result[field];
+      setErrors(prev => ({ ...prev, [field]: errorMsg || '' }));
+    } catch (err) {
+      console.error(`Ошибка проверки ${field}:`, err);
+    } finally {
+      if (field === 'nickname') setCheckingNickname(false);
+      else setCheckingEmail(false);
+    }
+  }, []);
 
-  // Обработка изменений полей
   const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
-    if (errors[name]) setErrors((prev) => ({ ...prev, [name]: "" }));
+  const { name, value } = e.target;
+  setFormData((prev) => ({ ...prev, [name]: value }));
+  // очищаем ошибку только если это не nickname/email? лучше очищать любую ошибку поля
+  if (errors[name]) setErrors((prev) => ({ ...prev, [name]: "" }));
+
+  // Для nickname и email запускаем проверку с задержкой
+  if (name === 'nickname') {
+    if (nicknameTimeoutRef.current) clearTimeout(nicknameTimeoutRef.current);
+    setCheckingNickname(true);
+    nicknameTimeoutRef.current = setTimeout(() => {
+      checkUniqueness('nickname', value);
+    }, 500);
+  }
+  if (name === 'email') {
+    if (emailTimeoutRef.current) clearTimeout(emailTimeoutRef.current);
+    setCheckingEmail(true);
+    emailTimeoutRef.current = setTimeout(() => {
+      checkUniqueness('email', value);
+    }, 500);
+  }
+};
+
+useEffect(() => {
+  return () => {
+    if (nicknameTimeoutRef.current) clearTimeout(nicknameTimeoutRef.current);
+    if (emailTimeoutRef.current) clearTimeout(emailTimeoutRef.current);
   };
+}, []);
 
-  // Валидация при потере фокуса
-  const handleBlur = (e) => {
-    const { name, value } = e.target;
-    let error = "";
+ // Валидация при потере фокуса
+const handleBlur = (e) => {
+  const { name, value } = e.target;
 
-    if (name === "name" || name === "nickname") {
-      error =
-        value.trim().length < 2 ? getValidationErrorMessage(name, "min") : "";
+  // Для имени: только минимальная длина
+  if (name === "name") {
+    const lengthError = value.trim().length < 2 ? getValidationErrorMessage(name, "min") : "";
+    if (lengthError) {
+      setErrors((prev) => ({ ...prev, [name]: lengthError }));
     }
-    if (name === "email" && value) {
-      error = /^\S+@\S+\.\S+$/.test(value)
-        ? ""
-        : getValidationErrorMessage(name, "email");
-    }
-    if (name === "password" && value) {
-      error = value.length < 6 ? getValidationErrorMessage(name, "min") : "";
-    }
+    // если ошибки нет — ничего не делаем (оставляем старую ошибку, но у name нет уникальности, так что ок)
+    return;
+  }
 
-    setErrors((prev) => ({ ...prev, [name]: error }));
-  };
+  // Для псевдонима: минимальная длина (ошибку уникальности не трогаем)
+  if (name === "nickname") {
+    const lengthError = value.trim().length < 2 ? getValidationErrorMessage(name, "min") : "";
+    if (lengthError) {
+      setErrors((prev) => ({ ...prev, [name]: lengthError }));
+    }
+    // если длина норм — НЕ сбрасываем ошибку (она может быть от уникальности)
+    return;
+  }
 
-  // === СОХРАНЕНИЕ ПРОФИЛЯ ===
+  // Для email: проверка формата
+  if (name === "email") {
+    if (value && !/^\S+@\S+\.\S+$/.test(value)) {
+      setErrors((prev) => ({ ...prev, [name]: getValidationErrorMessage(name, "email") }));
+    }
+    // если формат правильный — ничего не делаем (оставляем ошибку уникальности, если она была)
+    return;
+  }
+
+  // Для пароля: минимальная длина (уникальности нет, можно сбрасывать)
+  if (name === "password") {
+    if (value && value.length < 8) {
+      setErrors((prev) => ({ ...prev, [name]: getValidationErrorMessage(name, "min") }));
+    } else {
+      setErrors((prev) => ({ ...prev, [name]: "" }));
+    }
+    return;
+  }
+};
+
+  // === СОХРАНЕНИЕ ПРОФИЛЯ (исправлено) ===
   const handleSave = async () => {
-    let hasError = false;
+    // 1. Клиентская валидация
+    let hasClientError = false;
     const newErrors = {};
 
     if (formData.name.trim().length < 2) {
       newErrors.name = getValidationErrorMessage("name", "min");
-      hasError = true;
+      hasClientError = true;
     }
     if (formData.nickname.trim().length < 2) {
       newErrors.nickname = getValidationErrorMessage("nickname", "min");
-      hasError = true;
+      hasClientError = true;
     }
     if (formData.email && !/^\S+@\S+\.\S+$/.test(formData.email)) {
       newErrors.email = getValidationErrorMessage("email", "email");
-      hasError = true;
+      hasClientError = true;
     }
     if (formData.password && formData.password.length < 6) {
       newErrors.password = getValidationErrorMessage("password", "min");
-      hasError = true;
+      hasClientError = true;
     }
 
-    if (hasError) {
+    if (hasClientError) {
       setErrors(newErrors);
       return;
     }
 
-    setIsSaving(true);
-
+    // 2. Собираем только изменённые поля
     const payload = {};
     if (formData.name !== originalData.name) payload.name = formData.name;
-    if (formData.nickname !== originalData.nickname)
-      payload.nickname = formData.nickname;
+    if (formData.nickname !== originalData.nickname) payload.nickname = formData.nickname;
     if (formData.email !== originalData.email) payload.email = formData.email;
     if (formData.password) payload.password = formData.password;
 
-    if (Object.keys(payload).length === 0) {
-      setIsSaving(false);
-      return;
-    }
+    if (Object.keys(payload).length === 0) return;
 
-    const success = await updateUser(payload);
+    setIsSaving(true);
 
-    if (success) {
+    // 3. Вызов updateUser (возвращает { ok, errors })
+    const result = await updateUser(payload);
+
+    if (result.ok) {
+      // Успех
       setOriginalData((prev) => ({ ...prev, ...payload, password: "" }));
       setFormData((prev) => ({ ...prev, password: "" }));
       openModal({
@@ -210,11 +275,20 @@ const Profile = () => {
         primaryText: "ОК",
         variant: "success",
       });
+    } else if (result.errors) {
+      // Серверные ошибки валидации (422) – показываем под полями
+      const serverErrors = {};
+      if (result.errors.nickname) serverErrors.nickname = result.errors.nickname[0];
+      if (result.errors.email) serverErrors.email = result.errors.email[0];
+      if (result.errors.name) serverErrors.name = result.errors.name[0];
+      if (result.errors.password) serverErrors.password = result.errors.password[0];
+      setErrors(serverErrors);
+      // Модалку не показываем – ошибки видны под инпутами
     } else {
+      // Прочие ошибки (сеть, 500 и т.д.)
       openModal({
         title: "Ошибка",
-        description:
-          "Не удалось обновить данные. Возможно, такой псевдоним или email уже занят.",
+        description: "Не удалось обновить данные. Попробуйте позже.",
         primaryText: "Понятно",
         variant: "error",
       });
@@ -275,37 +349,29 @@ const Profile = () => {
     });
   };
 
-  // === ХУК ЗАЩИТЫ ОТ УХОДА С НЕСОХРАНЁННЫМИ ДАННЫМИ ===
-  // Должен вызываться ПОСЛЕ определения всех функций, которые он использует
+  // === ХУК ЗАЩИТЫ ОТ УХОДА ===
   useUnsavedChanges(hasChanges, openModal);
 
   return (
     <div className="profile-page">
-      {/* === ШАПКА ПРОФИЛЯ === */}
+      {/* ШАПКА, ФОН, КОНТЕЙНЕР — без изменений */}
       <div className="profile-header">
         <div className="profile-header-text">
           <h2>ПРОФИЛЬ</h2>
-          <div
-            className="logout-btn"
-            onClick={handleLogout}
-            style={{ cursor: "pointer" }}
-          >
+          <div className="logout-btn" onClick={handleLogout} style={{ cursor: "pointer" }}>
             <img src={LogoutIcon} alt="Выход" />
           </div>
         </div>
         <div className="divider" />
       </div>
 
-      {/* === ФОН ПРОФИЛЯ === */}
       <div className="profile-bg-wrapper">
         <div className="profile-bg-line">
           <img src={BgProfileLine} alt="фоновая линия" />
         </div>
       </div>
 
-      {/* === ОСНОВНОЙ КОНТЕНТ === */}
       <div className="profile-container">
-        {/* Блок данных */}
         <div className="profile-data-block">
           {isSaving && (
             <div className="loader-overlay">
@@ -319,7 +385,10 @@ const Profile = () => {
                 <img
                   src={CloseIcon}
                   alt="Отменить"
-                  onClick={() => setFormData({ ...originalData, password: "" })}
+                  onClick={() => {
+                    setFormData({ ...originalData, password: "" });
+                    setErrors({}); // <-- очистить все ошибки
+                  }}
                   className="icon"
                 />
                 <img
@@ -375,18 +444,10 @@ const Profile = () => {
           />
         </div>
 
-        {/* Блок фото */}
         <div className="profile-photo-block">
           <div className="photo-container">
             {isPhotoUploading ? (
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  height: "100%",
-                }}
-              >
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100%" }}>
                 <Loader size={70} color="pink" speed={2000} />
               </div>
             ) : photoPreview ? (
@@ -398,10 +459,7 @@ const Profile = () => {
 
           {!isPhotoChanged ? (
             <div className="photo-actions">
-              <Button
-                variant="primary"
-                onClick={() => fileInputRef.current.click()}
-              >
+              <Button variant="primary" onClick={() => fileInputRef.current.click()}>
                 ИЗМЕНИТЬ ФОТО
               </Button>
               {photoPreview && (
@@ -431,7 +489,6 @@ const Profile = () => {
         </div>
       </div>
 
-      {/* Модальное окно */}
       <Modal
         isOpen={showModal}
         onClose={closeModal}
