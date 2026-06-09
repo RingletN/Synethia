@@ -436,3 +436,25 @@
   color: var(--color-pale);
   margin: 0;
 } */
+/* .react-joyride__beacon {
+  display: none !important;
+} */
+
+.react-joyride__beacon {
+  background-color: var(--color-cyan) !important; /* бирюзовый */
+  box-shadow: 0 0 0 0 rgba(0, 255, 209, 0.5) !important;
+  animation: pulse-beacon 1.0s infinite !important;
+}
+
+/* если хотите поменять цвет пульсирующей тени */
+@keyframes pulse-beacon {
+  0% {
+    box-shadow: 0 0 0 0 rgba(0, 255, 209, 0.5);
+  }
+  70% {
+    box-shadow: 0 0 0 10px rgba(0, 255, 209, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(0, 255, 209, 0);
+  }
+}

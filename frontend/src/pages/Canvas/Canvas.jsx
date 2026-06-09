@@ -27,7 +27,7 @@ import SaveIcon from "../../assets/icons/icon-save.svg";
 import DownloadIcon from "../../assets/icons/icon-download.svg";
 import TrashIcon from "../../assets/icons/icon-trash.svg";
 import QuestionIcon from "../../assets/icons/icon-question.svg";
-
+import { Joyride } from 'react-joyride';
 import "./Canvas.css";
 import MusicPlayer from "./components/MusicPlayer";
 import { useCanvasResize } from "./hooks/useCanvasResize";
@@ -105,6 +105,39 @@ const CanvasInner = ({
   openModal,
   closeModal,
 }) => {
+
+  const [runTour, setRunTour] = useState(false);
+
+  // Флаг, что тур уже был показан (храним в localStorage)
+  const [tourCompleted, setTourCompleted] = useState(() => {
+    return localStorage.getItem('synethia_tour_completed') === 'true';
+  });
+
+  // Запуск тура (можно вызвать вручную или автоматически)
+  const startTour = () => {
+    setRunTour(false);                    // сначала сбрасываем
+    setTimeout(() => setRunTour(true), 50); // потом запускаем заново
+  };
+
+  // Обработчик завершения тура
+  const handleTourCallback = (data) => {
+    const { status } = data;
+    if (status === 'finished' || status === 'skipped') {
+      setRunTour(false);
+      localStorage.setItem('synethia_tour_completed', 'true');
+      setTourCompleted(true);   // 👈 обновите состояние
+    }
+  };
+
+  // Автоматический запуск при первом рендере, если тур ещё не показывали
+  useEffect(() => {
+    if (!tourCompleted) {
+      // Небольшая задержка, чтобы все DOM-элементы успели отрисоваться
+      const timer = setTimeout(() => startTour(), 500);
+      return () => clearTimeout(timer);
+    }
+  }, [tourCompleted]);
+
   // ── [HINT] Все хинты здесь, внутри HintProvider ──────────────────────────
 
   const hintCanvas = useHint(
@@ -129,9 +162,121 @@ const CanvasInner = ({
         ? "Перегенерировать мелодию по рисунку"
         : "Преобразовать рисунок в музыку",
   );
+// Конфигурация шагов тура (временно без панели инструментов, только видимые элементы)
+const tourSteps = [
+  {
+    target: '[data-tour="canvas"]',
+    content: '🎨 Это ваш холст – рисуйте линии, и каждая превратится в музыку. Чем выше линия, тем выше нота.',
+    placement: 'right',
+    disableBeacon: true,
+  },
+  {
+    target: '[data-tour="project-title"]',
+    content: '✏️ Название проекта – дайте имя своему творению.',
+    placement: 'bottom',
+    disableBeacon: true,
+  },
+  {
+    target: '[data-tour="favorite"]',
+    content: '⭐ Избранное – отметьте проект, чтобы он был под рукой.',
+    placement: 'bottom',
+    disableBeacon: true,
+  },
+  {
+    target: '[data-tour="save"]',
+    content: '💾 Сохранить – проект сохранится в ваш аккаунт.',
+    placement: 'bottom',
+    disableBeacon: true,
+  },
+  {
+    target: '[data-tour="download"]',
+    content: '⬇️ Скачать – экспортируйте рисунок (PNG) или мелодию (WAV).',
+    placement: 'bottom',
+    disableBeacon: true,
+  },
+  {
+    target: '[data-tour="delete"]',
+    content: '🗑️ Удалить проект – осторожно, действие необратимо.',
+    placement: 'bottom',
+    disableBeacon: true,
+  },
+  // ← новые шаги для ToolsPanel
+  {
+    target: '.import-photo-btn',
+    content: '🖼️ Импорт фото – загрузите изображение, контуры превратятся в ноты.',
+    placement: 'right',
+    disableBeacon: true,
+  },
+  {
+    target: '.brush-color-btn',
+    content: '🎹 Инструмент – выберите цвет кисти и музыкальный инструмент.',
+    placement: 'right',
+    disableBeacon: true,
+  },
+  {
+    target: '[data-tour="generate-btn"]',
+    content: '🎶 Главная кнопка! Превратит рисунок в музыку.',
+    placement: 'top',
+    disableBeacon: true,
+  },
+];
+
+// Стили для тура (под вашу тему)
+const tourStyles = {
+  options: {
+    beaconComponent: () => null, 
+    primaryColor: '#00ffd1',
+    backgroundColor: '#12121e',
+    textColor: '#f0f0f0',
+    arrowColor: '#12121e',
+    zIndex: 2000,
+  },
+  buttonNext: {
+    backgroundColor: '#00ffd1',
+    color: '#0B0B1F',
+    borderRadius: '40px',
+    fontWeight: 'bold',
+    padding: '8px 20px',
+  },
+  buttonBack: { color: '#aaa' },
+  buttonSkip: { color: '#aaa' },
+  tooltip: {
+    borderRadius: '16px',
+    padding: '20px',
+    fontSize: '14px',
+    lineHeight: 1.5,
+    boxShadow: '0 20px 40px rgba(0,0,0,0.6)',
+    border: '1px solid rgba(255,255,255,0.1)',
+  },
+  overlay: { backgroundColor: 'rgba(0,0,0,0.7)' },
+};
+
+const tourLocale = {
+  back: 'Назад',
+  close: 'Закрыть',
+  last: 'Завершить',
+  next: 'Далее',
+  skip: 'Пропустить',
+};
+
+
+
 
   return (
     <div className="canvas-content">
+      <Joyride
+      key={runTour ? 'tour-active' : 'tour-idle'} 
+      steps={tourSteps}
+      run={runTour}
+      continuous={true}
+      showSkipButton={true}
+      showProgress={true}
+      callback={handleTourCallback}
+      styles={tourStyles}
+      locale={tourLocale}
+      spotlightClicks={true}     
+  disableOverlayClose={true}   
+    />
       {isLoadingProject && (
         <div
           className="import-overlay"
@@ -147,6 +292,7 @@ const CanvasInner = ({
         <div className="canvas-header-text">
           <div
             className="project-title-input"
+            data-tour="project-title"
             contentEditable
             suppressContentEditableWarning
             {...hintTitle}
@@ -162,6 +308,7 @@ const CanvasInner = ({
           {/* [HINT] избранное — toggle-хинт, меняется сразу при клике */}
           <div
             className="icon favourite-btn"
+            data-tour="favorite"
             onClick={() => {
               handleToggleFavorite();
               hintFavorite.push(
@@ -176,11 +323,12 @@ const CanvasInner = ({
               alt="Избранное"
             />
           </div>
-          <div className="icon save-btn" onClick={handleSave} {...hintSave}>
+          <div className="icon save-btn" data-tour="save" onClick={handleSave} {...hintSave}>
             <img src={SaveIcon} alt="Сохранить проект" />
           </div>
           <div
             className="icon download-btn"
+            data-tour="download"
             {...hintDownload}
             onClick={() => {
               if (!isMelodyGenerated) {
@@ -202,12 +350,13 @@ const CanvasInner = ({
           </div>
           <div
             className="icon delete-btn"
+            data-tour="delete"
             onClick={handleDeleteProject}
             {...hintDelete}
           >
             <img src={TrashIcon} alt="Удалить проект" />
           </div>
-          <div className="icon question-btn" {...hintQuestion}>
+          <div className="icon question-btn" data-tour="question" onClick={startTour} {...hintQuestion}>
             <img src={QuestionIcon} alt="Обучение" />
           </div>
         </div>
@@ -236,6 +385,7 @@ const CanvasInner = ({
 
             <div
               className="canvas-panel"
+              data-tour="canvas"
               ref={canvasPanelRef}
               style={{
                 width: canvasSize.width,
@@ -307,6 +457,7 @@ const CanvasInner = ({
       </div>
 
       <Button
+        data-tour="generate-btn"
         variant="accent"
         onClick={handleGenerateMelody}
         disabled={isGenerating}

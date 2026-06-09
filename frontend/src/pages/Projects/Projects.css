@@ -303,8 +303,16 @@
 
 /* ─── Модалка избранного (одноколоночный вариант) ─────────────────────────── */
 .sort-modal--fav {
-  width: 40%;
+  width: 100%;
   max-width: 560px;
+}
+
+.sort-modal--fav .sort-content {
+  display: flex;
+  width: 100%;
+  flex-direction: column;
+  align-items: center;
+  gap: 60px;
 }
 
 .projects-unauthenticated {

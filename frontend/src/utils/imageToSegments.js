@@ -1,38 +1,9 @@
 // utils/imageToSegments.js
-//
-// Извлекает контуры из изображения и возвращает нормализованные сегменты
-// для DrawingEngine.
-//
-// Вся тяжёлая обработка (Sobel, трассировка) выполняется в Web Worker,
-// чтобы не блокировать главный поток и не убивать аудио-плеер.
-//
-// Принимает внешнюю палитру инструментов — должна совпадать с COLOR_TO_INSTRUMENT
-// из constants.js движка мелодии.
 
-/**
- * Палитра по умолчанию — полный спектр инструментов из constants.js.
- * Передай свою через options.palette чтобы переопределить.
- */
 import { COLOR_TO_INSTRUMENT } from "../engines/MelodyEngine/constants";
 
-/**
- * Основная функция. Принимает File/Blob, возвращает массив сегментов.
- *
- * @param {File} file
- * @param {Object} options
- * @param {number} options.threshold      - порог Собеля (0–255), по умолчанию 120
- * @param {number} options.maxWidth       - макс. ширина для обработки, по умолчанию 600
- * @param {number} options.minSegmentLen  - минимальное число точек в сегменте, по умолчанию 20
- * @param {number} options.maxSegments    - максимальное число сегментов на выходе, по умолчанию 200
- * @param {number} options.simplifyEps    - агрессивность упрощения Douglas-Peucker (0–1), по умолчанию 0.004
- * @param {string} options.color          - принудительный цвет всех сегментов (отключает palette-matching)
- * @param {string} options.instrument     - принудительный инструмент
- * @param {number} options.lineWidth      - толщина линий, по умолчанию 2
- * @param {Array}  options.palette        - [{ color, instrument }] — полный спектр инструментов
- * @returns {Promise<Array>} массив сегментов
- */
 export const DEFAULT_PALETTE = Object.entries(COLOR_TO_INSTRUMENT).map(
-  ([color, instrument]) => ({ color, instrument }),
+  ([color, instrument]) => ({ color, instrument })
 );
 
 export async function imageToSegments(file, options = {}) {
@@ -46,15 +17,17 @@ export async function imageToSegments(file, options = {}) {
     instrument = null,
     lineWidth = 5,
     palette = DEFAULT_PALETTE,
+    // Новый параметр: максимальное число разных инструментов на выходе.
+    // Алгоритм выберет только те цвета палитры, которые реально
+    // присутствуют в картинке, и отбросит остальные.
+    maxInstruments = 3,
   } = options;
 
-  // 1. Декодируем изображение на главном потоке (Canvas API недоступен в Worker)
   const { rgba, w, h } = await decodeImage(file, maxWidth);
 
-  // 2. Всю тяжёлую математику отдаём в Web Worker
   const segments = await runInWorker(
     {
-      rgba: rgba.buffer, // transferable — не копируем, передаём владение
+      rgba: rgba.buffer,
       w,
       h,
       threshold,
@@ -65,14 +38,13 @@ export async function imageToSegments(file, options = {}) {
       instrument,
       lineWidth,
       palette,
+      maxInstruments,
     },
     [rgba.buffer],
   );
 
   return segments;
 }
-
-// ─── Декодирование изображения (главный поток) ────────────────────────────────
 
 async function decodeImage(file, maxWidth) {
   const url = URL.createObjectURL(file);
@@ -94,19 +66,12 @@ async function decodeImage(file, maxWidth) {
     canvas.getContext("2d").drawImage(img, 0, 0, w, h);
 
     const rgba = canvas.getContext("2d").getImageData(0, 0, w, h).data;
-    // Копируем в обычный Uint8Array чтобы передать как transferable
     return { rgba: new Uint8Array(rgba.buffer.slice(0)), w, h };
   } finally {
     URL.revokeObjectURL(url);
   }
 }
 
-// ─── Web Worker ───────────────────────────────────────────────────────────────
-
-/**
- * Создаёт одноразовый Worker из Blob-URL со встроенным кодом обработки.
- * Не требует отдельного файла worker.js в сборке.
- */
 function runInWorker(payload, transferList) {
   return new Promise((resolve, reject) => {
     const workerCode = `(${workerFn.toString()})()`;
@@ -129,10 +94,6 @@ function runInWorker(payload, transferList) {
   });
 }
 
-/**
- * Весь код внутри этой функции выполняется в Worker.
- * Не использует ничего из внешнего скоупа.
- */
 function workerFn() {
   self.onmessage = function (e) {
     const {
@@ -147,19 +108,27 @@ function workerFn() {
       instrument,
       lineWidth,
       palette,
+      maxInstruments,
     } = e.data;
 
     const rgba = new Uint8Array(rgbaBuffer);
 
-    // Разбираем палитру в RGB
     const parsedPalette = palette.map((entry) => ({
       ...entry,
       rgb: hexToRgb(entry.color),
     }));
 
+    // Шаг 1: анализируем какие цвета палитры реально доминируют в картинке.
+    // Сэмплируем пиксели и считаем "голоса" за каждый цвет палитры.
+    // Затем оставляем только топ-N — это и будут активные инструменты.
+    const activePalette = color
+      ? parsedPalette
+      : buildActivePalette(rgba, w, h, parsedPalette, maxInstruments);
+
     const gray = toGrayscale(rgba, w, h);
     const blurred = gaussianBlur(gray, w, h);
     const edges = sobelEdges(blurred, w, h, threshold);
+
     const segs = traceContours(
       edges,
       rgba,
@@ -169,7 +138,7 @@ function workerFn() {
       lineWidth,
       instrument,
       !color,
-      parsedPalette,
+      activePalette, // маппим только на реальные цвета картинки
       minSegmentLen,
       maxSegments,
       simplifyEps,
@@ -183,6 +152,64 @@ function workerFn() {
   function hexToRgb(hex) {
     const c = parseInt(hex.replace("#", ""), 16);
     return { r: (c >> 16) & 0xff, g: (c >> 8) & 0xff, b: c & 0xff };
+  }
+
+  /**
+   * Анализирует пиксели изображения и выбирает топ-N цветов палитры,
+   * которые реально присутствуют в картинке.
+   *
+   * Логика:
+   * 1. Сэмплируем каждый 4-й пиксель (быстро, не нужна полная точность)
+   * 2. Для каждого пикселя находим ближайший цвет палитры
+   * 3. Считаем "голоса" — сколько пикселей проголосовало за каждый цвет
+   * 4. Оставляем топ-N по голосам
+   *
+   * Это решает проблему "зелёный/жёлтый на красной машинке":
+   * если в картинке нет зелёных пикселей — зелёный не попадёт в топ.
+   */
+  function buildActivePalette(rgba, w, h, palette, maxInstruments) {
+    const votes = new Array(palette.length).fill(0);
+
+    // Сэмплируем каждый 4-й пиксель для скорости
+    const step = 4;
+    for (let i = 0; i < w * h; i += step) {
+      const r = rgba[i * 4];
+      const g = rgba[i * 4 + 1];
+      const b = rgba[i * 4 + 2];
+      const a = rgba[i * 4 + 3];
+
+      // Пропускаем тёмные (фон) и прозрачные пиксели —
+      // они не несут информации о цвете объекта
+      if (a < 128) continue;
+      const brightness = 0.299 * r + 0.587 * g + 0.114 * b;
+      if (brightness < 30) continue; // почти чёрный фон
+
+      // Находим ближайший цвет палитры и голосуем за него
+      let bestIdx = 0;
+      let bestDist = Infinity;
+      for (let j = 0; j < palette.length; j++) {
+        const dr = r - palette[j].rgb.r;
+        const dg = g - palette[j].rgb.g;
+        const db = b - palette[j].rgb.b;
+        const dist = 0.299 * dr * dr + 0.587 * dg * dg + 0.114 * db * db;
+        if (dist < bestDist) {
+          bestDist = dist;
+          bestIdx = j;
+        }
+      }
+      votes[bestIdx]++;
+    }
+
+    // Сортируем по голосам и берём топ-N
+    const ranked = palette
+      .map((entry, i) => ({ entry, votes: votes[i] }))
+      .filter((x) => x.votes > 0) // только те, за кого вообще проголосовали
+      .sort((a, b) => b.votes - a.votes)
+      .slice(0, maxInstruments)
+      .map((x) => x.entry);
+
+    // Если ничего не нашли — возвращаем первый цвет палитры как дефолт
+    return ranked.length > 0 ? ranked : [palette[0]];
   }
 
   function closestPaletteEntry(r, g, b, palette) {
@@ -211,7 +238,6 @@ function workerFn() {
   }
 
   function gaussianBlur(gray, w, h) {
-    // Два прохода box-blur 3×3 — достаточно для подавления шума
     const blur = (src) => {
       const dst = new Float32Array(w * h);
       for (let y = 1; y < h - 1; y++) {
@@ -232,7 +258,7 @@ function workerFn() {
       }
       return dst;
     };
-    return blur(blur(blur(gray))); // 3 прохода вместо 2 для сложных изображений
+    return blur(blur(blur(gray)));
   }
 
   function sobelEdges(gray, w, h, threshold) {
@@ -259,10 +285,6 @@ function workerFn() {
     return edges;
   }
 
-  /**
-   * Douglas-Peucker упрощение полилинии.
-   * eps — порог в нормализованных координатах.
-   */
   function simplify(points, eps) {
     if (points.length <= 2) return points;
     let maxDist = 0,
@@ -316,7 +338,6 @@ function workerFn() {
       [1, -1],
       [1, 1],
     ];
-    // Максимальная длина одного штриха — ограничиваем чтобы не было гигантских змеек
     const MAX_STROKE = 400;
 
     for (let y = 1; y < h - 1; y++) {
@@ -358,10 +379,8 @@ function workerFn() {
           if (!found) break;
         }
 
-        // Отсекаем короткие шумовые штрихи
         if (rawPoints.length < minSegmentLen) continue;
 
-        // Упрощаем геометрию — меньше точек, плавнее линии
         const points = simplify(rawPoints, simplifyEps);
         if (points.length < 2) continue;
 
