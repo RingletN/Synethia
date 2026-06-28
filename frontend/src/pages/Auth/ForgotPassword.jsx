@@ -8,10 +8,6 @@ import frameBottom from "../../assets/login/frame-bottom1.svg";
 import forgotTop from "../../assets/login/forgot-top.svg";
 import arrowBack from "../../assets/login/arrow-back.svg";
 
-/**
- * props:
- *   onBack(email?) — вернуться на Login, передаём email для автозаполнения
- */
 function ForgotPassword({ onBack }) {
   const { sendResetCode, verifyResetCode, resetPassword } = useAuth();
 
@@ -51,7 +47,7 @@ function ForgotPassword({ onBack }) {
   const formatTimer = (s) =>
     `${String(Math.floor(s / 60)).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`;
 
-  // ── Шаг 1: отправить код ─────────────────────────────────────────
+  // ── 1: отправить код ─────────────────────────────────────────
   const handleSendCode = async () => {
     if (!email || !/^\S+@\S+\.\S+$/.test(email)) {
       setGeneralError("Введите корректный email");
@@ -76,7 +72,7 @@ function ForgotPassword({ onBack }) {
     }
   };
 
-  // ── Шаг 2: динамическая проверка кода ────────────────────────────
+  // ─2: динамическая проверка кода ────────────────────────────
   const verifyDebounceRef = useRef(null);
 
   const handleCodeChange = (e) => {
@@ -101,11 +97,11 @@ function ForgotPassword({ onBack }) {
         } finally {
           setLoading(false);
         }
-      }, 300); // небольшой debounce чтобы не дёргать при быстром вводе
+      }, 300); // не дёргаем при быстром вводе
     }
   };
 
-  // ── Шаг 3: сменить пароль ────────────────────────────────────────
+  // ── 3: сменить пароль ────────────────────────────────────────
   const handleResetPassword = async (e) => {
     e.preventDefault();
 
@@ -172,7 +168,7 @@ function ForgotPassword({ onBack }) {
               </div>
             )}
 
-            {/* ── ШАГ 1: Email ─────────────────────────── */}
+            {/* Email*/}
             {step === 1 && (
               <form
                 onSubmit={(e) => {
@@ -205,7 +201,7 @@ function ForgotPassword({ onBack }) {
               </form>
             )}
 
-            {/* ── ШАГ 2: Код ───────────────────────────── */}
+            {/* Код */}
             {step === 2 && (
               <form noValidate>
                 <InputField
@@ -246,7 +242,7 @@ function ForgotPassword({ onBack }) {
               </form>
             )}
 
-            {/* ── ШАГ 3: Новый пароль ──────────────────── */}
+            {/* Новый пароль  */}
             {step === 3 && (
               <form onSubmit={handleResetPassword} noValidate>
                 <InputField

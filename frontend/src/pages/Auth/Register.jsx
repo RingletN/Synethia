@@ -8,14 +8,6 @@ import Loader from "../../components/ui/Loader";
 import tabRegisterTop from "../../assets/login/tab-register-top.svg";
 import frameBottom from "../../assets/login/frame-bottom.svg";
 
-/**
- * Регистрация разбита на 2 шага:
- *   Шаг 1 — Имя, Псевдоним, Email  → кнопки «Назад» (→ Login) и «Продолжить»
- *   Шаг 2 — Пароль, Подтвердить пароль → кнопки «Назад» (← Шаг 1) и «Зарегистрироваться»
- *
- * props:
- *   onSwitchToLogin — переключить на вкладку «Вход»
- */
 function Register({ onSwitchToLogin }) {
   const { register } = useAuth();
   const navigate = useNavigate();
@@ -77,7 +69,7 @@ function Register({ onSwitchToLogin }) {
     if (error) setErrors((prev) => ({ ...prev, [name]: error }));
   };
 
-  // ── Шаг 1: валидация и переход на шаг 2 ──────────────────────────
+  // ── 1: валидация ────────────────────
   const handleStep1Continue = (e) => {
     e.preventDefault();
     const newErrors = {};
@@ -94,7 +86,7 @@ function Register({ onSwitchToLogin }) {
     setStep(2);
   };
 
-  // ── Шаг 2: финальная отправка ─────────────────────────────────────
+  // ──2: финальная отправка ────────────────────
   const handleStep2Submit = async (e) => {
     e.preventDefault();
     const newErrors = {};

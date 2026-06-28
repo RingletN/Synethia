@@ -1,12 +1,9 @@
 import { useEffect, useRef } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 
-/**
+/*
  * Хук предупреждает пользователя о несохранённых изменениях при попытке уйти.
  * Никакого сохранения — только информирование и выбор: уйти или остаться.
- *
- * @param {boolean}  hasChanges  — есть ли несохранённые изменения
- * @param {Function} openModal   — функция открытия модального окна
  */
 export const useUnsavedChanges = (hasChanges, openModal) => {
   const navigate = useNavigate();
@@ -45,7 +42,7 @@ export const useUnsavedChanges = (hasChanges, openModal) => {
 
     window.addEventListener("popstate", handler);
     return () => window.removeEventListener("popstate", handler);
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, []);
 
   // ─── 3. Клики по ссылкам ─────────────────────────────────────────────────
   useEffect(() => {

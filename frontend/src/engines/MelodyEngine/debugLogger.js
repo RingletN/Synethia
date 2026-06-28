@@ -1,4 +1,3 @@
-// engines/MelodyEngine/debugLogger.js
 // Форматированный вывод событий движка мелодии для отладки
 
 import { freqToMidi } from "./musicTheory.js";

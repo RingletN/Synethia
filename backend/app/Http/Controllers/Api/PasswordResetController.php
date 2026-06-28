@@ -29,7 +29,7 @@ class PasswordResetController extends Controller
         DB::table('password_reset_tokens')->updateOrInsert(
             ['email' => $request->email],
             [
-                'token' => Hash::make($code), // token не используем, но поле required
+                'token' => Hash::make($code), 
                 'code'  => $code,
                 'created_at' => Carbon::now(),
             ]

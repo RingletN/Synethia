@@ -1,4 +1,3 @@
-// src/pages/Canvas/hooks/useProjectSave.js
 import { useState, useCallback } from "react";
 import api from "../../../api";
 
@@ -17,7 +16,7 @@ export const useProjectSave = ({
   totalDuration,
   isMelodyGenerated,
   showModal,
-  onSaveSuccess, // ← новый параметр: вызывается после успешного сохранения
+  onSaveSuccess,
   existingProjectNames = [],
 }) => {
   const [isSaving, setIsSaving] = useState(false);
@@ -63,7 +62,7 @@ export const useProjectSave = ({
         const data = await api.post("/api/projects", payload);
         setProjectId(data.project_id);
         setCurrentTitle(title);
-        onSaveSuccess?.(); // ← сбрасываем флаг несохранённых изменений в Canvas
+        onSaveSuccess?.(); // сбрасываем флаг несохранённых изменений в Canvas
         showModal("Сохранено", "Проект успешно сохранён!", "success");
       } catch (err) {
         showModal(
@@ -96,8 +95,6 @@ export const useProjectSave = ({
 
   const handleSaveClick = useCallback(
     (projectTitle) => {
-      // Canvas уже проверил что название не пустое и открыл модалку если нужно.
-      // Здесь просто сохраняем — если есть projectId, перезаписываем его, иначе создаём новый.
       _doSave(projectTitle, projectId ?? null);
     },
     [projectId, _doSave],

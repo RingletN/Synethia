@@ -1,4 +1,3 @@
-// hooks/useMelodyPlayer.js
 import { useEffect, useRef, useState, useCallback } from "react";
 import * as Tone from "tone";
 
@@ -166,15 +165,15 @@ const OSC_FALLBACK = {
 
 export const COLOR_TO_INSTRUMENT_NAME = {
   "#00ffd1": "piano",
-  "#ff3366": "guitar",
-  "#ffcc00": "flute",
+  "#B87333": "guitar",
+  "#EB58DA": "flute",
   "#9900ff": "strings",
   "#ff6b35": "clarinet",
   "#00b4d8": "saxophone",
   "#f72585": "guitar-electric",
   "#0000FF": "cello",
   "#ffd60a": "xylophone",
-  "#a855f7": "harp",
+  "#C9A0DC": "harp",
 };
 
 const LEGACY_TO_INSTRUMENT = {
@@ -197,7 +196,7 @@ const DEFAULT_INSTRUMENT_EFFECTS = Object.fromEntries(
 );
 
 // ─── ГЛОБАЛЬНЫЙ КЭШ СЭМПЛЕРОВ ────────────────────────────────────────────────
-// FIX: сэмплеры кешируются, но при каждой генерации мелодии
+// сэмплеры кешируются, но при каждой генерации мелодии
 // они переподключаются к свежей fx-цепочке через reconnectSamplers().
 const _samplerCache = {};
 const _samplerReady = {};
@@ -301,7 +300,7 @@ function getInstrFxChain(instrName) {
   return _instrFxCache[instrName].distortion;
 }
 
-// FIX: переподключаем только те сэмплеры, которые нужны для текущей мелодии.
+// переподключаем только те сэмплеры, которые нужны для текущей мелодии.
 // Сэмплеры инструментов, которых НЕТ в событиях, отключаются — они не будут
 // слышны даже если ещё живут в кеше.
 function reconnectSamplers(neededInstruments) {
@@ -317,7 +316,7 @@ function reconnectSamplers(neededInstruments) {
   }
 }
 
-// ─── ХУК ─────────────────────────────────────────────────────────────────────
+// ─── ХУК ───────────
 const useMelodyPlayer = (
   events,
   totalDuration,
@@ -396,11 +395,11 @@ const useMelodyPlayer = (
         setLoadingState((prev) => ({ ...prev, [name]: s ? "ready" : "error" }));
       }),
     );
-    // FIX: после загрузки/переподключения — изолируем ненужные инструменты
+    // после загрузки/переподключения — изолируем ненужные инструменты
     reconnectSamplers(needed);
   }, []);
 
-  // FIX: при смене events — сбрасываем Part и останавливаем воспроизведение.
+  //при смене events — сбрасываем Part и останавливаем воспроизведение.
   // Это единственный useEffect на [events, totalDuration], конфликта нет.
   useEffect(() => {
     if (partRef.current) {
@@ -419,7 +418,7 @@ const useMelodyPlayer = (
     if (events?.length) {
       preloadSamplers(events);
     }
-  }, [events, totalDuration]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [events, totalDuration]);
 
   const createPart = useCallback(() => {
     if (partRef.current) {
@@ -537,7 +536,7 @@ const useMelodyPlayer = (
 
     const transport = Tone.getTransport();
 
-    // FIX: ВСЕГДА пересоздаём Part перед воспроизведением.
+    // ВСЕГДА пересоздаём Part перед воспроизведением.
     // Это гарантирует, что играют только события из текущей мелодии,
     // а не из предыдущей генерации.
     if (partRef.current) {
@@ -548,7 +547,7 @@ const useMelodyPlayer = (
       partRef.current = null;
     }
 
-    // FIX: сбрасываем транспорт в начало, чтобы старые события
+    //сбрасываем транспорт в начало, чтобы старые события
     // из предыдущего Part не оказались в очереди Tone.js.
     transport.stop();
 

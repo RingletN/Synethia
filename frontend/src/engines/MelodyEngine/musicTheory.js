@@ -1,5 +1,4 @@
-// engines/MelodyEngine/musicTheory.js
-// Вся математика нот: MIDI ↔ частоты, квантизация по гамме
+// Вся математика нот: MIDI - частоты, квантизация по гамме
 
 import { A4_FREQ, A4_MIDI, MIN_FREQ, MAX_FREQ, SCALES } from "./constants.js";
 

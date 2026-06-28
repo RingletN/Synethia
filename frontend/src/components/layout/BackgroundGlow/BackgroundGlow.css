@@ -6,7 +6,7 @@
   bottom: 0;
   pointer-events: none;
   z-index: -1;
-  filter: blur(60px);
+  filter: blur(120px);
 }
 
 .glow-logo {
@@ -19,8 +19,9 @@
 
 .glow-nav {
   position: absolute;
-  top: -270px;
-  right: 190px;
-  width: 38vw;
+  top: -410px;
+  right: 70px;
+  /* width: 38vw; */
+  width: 60vw;
   height: auto;
 }

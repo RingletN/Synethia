@@ -1,12 +1,3 @@
-// engines/MelodyEngine/noteBuilder.js
-// Фаза 1б: генерация сырых нот (питч + позиция, без ритмического наложения)
-//
-// ИЗМЕНЕНИЯ: используем temporalRoleByTakt / temporalVolMultByTakt из roleAssigner
-// чтобы инструменты переключали роли (мелодия ↔ аккомпанемент) по ходу времени
-//
-// ДОПОЛНИТЕЛЬНО: добавлено ограничение максимального количества одновременных нот
-// в аккордах (бас и аккомпанемент) до 4 с равномерным выбором из всего диапазона.
-
 import {
   SCALES,
   ROLE_VOLUME_MULT,
@@ -27,7 +18,7 @@ function limitSimultaneousNotes(notes, maxNotes = 4) {
   const sorted = [...notes].sort((a, b) => a.midi - b.midi);
   const result = [];
   for (let i = 0; i < maxNotes; i++) {
-    const idx = Math.floor(i * (sorted.length - 1) / (maxNotes - 1));
+    const idx = Math.floor((i * (sorted.length - 1)) / (maxNotes - 1));
     result.push(sorted[idx]);
   }
   return result;
@@ -75,11 +66,8 @@ export function buildRawNotes(
       let taktPts = points.filter((pt) => pt.x >= taktXMin && pt.x < taktXMax);
 
       if (taktPts.length === 0) {
-        if (taktRole === "chord" || seg.isOrnament) continue;
-        if (taktYMap[k] === null) continue;
-        taktPts = [
-          { x: (taktXMin + taktXMax) / 2, y: taktYMap[k], interpolated: true },
-        ];
+        // Сегмент молчит в тактах, где его линии физически нет на холсте
+        continue;
       }
 
       const roleVolMult = ROLE_VOLUME_MULT[taktRole] ?? 1.0;
@@ -358,7 +346,7 @@ function buildBassInterval(
 
   if (notes.length === 0) return [];
   notes.sort((a, b) => a.midi - b.midi);
-  
+
   // Ограничиваем басовый аккорд до 4 нот
   const limitedNotes = limitSimultaneousNotes(notes, 4);
 
@@ -491,7 +479,7 @@ function buildTrueChord(
 
   const style = inflections.length >= 2 ? "arpeggio" : "flatChord";
   segNotes.sort((a, b) => a.midi - b.midi);
-  
+
   // Ограничиваем аккорд до 4 нот (работает и для flatChord, и для arpeggio)
   segNotes = limitSimultaneousNotes(segNotes, 4);
 
@@ -542,7 +530,7 @@ export function buildAccompanimentNote(
   );
 }
 
-// ─── ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ (экспортируемые) ───────────────────────────────
+// ─── ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ───────────────────────────────
 export function getSegmentDirection(segment) {
   const pts = segment.points;
   if (pts.length < 2) return 0;

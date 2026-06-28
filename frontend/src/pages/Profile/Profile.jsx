@@ -1,16 +1,14 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useAuth } from "../../context/AuthContext";
-import api from "../../api"; 
+import api from "../../api";
 import BgProfileLine from "../../assets/backgrounds/bg-profile-line.png";
 import ConfirmIcon from "../../assets/icons/icon-confirm.svg";
 import CloseIcon from "../../assets/icons/icon-close.svg";
 import LogoutIcon from "../../assets/icons/icon-logout.svg";
-
 import InputField from "../../components/ui/InputField/InputField";
 import Button from "../../components/ui/Button/Button";
 import Loader from "../../components/ui/Loader";
 import Modal from "../../components/ui/Modal/Modal";
-
 import { getValidationErrorMessage } from "../../utils/validationErrors";
 import { useUnsavedChanges } from "../../hooks/useUnsavedChanges";
 
@@ -53,11 +51,11 @@ const Profile = () => {
   const [modalConfig, setModalConfig] = useState({});
 
   // Для debounce-проверки уникальности
-const nicknameTimeoutRef = useRef(null);
-const emailTimeoutRef = useRef(null);
-const [checkingNickname, setCheckingNickname] = useState(false);
-const [checkingEmail, setCheckingEmail] = useState(false);
-  
+  const nicknameTimeoutRef = useRef(null);
+  const emailTimeoutRef = useRef(null);
+  const [checkingNickname, setCheckingNickname] = useState(false);
+  const [checkingEmail, setCheckingEmail] = useState(false);
+
   // === ЭФФЕКТЫ ===
   useEffect(() => {
     if (user) {
@@ -121,7 +119,7 @@ const [checkingEmail, setCheckingEmail] = useState(false);
       variant: "warning",
       onPrimary: async () => {
         const result = await deletePhoto();
-        if (result.ok) {   // ← исправлено: проверяем .ok, а не сам объект
+        if (result.ok) {
           setPhotoPreview(null);
           openModal({
             title: "Готово",
@@ -135,95 +133,98 @@ const [checkingEmail, setCheckingEmail] = useState(false);
   };
   const checkUniqueness = useCallback(async (field, value) => {
     if (!value || value.length < 2) return; // не проверяем короткие значения
-  
+
     try {
-      const result = await api.post('/api/check-unique', { [field]: value });
-      // Сервер возвращает { nickname: null } или { nickname: "текст ошибки" }
+      const result = await api.post("/api/check-unique", { [field]: value });
       const errorMsg = result[field];
-      setErrors(prev => ({ ...prev, [field]: errorMsg || '' }));
+      setErrors((prev) => ({ ...prev, [field]: errorMsg || "" }));
     } catch (err) {
       console.error(`Ошибка проверки ${field}:`, err);
     } finally {
-      if (field === 'nickname') setCheckingNickname(false);
+      if (field === "nickname") setCheckingNickname(false);
       else setCheckingEmail(false);
     }
   }, []);
 
   const handleChange = (e) => {
-  const { name, value } = e.target;
-  setFormData((prev) => ({ ...prev, [name]: value }));
-  // очищаем ошибку только если это не nickname/email? лучше очищать любую ошибку поля
-  if (errors[name]) setErrors((prev) => ({ ...prev, [name]: "" }));
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
+    if (errors[name]) setErrors((prev) => ({ ...prev, [name]: "" }));
 
-  // Для nickname и email запускаем проверку с задержкой
-  if (name === 'nickname') {
-    if (nicknameTimeoutRef.current) clearTimeout(nicknameTimeoutRef.current);
-    setCheckingNickname(true);
-    nicknameTimeoutRef.current = setTimeout(() => {
-      checkUniqueness('nickname', value);
-    }, 500);
-  }
-  if (name === 'email') {
-    if (emailTimeoutRef.current) clearTimeout(emailTimeoutRef.current);
-    setCheckingEmail(true);
-    emailTimeoutRef.current = setTimeout(() => {
-      checkUniqueness('email', value);
-    }, 500);
-  }
-};
-
-useEffect(() => {
-  return () => {
-    if (nicknameTimeoutRef.current) clearTimeout(nicknameTimeoutRef.current);
-    if (emailTimeoutRef.current) clearTimeout(emailTimeoutRef.current);
+    // Для nickname и email запускаем проверку с задержкой
+    if (name === "nickname") {
+      if (nicknameTimeoutRef.current) clearTimeout(nicknameTimeoutRef.current);
+      setCheckingNickname(true);
+      nicknameTimeoutRef.current = setTimeout(() => {
+        checkUniqueness("nickname", value);
+      }, 500);
+    }
+    if (name === "email") {
+      if (emailTimeoutRef.current) clearTimeout(emailTimeoutRef.current);
+      setCheckingEmail(true);
+      emailTimeoutRef.current = setTimeout(() => {
+        checkUniqueness("email", value);
+      }, 500);
+    }
   };
-}, []);
 
- // Валидация при потере фокуса
-const handleBlur = (e) => {
-  const { name, value } = e.target;
+  useEffect(() => {
+    return () => {
+      if (nicknameTimeoutRef.current) clearTimeout(nicknameTimeoutRef.current);
+      if (emailTimeoutRef.current) clearTimeout(emailTimeoutRef.current);
+    };
+  }, []);
 
-  // Для имени: только минимальная длина
-  if (name === "name") {
-    const lengthError = value.trim().length < 2 ? getValidationErrorMessage(name, "min") : "";
-    if (lengthError) {
-      setErrors((prev) => ({ ...prev, [name]: lengthError }));
+  // Валидация при потере фокуса
+  const handleBlur = (e) => {
+    const { name, value } = e.target;
+
+    // Для имени: только минимальная длина
+    if (name === "name") {
+      const lengthError =
+        value.trim().length < 2 ? getValidationErrorMessage(name, "min") : "";
+      if (lengthError) {
+        setErrors((prev) => ({ ...prev, [name]: lengthError }));
+      }
+      return;
     }
-    // если ошибки нет — ничего не делаем (оставляем старую ошибку, но у name нет уникальности, так что ок)
-    return;
-  }
 
-  // Для псевдонима: минимальная длина (ошибку уникальности не трогаем)
-  if (name === "nickname") {
-    const lengthError = value.trim().length < 2 ? getValidationErrorMessage(name, "min") : "";
-    if (lengthError) {
-      setErrors((prev) => ({ ...prev, [name]: lengthError }));
+    // Для псевдонима: минимальная длина (ошибку уникальности не трогаем)
+    if (name === "nickname") {
+      const lengthError =
+        value.trim().length < 2 ? getValidationErrorMessage(name, "min") : "";
+      if (lengthError) {
+        setErrors((prev) => ({ ...prev, [name]: lengthError }));
+      }
+      return;
     }
-    // если длина норм — НЕ сбрасываем ошибку (она может быть от уникальности)
-    return;
-  }
 
-  // Для email: проверка формата
-  if (name === "email") {
-    if (value && !/^\S+@\S+\.\S+$/.test(value)) {
-      setErrors((prev) => ({ ...prev, [name]: getValidationErrorMessage(name, "email") }));
+    // Для email: проверка формата
+    if (name === "email") {
+      if (value && !/^\S+@\S+\.\S+$/.test(value)) {
+        setErrors((prev) => ({
+          ...prev,
+          [name]: getValidationErrorMessage(name, "email"),
+        }));
+      }
+      return;
     }
-    // если формат правильный — ничего не делаем (оставляем ошибку уникальности, если она была)
-    return;
-  }
 
-  // Для пароля: минимальная длина (уникальности нет, можно сбрасывать)
-  if (name === "password") {
-    if (value && value.length < 8) {
-      setErrors((prev) => ({ ...prev, [name]: getValidationErrorMessage(name, "min") }));
-    } else {
-      setErrors((prev) => ({ ...prev, [name]: "" }));
+    // Для пароля: минимальная длина
+    if (name === "password") {
+      if (value && value.length < 8) {
+        setErrors((prev) => ({
+          ...prev,
+          [name]: getValidationErrorMessage(name, "min"),
+        }));
+      } else {
+        setErrors((prev) => ({ ...prev, [name]: "" }));
+      }
+      return;
     }
-    return;
-  }
-};
+  };
 
-  // === СОХРАНЕНИЕ ПРОФИЛЯ (исправлено) ===
+  // === СОХРАНЕНИЕ ПРОФИЛЯ ===
   const handleSave = async () => {
     // 1. Клиентская валидация
     let hasClientError = false;
@@ -254,7 +255,8 @@ const handleBlur = (e) => {
     // 2. Собираем только изменённые поля
     const payload = {};
     if (formData.name !== originalData.name) payload.name = formData.name;
-    if (formData.nickname !== originalData.nickname) payload.nickname = formData.nickname;
+    if (formData.nickname !== originalData.nickname)
+      payload.nickname = formData.nickname;
     if (formData.email !== originalData.email) payload.email = formData.email;
     if (formData.password) payload.password = formData.password;
 
@@ -278,10 +280,12 @@ const handleBlur = (e) => {
     } else if (result.errors) {
       // Серверные ошибки валидации (422) – показываем под полями
       const serverErrors = {};
-      if (result.errors.nickname) serverErrors.nickname = result.errors.nickname[0];
+      if (result.errors.nickname)
+        serverErrors.nickname = result.errors.nickname[0];
       if (result.errors.email) serverErrors.email = result.errors.email[0];
       if (result.errors.name) serverErrors.name = result.errors.name[0];
-      if (result.errors.password) serverErrors.password = result.errors.password[0];
+      if (result.errors.password)
+        serverErrors.password = result.errors.password[0];
       setErrors(serverErrors);
       // Модалку не показываем – ошибки видны под инпутами
     } else {
@@ -354,11 +358,14 @@ const handleBlur = (e) => {
 
   return (
     <div className="profile-page">
-      {/* ШАПКА, ФОН, КОНТЕЙНЕР — без изменений */}
       <div className="profile-header">
         <div className="profile-header-text">
           <h2>ПРОФИЛЬ</h2>
-          <div className="logout-btn" onClick={handleLogout} style={{ cursor: "pointer" }}>
+          <div
+            className="logout-btn"
+            onClick={handleLogout}
+            style={{ cursor: "pointer" }}
+          >
             <img src={LogoutIcon} alt="Выход" />
           </div>
         </div>
@@ -387,7 +394,7 @@ const handleBlur = (e) => {
                   alt="Отменить"
                   onClick={() => {
                     setFormData({ ...originalData, password: "" });
-                    setErrors({}); // <-- очистить все ошибки
+                    setErrors({}); // очистить все ошибки
                   }}
                   className="icon"
                 />
@@ -447,7 +454,14 @@ const handleBlur = (e) => {
         <div className="profile-photo-block">
           <div className="photo-container">
             {isPhotoUploading ? (
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100%" }}>
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  height: "100%",
+                }}
+              >
                 <Loader size={70} color="pink" speed={2000} />
               </div>
             ) : photoPreview ? (
@@ -459,7 +473,10 @@ const handleBlur = (e) => {
 
           {!isPhotoChanged ? (
             <div className="photo-actions">
-              <Button variant="primary" onClick={() => fileInputRef.current.click()}>
+              <Button
+                variant="primary"
+                onClick={() => fileInputRef.current.click()}
+              >
                 ИЗМЕНИТЬ ФОТО
               </Button>
               {photoPreview && (

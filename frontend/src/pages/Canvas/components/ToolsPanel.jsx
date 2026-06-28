@@ -1,7 +1,10 @@
-// ToolsPanel.jsx — с подключёнными подсказками
-// Изменения помечены комментарием // [HINT]
-
-import React, { forwardRef, useState, useRef, useEffect } from "react";
+import React, {
+  forwardRef,
+  useState,
+  useRef,
+  useEffect,
+  useLayoutEffect,
+} from "react";
 import ImportPhotoIcon from "../../../assets/icons/icon-import-photo.svg";
 import BrushIcon from "../../../assets/icons/icon-brush.svg";
 import BrushSelectedIcon from "../../../assets/icons/icon-brush-selected.svg";
@@ -14,14 +17,13 @@ import RedoBlockedIcon from "../../../assets/icons/icon-redo-blocked.svg";
 import ClearCanvasIcon from "../../../assets/icons/icon-clear-canvas.svg";
 import IconCanvasBg from "../../../components/ui/CustomIcons/IconCanvasBg";
 import IconBrushColor from "../../../components/ui/CustomIcons/IconBrushColor";
-
-// [HINT] импортируем хуки
-import { useHint, useHintPush, useHintFactory } from "../hooks/useHint"; // поправь путь
+import CloseIcon from "../../../assets/icons/icon-close.svg";
+import { useHint, useHintPush, useHintFactory } from "../hooks/useHint";
 
 export const INSTRUMENT_COLORS = [
   { color: "#00ffd1", instrument: "piano", label: "Пианино", icon: "🎹" },
-  { color: "#ff3366", instrument: "guitar", label: "Гитара", icon: "🎸" },
-  { color: "#ffcc00", instrument: "flute", label: "Флейта", icon: "🪈" },
+  { color: "#B87333", instrument: "guitar", label: "Гитара", icon: "🎸" },
+  { color: "#EB58DA", instrument: "flute", label: "Флейта", icon: "🪈" },
   { color: "#9900ff", instrument: "strings", label: "Скрипка", icon: "🎻" },
   { color: "#ff6b35", instrument: "clarinet", label: "Кларнет", icon: "🎷" },
   { color: "#00b4d8", instrument: "saxophone", label: "Саксофон", icon: "🎷" },
@@ -33,7 +35,7 @@ export const INSTRUMENT_COLORS = [
   },
   { color: "#0000FF", instrument: "cello", label: "Виолончель", icon: "🎻" },
   { color: "#ffd60a", instrument: "xylophone", label: "Ксилофон", icon: "🎶" },
-  { color: "#a855f7", instrument: "harp", label: "Арфа", icon: "🎵" },
+  { color: "#C9A0DC", instrument: "harp", label: "Арфа", icon: "🎵" },
 ];
 
 // [HINT] подсказки для каждого инструмента
@@ -54,13 +56,17 @@ const INSTRUMENT_HINTS = {
 const InstrumentPicker = ({ currentColor, onChange, onClose, anchorRef }) => {
   const pickerRef = useRef(null);
   const [pos, setPos] = useState({ top: 0, left: 0 });
-  // [HINT] фабрика хинтов для использования в обычном map (не в хуке напрямую)
+  const [ready, setReady] = useState(false);
   const getHint = useHintFactory();
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (anchorRef?.current) {
       const rect = anchorRef.current.getBoundingClientRect();
-      setPos({ top: rect.bottom + 10, left: rect.left - 10 });
+      setPos({
+        top: rect.bottom + 12,
+        left: rect.left + 5,
+      });
+      setReady(true);
     }
   }, [anchorRef]);
 
@@ -87,79 +93,164 @@ const InstrumentPicker = ({ currentColor, onChange, onClose, anchorRef }) => {
         top: pos.top,
         left: pos.left,
         zIndex: 1000,
-        background: "rgba(18, 18, 30, 0.97)",
-        backdropFilter: "blur(18px)",
-        border: "1px solid rgba(255,255,255,0.1)",
-        borderRadius: 16,
-        padding: "14px 12px",
-        boxShadow: "0 12px 48px rgba(0,0,0,0.6)",
-        display: "flex",
-        flexDirection: "column",
-        gap: 4,
-        minWidth: 190,
-        maxHeight: "80vh",
-        overflowY: "auto",
+        opacity: ready ? 1 : 0,
+        transition: "opacity 0.15s ease",
+        padding: "3px",
+        borderRadius: "40px",
+        // background: "linear-gradient(135deg, var(--color-cyan, #00ffd1), var(--color-violet, #9900ff), var(--color-pink, #B87333))",
+        boxShadow: "0 20px 60px rgba(0,0,0,0.25)",
+        width: "fit-content",
+        maxWidth: "min(94vw, 560px)",
       }}
     >
-      <span
+      <div
         style={{
-          fontSize: 10,
-          color: "rgba(255,255,255,0.35)",
-          letterSpacing: "0.1em",
-          textTransform: "uppercase",
-          marginBottom: 4,
-          paddingLeft: 6,
+          position: "relative",
+          background: "#ffffff",
+          borderRadius: "37px",
+          padding: "24px",
+          display: "flex",
+          flexDirection: "column",
+          gap: 8,
+          maxHeight: "70vh",
+          overflowY: "auto",
+          overflowX: "hidden",
+          fontFamily: "var(--font-montserrat)",
         }}
       >
-        Инструмент
-      </span>
-      {INSTRUMENT_COLORS.map(({ color, label, icon, instrument }) => {
-        const isActive = color === currentColor;
-        // [HINT] каждая кнопка инструмента имеет свою подсказку
-        const hint = getHint(INSTRUMENT_HINTS[instrument] ?? `${label} `);
-        return (
-          <button
-            key={color}
-            onClick={() => {
-              onChange(color);
-              onClose();
-            }}
-            {...hint} // [HINT]
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: 12,
+            marginBottom: 14,
+          }}
+        >
+          <span
             style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 10,
-              padding: "7px 10px",
-              borderRadius: 10,
-              border: "1.5px solid",
-              borderColor: isActive ? color : "transparent",
-              background: isActive ? `${color}18` : "rgba(255,255,255,0.04)",
-              color: isActive ? color : "rgba(255,255,255,0.7)",
-              fontSize: 13,
-              cursor: "pointer",
-              transition: "all 0.15s",
-              width: "100%",
-              textAlign: "left",
+              fontFamily: "var(--font-montserrat)",
+              fontSize: 24,
+              color: "var(--color-bright)",
+              textTransform: "uppercase",
+              fontWeight: "var(--font-weight-semibold)",
+              paddingLeft: 4,
             }}
           >
-            <IconBrushColor
-              color={color}
-              size={22}
-              style={{
-                flexShrink: 0,
-                filter: isActive ? `drop-shadow(0 0 4px ${color}80)` : "none",
-              }}
-            />
-            <span style={{ fontSize: 14 }}>{icon}</span>
-            <span style={{ letterSpacing: "0.03em" }}>{label}</span>
-            {isActive && (
-              <span style={{ marginLeft: "auto", fontSize: 11, opacity: 0.7 }}>
-                ✓
-              </span>
-            )}
+            Инструмент
+          </span>
+
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Закрыть"
+            title="Закрыть"
+            style={{
+              flexShrink: 0,
+              width: 44,
+              height: 44,
+              padding: 0,
+              border: "none",
+              background: "transparent",
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              borderRadius: "50%",
+              transition: "background 0.15s, transform 0.1s",
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = "#f0f0f0";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = "transparent";
+            }}
+          >
+            <img src={CloseIcon} alt="" style={{ width: 22, height: 22 }} />
           </button>
-        );
-      })}
+        </div>
+
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "max-content max-content",
+            gap: "10px 16px",
+          }}
+        >
+          {INSTRUMENT_COLORS.map(({ color, label, instrument }) => {
+            const isActive = color === currentColor;
+            const hint = getHint(INSTRUMENT_HINTS[instrument] ?? label);
+            return (
+              <button
+                key={color}
+                onClick={() => {
+                  onChange(color);
+                  onClose();
+                }}
+                {...hint}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 10,
+                  padding: "10px 14px",
+                  borderRadius: "30px",
+                  border: isActive
+                    ? `2px solid ${color}`
+                    : "2px solid transparent",
+                  background: isActive ? `${color}18` : "#f5f5f7",
+                  color: isActive ? "var(--color-bright)" : "var(--color-pale)",
+                  fontFamily: "var(--font-montserrat)",
+                  fontSize: 20,
+                  fontWeight: isActive ? "var(--font-weight-semibold)" : 500,
+                  cursor: "pointer",
+                  transition: "all 0.2s ease",
+                  boxShadow: isActive ? `0 0 0 1px ${color}40` : "none",
+                  textAlign: "left",
+                  width: "100%",
+                  lineHeight: 1.3,
+                }}
+                onMouseEnter={(e) => {
+                  if (!isActive) {
+                    e.currentTarget.style.background = "#eaeaea";
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (!isActive) {
+                    e.currentTarget.style.background = "#f5f5f7";
+                  }
+                }}
+              >
+                <IconBrushColor
+                  color={color}
+                  size={28}
+                  style={{
+                    flexShrink: 0,
+                    filter: isActive
+                      ? `drop-shadow(0 0 6px ${color}80)`
+                      : "none",
+                    transition: "filter 0.2s",
+                  }}
+                />
+                <span style={{ flex: 1, letterSpacing: "0.01em" }}>
+                  {label}
+                </span>
+                {isActive && (
+                  <span
+                    style={{
+                      fontSize: 13,
+                      opacity: 0.85,
+                      color,
+                      marginLeft: 2,
+                    }}
+                  >
+                    ✓
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </div>
+      </div>
     </div>
   );
 };
@@ -199,15 +290,12 @@ const ToolsPanel = forwardRef(
     const hintUndo = useHint(
       canUndo ? "Отменить последнее действие " : "Нечего отменять ",
     );
-    // [HINT] ИСПРАВЛЕНО: «повторить» → «вернуть отменённое действие»
     const hintRedo = useHint(
       canRedo ? "Вернуть отменённое действие " : "Нечего возвращать ",
     );
     const hintClear = useHint("Очистить холст — музыка тоже сотрётся ");
-    // [HINT] ИСПРАВЛЕНО: фон не влияет на мелодию — убираем это из подсказки
     const hintBg = useHint("Задайте атмосферу фона");
 
-    // useHintPush: push вызывается с уже вычисленным следующим текстом — нет проблемы async setState
     const hintBrush = useHintPush(() =>
       isBrushSelected ? "Кисть активна" : "Переключиться на кисть ",
     );
@@ -307,7 +395,7 @@ const ToolsPanel = forwardRef(
             opacity: isImporting ? 0.5 : 1,
             cursor: isImporting ? "wait" : "pointer",
           }}
-          {...hintImport} // [HINT]
+          {...hintImport}
         >
           {isImporting ? (
             <ImportingSpinner />
@@ -322,7 +410,7 @@ const ToolsPanel = forwardRef(
           className="icon brush-color-btn"
           onClick={handleInstrColorClick}
           title={`Инструмент: ${currentInstrData.label}`}
-          {...hintInstrument} // [HINT]
+          {...hintInstrument}
           style={{
             position: "relative",
             outline: showInstrumentPicker
@@ -355,7 +443,6 @@ const ToolsPanel = forwardRef(
         )}
 
         {/* Кисть */}
-        {/* [HINT] onMouseEnter/onMouseLeave из useHintToggle, клик вызывает onAfterClick */}
         <div
           className="icon"
           onClick={selectBrush}
@@ -386,14 +473,12 @@ const ToolsPanel = forwardRef(
         {/* Undo */}
         <div className="icon" onClick={onUndo} title="Отменить" {...hintUndo}>
           {" "}
-          {/* [HINT] */}
           <img src={canUndo ? UndoIcon : UndoBlockedIcon} alt="Отменить" />
         </div>
 
-        {/* Redo — ИСПРАВЛЕНО: alt и title тоже поправлены */}
+        {/* Redo */}
         <div className="icon" onClick={onRedo} title="Вернуть" {...hintRedo}>
           {" "}
-          {/* [HINT] */}
           <img src={canRedo ? RedoIcon : RedoBlockedIcon} alt="Вернуть" />
         </div>
 
@@ -405,7 +490,6 @@ const ToolsPanel = forwardRef(
           {...hintClear}
         >
           {" "}
-          {/* [HINT] */}
           <img src={ClearCanvasIcon} alt="Очистить" />
         </div>
 
@@ -418,7 +502,6 @@ const ToolsPanel = forwardRef(
           {...hintBg}
         >
           {" "}
-          {/* [HINT] */}
           <IconCanvasBg color={currentBgColor} />
         </div>
 

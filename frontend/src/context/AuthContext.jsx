@@ -8,7 +8,7 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
   const apiUrl = "http://127.0.0.1:8000";
 
-  // Обновление пользователя (GET — без CSRF, поэтому чистый fetch)
+  // Обновление пользователя
   const refreshUser = async () => {
     try {
       const res = await fetch(`${apiUrl}/api/me`, {

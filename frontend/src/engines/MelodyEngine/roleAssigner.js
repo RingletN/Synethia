@@ -1,14 +1,3 @@
-// engines/MelodyEngine/roleAssigner.js
-//
-// Роли инструментов определяются ПО ВРЕМЕНИ (по оси X):
-//   - В каждом такте есть ровно один "dominant melody" инструмент
-//   - Остальные melody-инструменты в этом такте → аккомпанемент (chord/ornament)
-//   - Переход плавный: в зоне overlap оба инструмента слышны, но один тише
-//
-// Публичный API:
-//   assignRoles(processedSegs, T)
-//     → каждому seg добавляет .role, .isOrnament, .temporalRoleByTakt[]
-
 import { detectInflections } from "./preprocessor.js";
 
 const BASS_Y_THRESHOLD = 0.45;
@@ -120,7 +109,7 @@ export function assignRoles(processedSegs, T) {
     ([i]) => i !== bassInstr,
   );
 
-  // ── Если только один не-басовый инструмент → он всегда мелодия ─────────────
+  // ── Если только один не-басовый инструмент - он всегда мелодия ─────────────
   if (nonBassEntries.length === 1) {
     nonBassEntries[0][1].segs.forEach((seg) => {
       seg.role = "melody";
@@ -131,18 +120,24 @@ export function assignRoles(processedSegs, T) {
     return;
   }
 
-  // ── Основная логика: временно́е доминирование ──────────────────────────────
+  // ── Основная логика: временноjе доминирование ──────────────────────────────
   const spatialSplit = checkSpatialSplit(nonBassEntries);
 
   if (spatialSplit) {
     applyTemporalDominance(nonBassEntries, byInstrument, T, spatialSplit);
   } else {
-    // Нет чёткого разделения по X → фолбэк по длине
+    // Нет чёткого разделения по X - фолбэк по длине
     applyLengthBasedRoles(nonBassEntries, byInstrument, T);
   }
+
+  // ── Постобработка 1: устойчивость лидерства melody ──────
+  enforceLeaderStability(nonBassEntries, T);
+
+  // ── Постобработка 2: лимит одновременных chord-голосов ───
+  limitSimultaneousChordVoices(nonBassEntries, T);
 }
 
-// ─── Проверка разделения по X ──────────────────────────────────────────────
+// ─── Проверка разделения по X ──────
 function checkSpatialSplit(nonBassEntries) {
   if (nonBassEntries.length < 2) return null;
 
@@ -188,11 +183,7 @@ function checkSpatialSplit(nonBassEntries) {
   };
 }
 
-// ─── Ключевая функция: временно́е доминирование по тактам ─────────────────
-// Для каждого такта:
-//   1. Определяем кто "dominant" (у кого больше точек в этом такте)
-//   2. Остальные melody-инструменты → chord/ornament с плавным fade
-//   3. В зоне overlap: оба слышны, но dominant громче
+// ─── Ключевая функция: временное доминирование по тактам ─────────────────
 function applyTemporalDominance(nonBassEntries, byInstrument, T, splitResult) {
   const { midX, leftInstr, rightInstr } = splitResult;
 
@@ -225,7 +216,7 @@ function applyTemporalDominance(nonBassEntries, byInstrument, T, splitResult) {
       // Есть ли у меня вообще точки в этом такте?
       const hasPts = myPts > 0;
       if (!hasPts) {
-        // Нет точек → молчим (роль chord/ornament с нулевым объёмом)
+        // Нет точек - молчим (роль chord/ornament с нулевым объёмом)
         taktRoles[k] = "chord";
         taktVolMult[k] = 0;
         continue;
@@ -237,7 +228,7 @@ function applyTemporalDominance(nonBassEntries, byInstrument, T, splitResult) {
         if (otherInstr !== instrName) totalOtherDensity += otherDensity[k];
       }
 
-      // Нет конкурентов → я главный
+      // Нет конкурентов - я главный
       if (totalOtherDensity === 0) {
         taktRoles[k] = "melody";
         taktVolMult[k] = 1.0;
@@ -248,39 +239,39 @@ function applyTemporalDominance(nonBassEntries, byInstrument, T, splitResult) {
       // Для двух инструментов (левый/правый): позиция такта относительно midX
       if (instrName === leftInstr) {
         if (taktX < fadeStart) {
-          // Чётко левая зона → я главный
+          // Чётко левая зона - я главный
           taktRoles[k] = "melody";
           taktVolMult[k] = 1.0;
         } else if (taktX <= fadeEnd) {
-          // Зона перехода → я аккомпанирую, плавно затихаю
-          const t = (taktX - fadeStart) / (fadeEnd - fadeStart); // 0→1
+          // Зона перехода - я аккомпанирую, плавно затихаю
+          const t = (taktX - fadeStart) / (fadeEnd - fadeStart); // 0-1
           taktRoles[k] = "chord";
           // Плавное затухание: от 0.85 до ACCOMP_VOLUME_RATIO
           taktVolMult[k] = 0.85 - (0.85 - ACCOMP_VOLUME_RATIO) * t;
         } else {
-          // Правая зона → аккомпанемент (тихий)
+          // Правая зона - аккомпанемент (тихий)
           taktRoles[k] = "chord";
           taktVolMult[k] = ACCOMP_VOLUME_RATIO;
         }
       } else if (instrName === rightInstr) {
         if (taktX > fadeEnd) {
-          // Чётко правая зона → я главный
+          // Чётко правая зона - я главный
           taktRoles[k] = "melody";
           taktVolMult[k] = 1.0;
         } else if (taktX >= fadeStart) {
-          // Зона перехода → нарастаю
+          // Зона перехода - нарастаю
           const t = (taktX - fadeStart) / (fadeEnd - fadeStart); // 0→1
           taktRoles[k] = "chord";
           // Нарастание: от ACCOMP_VOLUME_RATIO до 1.0
           taktVolMult[k] =
             ACCOMP_VOLUME_RATIO + (1.0 - ACCOMP_VOLUME_RATIO) * t;
         } else {
-          // Левая зона → аккомпанемент (тихий)
+          // Левая зона - аккомпанемент (тихий)
           taktRoles[k] = "chord";
           taktVolMult[k] = ACCOMP_VOLUME_RATIO;
         }
       } else {
-        // Прочие инструменты (не левый и не правый) → всегда аккомпанемент
+        // Прочие инструменты (не левый и не правый) - всегда аккомпанемент
         taktRoles[k] = "chord";
         taktVolMult[k] = ACCOMP_VOLUME_RATIO * 0.7;
       }
@@ -298,6 +289,151 @@ function applyTemporalDominance(nonBassEntries, byInstrument, T, splitResult) {
       seg.temporalRoleByTakt = [...taktRoles];
       seg.temporalVolMultByTakt = [...taktVolMult];
     });
+  }
+}
+
+const MIN_LEADER_HOLD = 3; // минимальное число тактов, которое держит роль melody один и тот же инструмент
+const MAX_CHORD_VOICES = 2; // максимум одновременно звучащих chord-инструментов в такте
+
+function enforceLeaderStability(nonBassEntries, T) {
+  if (nonBassEntries.length < 2) return;
+
+  // Считаем плотность точек по тактам для каждого инструмент
+  const densityByTakt = new Map();
+  for (const [instrName, data] of nonBassEntries) {
+    const taktDensity = new Array(T).fill(0);
+    for (const seg of data.segs) {
+      for (const pt of seg.points) {
+        const k = Math.min(T - 1, Math.floor(pt.x * T));
+        taktDensity[k]++;
+      }
+    }
+    densityByTakt.set(instrName, taktDensity);
+  }
+
+  // 1: "сырой" победитель каждого такта — инструмент с максимальной
+  // плотностью точек в этом такте (среди тех, у кого там вообще есть точки).
+  const rawLeaderByTakt = new Array(T).fill(null);
+  for (let k = 0; k < T; k++) {
+    let best = null;
+    let bestCount = 0;
+    for (const [instrName] of nonBassEntries) {
+      const cnt = densityByTakt.get(instrName)[k];
+      if (cnt > bestCount) {
+        bestCount = cnt;
+        best = instrName;
+      }
+    }
+    rawLeaderByTakt[k] = best;
+  }
+
+  // 2: гистерезис устойчивости — лидер не должен меняться чаще, чем
+  // раз в MIN_LEADER_HOLD тактов. Короткие пробеги (< MIN_LEADER_HOLD)
+  // поглощаются соседним устойчивым пробегом (предпочтение — предыдущему,
+  // чтобы лидер менялся только когда новый кандидат закрепился надолго).
+  const smoothed = [...rawLeaderByTakt];
+  let i = 0;
+  while (i < T) {
+    let j = i;
+    while (j < T && rawLeaderByTakt[j] === rawLeaderByTakt[i]) j++;
+    const runLen = j - i;
+    if (runLen < MIN_LEADER_HOLD && rawLeaderByTakt[i] !== null) {
+      const prevLeader = i > 0 ? smoothed[i - 1] : null;
+      const nextLeader = j < T ? rawLeaderByTakt[j] : null;
+      const fillWith = prevLeader ?? nextLeader ?? rawLeaderByTakt[i];
+      for (let k = i; k < j; k++) smoothed[k] = fillWith;
+    }
+    i = j;
+  }
+
+  // 3: применяем финальное решение. Лидер такта (smoothed[k]) звучит
+  // как melody, ЕСЛИ у него реально есть точки в этом такте
+  const FADE_TAKTS = 1;
+  const leaderChangeAt = new Set();
+  for (let k = 1; k < T; k++) {
+    if (smoothed[k] !== smoothed[k - 1]) leaderChangeAt.add(k);
+  }
+
+  for (const [instrName, data] of nonBassEntries) {
+    const myDensity = densityByTakt.get(instrName);
+    const taktRoles = new Array(T);
+    const taktVolMult = new Array(T);
+
+    for (let k = 0; k < T; k++) {
+      const hasPts = myDensity[k] > 0;
+      if (!hasPts) {
+        taktRoles[k] = "chord";
+        taktVolMult[k] = 0;
+        continue;
+      }
+      if (smoothed[k] === instrName) {
+        taktRoles[k] = "melody";
+        let vol = 1.0;
+        // Затухание перед сменой лидерства (последний FADE_TAKTS тактов пробега)
+        if (leaderChangeAt.has(k + 1) && k + 1 < T) {
+          vol = 1.0 - (1.0 - ACCOMP_VOLUME_RATIO) * (1 / (FADE_TAKTS + 1));
+        }
+        // Нарастание сразу после смены лидерства (первый такт нового пробега)
+        if (leaderChangeAt.has(k)) {
+          vol = Math.min(
+            vol,
+            ACCOMP_VOLUME_RATIO +
+              (1.0 - ACCOMP_VOLUME_RATIO) * (1 / (FADE_TAKTS + 1)),
+          );
+        }
+        taktVolMult[k] = vol;
+      } else {
+        taktRoles[k] = "chord";
+        taktVolMult[k] = ACCOMP_VOLUME_RATIO;
+      }
+    }
+
+    const melodyTakts = taktRoles.filter((r) => r === "melody").length;
+    const dominantStaticRole = melodyTakts >= T / 2 ? "melody" : "chord";
+
+    data.segs.forEach((seg) => {
+      seg.role = dominantStaticRole;
+      seg.isOrnament = dominantStaticRole === "chord";
+      seg.temporalRoleByTakt = [...taktRoles];
+      seg.temporalVolMultByTakt = [...taktVolMult];
+    });
+  }
+}
+
+function limitSimultaneousChordVoices(nonBassEntries, T) {
+  if (nonBassEntries.length <= MAX_CHORD_VOICES) return;
+
+  for (let k = 0; k < T; k++) {
+    // Собираем кандидатов: инструменты с chord-ролью и volMult>0 в этом такте
+    const candidates = [];
+    for (const [instrName, data] of nonBassEntries) {
+      const seg = data.segs[0];
+      if (!seg?.temporalRoleByTakt) continue;
+      if (
+        seg.temporalRoleByTakt[k] === "chord" &&
+        seg.temporalVolMultByTakt[k] > 0
+      ) {
+        // Плотность точек именно в этом такте — критерий приоритета
+        let density = 0;
+        for (const s of data.segs) {
+          for (const pt of s.points) {
+            if (pt.x >= k / T && pt.x < (k + 1) / T) density++;
+          }
+        }
+        candidates.push({ instrName, data, density });
+      }
+    }
+    if (candidates.length <= MAX_CHORD_VOICES) continue;
+
+    candidates.sort((a, b) => b.density - a.density);
+    const silenced = candidates.slice(MAX_CHORD_VOICES);
+    for (const { data } of silenced) {
+      data.segs.forEach((s) => {
+        if (s.temporalVolMultByTakt[k] !== undefined) {
+          s.temporalVolMultByTakt[k] = 0;
+        }
+      });
+    }
   }
 }
 

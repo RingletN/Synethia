@@ -1,6 +1,3 @@
-// MusicPlayer.jsx — с подключёнными подсказками
-// Изменения помечены комментарием // [HINT]
-
 import React, { useRef, useState, useEffect, useCallback } from "react";
 
 import PauseIcon from "../../../assets/icons/icon-pause.svg";
@@ -10,9 +7,7 @@ import SkipForwardIcon from "../../../assets/icons/icon-skip-forward.svg";
 import VolumeHighIcon from "../../../assets/icons/icon-volume-high.svg";
 import VolumeLowIcon from "../../../assets/icons/icon-volume-low.svg";
 import VolumeNoIcon from "../../../assets/icons/icon-volume-no.svg";
-
-// [HINT] импортируем хуки
-import { useHint, useHintPush } from "../hooks/useHint"; // поправь путь
+import { useHint, useHintPush } from "../hooks/useHint";
 
 const formatTime = (seconds) => {
   const s = Math.max(0, seconds);
@@ -36,16 +31,12 @@ const MusicPlayer = ({
   const isDraggingProgressRef = useRef(false);
   const isDraggingVolumeRef = useRef(false);
 
-  // [HINT] статичные хинты (состояние не меняется в момент клика)
   const hintSkipBack = useHint("Перемотать на 5 секунд назад");
   const hintSkipForward = useHint("Перемотать на 5 секунд вперёд");
   const hintProgress = useHint("Нажмите или перетащите для перемотки");
   const hintTime = useHint("Текущее время / общая длительность ");
   const hintVolumeSlider = useHint("Перетащите, чтобы изменить громкость");
 
-  // [HINT] ИСПРАВЛЕНО: toggle-хинты — обновляются сразу при клике, без ухода курсора.
-  // Используем useHintToggle: при клике вызываем onAfterClick() и подсказка меняется мгновенно.
-  // useHintPush: push вызывается с уже вычисленным следующим текстом
   const hintPlayPause = useHintPush(() =>
     isPlaying ? "Поставить на паузу " : "Воспроизвести музыку ",
   );
@@ -143,12 +134,10 @@ const MusicPlayer = ({
         {...hintSkipBack}
       >
         {" "}
-        {/* [HINT] */}
         <img src={SkipBackIcon} alt="Назад 5 с" />
       </div>
 
       {/* Play / Pause */}
-      {/* [HINT] ИСПРАВЛЕНО: onAfterClick вызывается сразу после клика — подсказка меняется без ухода курсора */}
       <div
         className="icon"
         onClick={() => {
@@ -174,7 +163,6 @@ const MusicPlayer = ({
         {...hintSkipForward}
       >
         {" "}
-        {/* [HINT] */}
         <img src={SkipForwardIcon} alt="Вперёд 5 с" />
       </div>
 
@@ -184,7 +172,7 @@ const MusicPlayer = ({
         className="progress-bar-container"
         onClick={handleProgressClick}
         onMouseDown={handleProgressMouseDown}
-        {...hintProgress} // [HINT]
+        {...hintProgress}
       >
         <div
           className="progress-fill"
@@ -199,13 +187,11 @@ const MusicPlayer = ({
       {/* Время */}
       <p className="time-text" {...hintTime}>
         {" "}
-        {/* [HINT] */}
         {formatTime(currentTime)} / {formatTime(totalDuration)}
       </p>
 
       {/* Громкость */}
       <div className="volume-control">
-        {/* [HINT] ИСПРАВЛЕНО: иконка звука — toggle-хинт, onAfterClick обновляет подсказку мгновенно */}
         <div
           className="icon volume-btn"
           onMouseEnter={hintVolumeIcon.onMouseEnter}
@@ -238,7 +224,7 @@ const MusicPlayer = ({
             onVolumeChange(ratio);
           }}
           onMouseDown={handleVolumeMouseDown}
-          {...hintVolumeSlider} // [HINT]
+          {...hintVolumeSlider}
         >
           <div
             className="volume-slider-fill"

@@ -1,12 +1,7 @@
-// hooks/useAudioExporter.js
-//
-// Экспорт в WAV с использованием тех же самплеров, что и плеер.
-// ВАЖНО: конфиг SAMPLER_URLS должен точно совпадать с useMelodyPlayer.js
-
+// Экспорт в WAV с использованием тех же самплеров, что и плеер
 import * as Tone from "tone";
 
-// ─── Те же SAMPLER_URLS, что и в useMelodyPlayer (всегда .mp3) ───────────────
-// ─── SAMPLER_URLS: точная копия useMelodyPlayer.js (только существующие файлы) ─
+// ─── Те же SAMPLER_URLS, что и в useMelodyPlayer (всегда .mp3)
 const SAMPLER_URLS = {
   piano: {
     baseUrl: "/samples/piano/",
@@ -155,7 +150,7 @@ const SAMPLER_URLS = {
   },
 };
 
-// Маппинг legacy осциллятора → реальный инструмент
+// Маппинг legacy осциллятора - реальный инструмент
 const LEGACY_TO_INSTRUMENT = {
   sine: "piano",
   square: "guitar",
@@ -343,7 +338,6 @@ export const useAudioExporter = (melodyEvents, totalDuration) => {
     a.style.display = "none";
     document.body.appendChild(a);
 
-    // Диспатчим клик минуя bubbling — хук не поймает
     const clickEvent = new MouseEvent("click", {
       bubbles: false,
       cancelable: false,

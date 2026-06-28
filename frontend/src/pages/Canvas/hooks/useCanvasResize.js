@@ -16,11 +16,6 @@ export const useCanvasResize = (engineRef, canvasPanelRef, drawBlockRef) => {
   const isDraggingRef = useRef(false);
   const dragDirRef = useRef(null);
 
-  // Применяем новый размер:
-  // 1. Сначала движок — он атомарно рисует в offscreen и копирует готовый кадр.
-  // 2. Потом state — React обновит только CSS-размер панели, canvas-элемент не тронет
-  //    (у него больше нет width/height атрибутов из пропсов).
-  // Итог: браузер видит ровно один кадр с готовым рисунком, мигания нет.
   const applySize = useCallback(
     (newW, newH) => {
       if (engineRef.current) {

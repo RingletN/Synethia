@@ -39,9 +39,7 @@ class UserController extends Controller
         return response()->json($user, 201);
     }
 
-        /**
-     * Обновление профиля текущего аутентифицированного пользователя.
-     */
+    /*Обновление профиля текущего аутентифицированного пользователя*/
     public function update(Request $request)
     {
         $user = $request->user();

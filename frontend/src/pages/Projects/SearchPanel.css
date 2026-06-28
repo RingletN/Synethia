@@ -1,5 +1,6 @@
 .search-block {
   background: rgba(var(--color-dark-rgb), 0.4);
+  /* background: rgba(236, 236, 236, 0.4); */
   border: none;
   border-radius: 40px;
   padding: 14px 28px;

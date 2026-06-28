@@ -1,8 +1,5 @@
-// SettingsPanel.jsx
-
 import React, { useState, useRef, useEffect } from "react";
 import "./SettingsPanel.css";
-
 import LeftChevron from "../../../assets/icons/icon-chevron-left.svg";
 import RightChevron from "../../../assets/icons/icon-chevron-right.svg";
 import MajorBlock from "../../../assets/canvas/major-block.png";
@@ -15,12 +12,12 @@ import IconNotes from "../../../assets/icons/icon-notes.svg";
 import IconEffects from "../../../assets/icons/icon-effects.svg";
 import IconTurtle from "../../../assets/icons/icon-turtle.svg";
 import IconHare from "../../../assets/icons/icon-hare.svg";
-import IconBox from "../../../assets/icons/icon-box.svg";
-import IconScene from "../../../assets/icons/icon-scene.svg";
-import IconNoDelay from "../../../assets/icons/icon-no-delay.svg";
-import IconMaxDelay from "../../../assets/icons/icon-max-delay.svg";
-import IconSine from "../../../assets/icons/icon-sine.svg";
-import IconHighDistortion from "../../../assets/icons/icon-high-distortion.svg";
+import IconBox from "../../../assets/icons/icon-box.png";
+import IconScene from "../../../assets/icons/icon-scene.png";
+import IconNoDelay from "../../../assets/icons/icon-no-delay.png";
+import IconMaxDelay from "../../../assets/icons/icon-max-delay.png";
+import IconSine from "../../../assets/icons/icon-sine.png";
+import IconHighDistortion from "../../../assets/icons/icon-high-distortion.png";
 import GradientSlider from "../../../components/ui/GradientSlider";
 
 import { useHint, useHintPush } from "../hooks/useHint";

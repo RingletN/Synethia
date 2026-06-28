@@ -1,8 +1,4 @@
-// src/api.js
-// Единый HTTP-клиент — используй вместо axios везде в проекте.
-// Повторяет логику fetchWithCsrf из AuthContext, но живёт отдельно
-// чтобы его могли импортировать любые хуки и компоненты.
-
+// Единый HTTP-клиент
 const API_URL = "http://127.0.0.1:8000";
 
 const getXsrfToken = () => {
@@ -24,14 +20,6 @@ const getCsrfCookie = async () => {
   }
 };
 
-/**
- * Основной метод — аналог axios.get/post/put/delete
- *
- * @param {string} path        — путь вида '/api/projects'
- * @param {object} options     — стандартные fetch-опции (method, body, headers…)
- * @returns {Promise<any>}     — распарсенный JSON
- * @throws                     — бросает ошибку если res.ok === false
- */
 const request = async (path, options = {}) => {
   const method = (options.method || "GET").toUpperCase();
 
@@ -58,7 +46,7 @@ const request = async (path, options = {}) => {
     credentials: "include",
   });
 
-  // Пустые ответы (204 No Content)
+  // Пустые ответы
   if (res.status === 204) return null;
 
   const data = await res.json().catch(() => ({}));
@@ -73,7 +61,7 @@ const request = async (path, options = {}) => {
   return data;
 };
 
-// Удобные методы — полный аналог axios
+// Удобные методы — аналог axios
 const api = {
   get: (path, options = {}) => request(path, { ...options, method: "GET" }),
   post: (path, body, options = {}) =>

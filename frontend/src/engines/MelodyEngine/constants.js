@@ -1,5 +1,3 @@
-// engines/MelodyEngine/constants.js
-
 export const A4_FREQ = 432;
 export const A4_MIDI = 69;
 
@@ -35,34 +33,34 @@ export const RHYTHM_ORDER = ["straight", "waltz", "rock", "disco", "jazz"];
 
 export const COLOR_TO_INSTRUMENT = {
   "#00ffd1": "piano",
-  "#ff3366": "guitar",
-  "#ffcc00": "flute",
+  "#B87333": "guitar",
+  "#EB58DA": "flute",
   "#9900ff": "strings",
   "#ff6b35": "clarinet",
   "#00b4d8": "saxophone",
   "#f72585": "guitar-electric",
   "#0000FF": "cello",
   "#ffd60a": "xylophone",
-  "#a855f7": "harp",
+  "#C9A0DC": "harp",
 };
 
 export const INSTRUMENT_VOLUME = {
   piano: 0.28,
-  guitar: 0.38, // FIX: поднят с 0.28 — гитара-бас должна быть основой
+  guitar: 0.38,
   flute: 0.22,
   strings: 0.16,
   clarinet: 0.24,
   saxophone: 0.2,
   "guitar-electric": 0.22,
   cello: 0.2,
-  xylophone: 0.22, // FIX: снижен с 0.30 — ксилофон играет роль украшения
+  xylophone: 0.22,
   harp: 0.26,
 };
 
 export const ROLE_VOLUME_MULT = {
   melody: 1.0,
-  chord: 0.5, // FIX: снижен с 0.75 — ксилофон-украшение должен быть тихим фоном
-  bass: 1.1, // FIX: поднят с 0.70 — бас был почти не слышен (guitar 0.28 × 0.70 = 0.19)
+  chord: 0.5,
+  bass: 1.1,
 };
 
 export const RHYTHM_PATTERNS = {

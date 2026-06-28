@@ -1,12 +1,8 @@
-// components/Canvas/hooks/useDrawing.js
 import { useState, useRef, useCallback } from "react";
 import DrawingEngine from "../../../engines/DrawingEngine";
 
-// Хук инкапсулирует логику работы с DrawingEngine и историей действий.
-// Он возвращает реф на движок, функции для управления историей (undo/redo/clear) и флаги canUndo/canRedo.
+// Хук инкапсулирует логику работы с DrawingEngine и историей действий
 export const useDrawing = (initialDuration = 8, initialBgColor = "#4D4DFF") => {
-  // initialDuration — длительность звука, которую движок использует по умолчанию для новых мазков
-
   const engineRef = useRef(null);
 
   // История хранится в ref, чтобы колбэки не протухали

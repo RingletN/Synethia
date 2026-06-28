@@ -23,7 +23,7 @@ class AuthController extends Controller
         }
 
         try {
-            $validated = $validator->validated(); // или $request->all(), но лучше validated()
+            $validated = $validator->validated(); 
             $validated['password'] = Hash::make($validated['password']);
             $validated['registration_date'] = now()->toDateString();
 

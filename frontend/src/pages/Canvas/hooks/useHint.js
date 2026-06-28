@@ -1,11 +1,6 @@
-// useHint.js
-
 import { useContext, useCallback, useRef } from "react";
 import { HintContext } from "../context/HintContext";
 
-/**
- * Статичный хинт.
- */
 export const useHint = (text) => {
   const ctx = useContext(HintContext);
   if (!ctx) return {};
@@ -20,26 +15,6 @@ export const useHint = (text) => {
   return { onMouseEnter, onMouseLeave };
 };
 
-/**
- * useHintPush — универсальный хинт для элементов, меняющих состояние.
- * Работает для шевронов, toggle-кнопок — везде, где следующий текст
- * известен в момент клика (обходит async setState).
- *
- * currentTextGetter — геттер текста при наведении (БЕЗ useCallback).
- * Возвращает { onMouseEnter, onMouseLeave, push(nextText) }.
- *
- * push(nextText) вызывай с уже вычисленным следующим текстом.
- * Текст пушится только если курсор над элементом.
- *
- * Примеры:
- *   // Шеврон настроения:
- *   const h = useHintPush(() => MOOD_HINTS[scale]);
- *   onClick={() => { const k = nextKey(); onChange(k); h.push(MOOD_HINTS[k]); }}
- *
- *   // Toggle play/pause:
- *   const h = useHintPush(() => isPlaying ? "Пауза ✦" : "Играть ✦");
- *   onClick={() => { const next = !isPlaying; onPlayPause(); h.push(next ? "Пауза ✦" : "Играть ✦"); }}
- */
 export const useHintPush = (currentTextGetter) => {
   const ctx = useContext(HintContext);
   const getterRef = useRef(currentTextGetter);
@@ -73,9 +48,6 @@ export const useHintPush = (currentTextGetter) => {
   return { onMouseEnter, onMouseLeave, push };
 };
 
-/**
- * useHintFactory — для map-циклов.
- */
 export const useHintFactory = () => {
   const ctx = useContext(HintContext);
   if (!ctx) return () => ({});

@@ -27,15 +27,238 @@ import SaveIcon from "../../assets/icons/icon-save.svg";
 import DownloadIcon from "../../assets/icons/icon-download.svg";
 import TrashIcon from "../../assets/icons/icon-trash.svg";
 import QuestionIcon from "../../assets/icons/icon-question.svg";
-import { Joyride } from 'react-joyride';
+import { Joyride } from "react-joyride";
 import "./Canvas.css";
 import MusicPlayer from "./components/MusicPlayer";
 import { useCanvasResize } from "./hooks/useCanvasResize";
 
 const melodyEngine = new MelodyEngine();
 
-// ─── CanvasInner — рендерится ВНУТРИ HintProvider, поэтому useHint работает ───
-// Принимает всю логику через пропсы из Canvas.
+// ─── Конфигурация тура
+const tourSteps = [
+  {
+    target: '[data-tour="canvas"]',
+    content:
+      "🎨 Это ваш холст - рисуйте, и линии превратятся в музыку. " +
+      "Высота линии - это высота ноты: чем выше на холсте, тем выше звук, " +
+      "чем ниже - тем ниже звук. Мелодия проигрывается слева направо - " +
+      "так же, как вы её рисуете. А цвет линии определяет, каким " +
+      "инструментом она прозвучит (например, разные цвета - разные тембры). " +
+      "Попробуйте - и услышите свой рисунок.",
+    placement: "right",
+  },
+  {
+    target: '[data-tour="project-title"]',
+    content: "✏️ Название проекта – дайте имя своему творению.",
+    placement: "bottom",
+    skipScroll: true,
+  },
+  {
+    target: ".canvas-header-icons",
+    content:
+      "⭐ Здесь собраны основные действия с проектом: добавить в избранное, " +
+      "сохранить, скачать рисунок или мелодию и удалить проект. Если Вы захотите " +
+      "вернуться к руководству - нажмите знак вопроса.",
+    placement: "bottom",
+    skipScroll: true,
+  },
+  {
+    target: ".import-photo-btn",
+    content:
+      "🖼️ Импорт фото – загрузите изображение, контуры превратятся в ноты.",
+    placement: "right",
+  },
+  {
+    target: ".brush-color-btn",
+    content: "🎹 Инструмент – выберите цвет кисти и музыкальный инструмент.",
+    placement: "right",
+  },
+  {
+    target: ".settings-block",
+    content:
+      "⚙️ Панель настроек – здесь можно задать темп, длительность " +
+      "мелодии, лад, ритм и эффекты звучания." +
+      " Эти параметры влияют на то, как будет " +
+      "звучать сгенерированная мелодия. Экспериментируйте!",
+    placement: "left",
+  },
+  {
+    target: '[data-tour="generate-btn"]',
+    content: "🎶 Главная кнопка! Превратит рисунок в музыку.",
+    placement: "top",
+  },
+];
+
+// Стили для тура
+const tourStyles = {
+  options: {
+    primaryColor: "#00ffd1",
+    backgroundColor: "#ffffff",
+    textColor: "#1a1a1a",
+    arrowColor: "#12121e",
+    zIndex: 2000,
+  },
+  buttonPrimary: {
+    backgroundColor: "#00ffd1",
+    color: "#0B0B1F",
+    borderRadius: "40px",
+    fontWeight: "bold",
+    padding: "10px 22px",
+    fontFamily: "Montserrat, sans-serif",
+    fontSize: "24px",
+    whiteSpace: "nowrap",
+    border: "none",
+    cursor: "pointer",
+  },
+  buttonBack: {
+    color: "#ccc",
+    fontFamily: "Montserrat, sans-serif",
+    fontSize: "24px",
+    background: "transparent",
+    border: "none",
+    outline: "none",
+    boxShadow: "none",
+    cursor: "pointer",
+  },
+  buttonSkip: {
+    color: "#ccc",
+    fontFamily: "Montserrat, sans-serif",
+    fontSize: "24px",
+    background: "transparent",
+    border: "none",
+    outline: "none",
+    boxShadow: "none",
+    cursor: "pointer",
+  },
+  tooltip: {
+    backgroundColor: "#ffffff",
+    color: "#1a1a1a",
+    borderRadius: "16px",
+    padding: "20px",
+    fontSize: "24px",
+    lineHeight: 1.6,
+    fontFamily: "Montserrat, sans-serif",
+    boxShadow: "0 20px 40px rgba(0,0,0,0.6)",
+    border: "1px solid rgba(0,0,0,0.1)",
+    maxWidth: "600px",
+    minWidth: "600px",
+  },
+  overlay: {
+    backgroundColor: "rgba(0,0,0,0.7)",
+  },
+};
+
+const CustomTooltip = ({
+  step,
+  index,
+  size,
+  continuous,
+  backProps,
+  closeProps,
+  primaryProps,
+  skipProps,
+  tooltipProps,
+}) => {
+  const isLastStep = index === size - 1;
+
+  return (
+    <div
+      {...tooltipProps}
+      style={{
+        ...tourStyles.tooltip,
+        position: "relative",
+        padding: "24px 32px",
+        maxWidth: "700px",
+        minWidth: "500px",
+      }}
+    >
+      {/* крестик закрытия в правом верхнем углу, как в дефолтном тултипе */}
+      <button
+        {...closeProps}
+        aria-label="Закрыть"
+        style={{
+          position: "absolute",
+          top: "12px",
+          right: "12px",
+          width: "32px",
+          height: "32px",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          background: "transparent",
+          border: "none",
+          outline: "none",
+          boxShadow: "none",
+          color: "#ccc",
+          fontSize: "28px",
+          lineHeight: 1,
+          cursor: "pointer",
+          padding: 0,
+        }}
+      >
+        ×
+      </button>
+
+      <div
+        style={{
+          fontSize: "24px",
+          fontFamily: "Montserrat, sans-serif",
+          paddingRight: "28px",
+        }}
+      >
+        {step.content}
+      </div>
+
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: "12px",
+          marginTop: "24px",
+          justifyContent: "space-between",
+        }}
+      >
+        <button {...skipProps} style={tourStyles.buttonSkip}>
+          Пропустить
+        </button>
+
+        <div style={{ display: "flex", gap: "12px" }}>
+          {index > 0 && (
+            <button {...backProps} style={tourStyles.buttonBack}>
+              Назад
+            </button>
+          )}
+          {continuous && (
+            <button {...primaryProps} style={tourStyles.buttonPrimary}>
+              {isLastStep ? "Завершить" : `Далее (${index + 1} из ${size})`}
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+// Общие опции тура
+const tourOptions = {
+  skipBeacon: true,
+  showProgress: true,
+  buttons: ["skip", "back", "close", "primary"],
+  skipScroll: false,
+  scrollOffset: 120,
+  scrollDuration: 300,
+  blockTargetInteraction: false,
+  overlayClickAction: false, // клик по затемнению не закрывает тур случайно
+};
+
+const tourLocale = {
+  back: "Назад",
+  close: "Закрыть",
+  last: "Завершить",
+  next: "Далее",
+  nextWithProgress: "Далее ({current} из {total})",
+  skip: "Пропустить",
+};
+
 const CanvasInner = ({
   // состояния
   isBrushSelected,
@@ -105,40 +328,46 @@ const CanvasInner = ({
   openModal,
   closeModal,
 }) => {
-
   const [runTour, setRunTour] = useState(false);
 
   // Флаг, что тур уже был показан (храним в localStorage)
   const [tourCompleted, setTourCompleted] = useState(() => {
-    return localStorage.getItem('synethia_tour_completed') === 'true';
+    return localStorage.getItem("synethia_tour_completed") === "true";
   });
 
-  // Запуск тура (можно вызвать вручную или автоматически)
+  // Запуск тура
   const startTour = () => {
-    setRunTour(false);                    // сначала сбрасываем
-    setTimeout(() => setRunTour(true), 50); // потом запускаем заново
+    setRunTour(true);
   };
 
-  // Обработчик завершения тура
-  const handleTourCallback = (data) => {
-    const { status } = data;
-    if (status === 'finished' || status === 'skipped') {
+  // Обработчик событий тура
+  const handleTourEvent = (data) => {
+    const { status, type } = data;
+
+    if (status === "finished" || status === "skipped") {
       setRunTour(false);
-      localStorage.setItem('synethia_tour_completed', 'true');
-      setTourCompleted(true);   // 👈 обновите состояние
+      localStorage.setItem("synethia_tour_completed", "true");
+      setTourCompleted(true);
+      return;
+    }
+
+    if (type === "error:target_not_found") {
+      // Таргет шага не найден в DOM — пропускаем тур целиком, чтобы
+      // не зависнуть на затемнённом экране без возможности продолжить
+      console.warn("Joyride: элемент шага не найден, тур остановлен", data);
+      setRunTour(false);
     }
   };
 
   // Автоматический запуск при первом рендере, если тур ещё не показывали
   useEffect(() => {
     if (!tourCompleted) {
-      // Небольшая задержка, чтобы все DOM-элементы успели отрисоваться
-      const timer = setTimeout(() => startTour(), 500);
+      const timer = setTimeout(() => startTour(), 700);
       return () => clearTimeout(timer);
     }
   }, [tourCompleted]);
 
-  // ── [HINT] Все хинты здесь, внутри HintProvider ──────────────────────────
+  // ── хинты ──────────────────────────
 
   const hintCanvas = useHint(
     canUndo ? "Каждый штрих повлияет на мелодию" : "Музыка рождается из линий",
@@ -162,121 +391,20 @@ const CanvasInner = ({
         ? "Перегенерировать мелодию по рисунку"
         : "Преобразовать рисунок в музыку",
   );
-// Конфигурация шагов тура (временно без панели инструментов, только видимые элементы)
-const tourSteps = [
-  {
-    target: '[data-tour="canvas"]',
-    content: '🎨 Это ваш холст – рисуйте линии, и каждая превратится в музыку. Чем выше линия, тем выше нота.',
-    placement: 'right',
-    disableBeacon: true,
-  },
-  {
-    target: '[data-tour="project-title"]',
-    content: '✏️ Название проекта – дайте имя своему творению.',
-    placement: 'bottom',
-    disableBeacon: true,
-  },
-  {
-    target: '[data-tour="favorite"]',
-    content: '⭐ Избранное – отметьте проект, чтобы он был под рукой.',
-    placement: 'bottom',
-    disableBeacon: true,
-  },
-  {
-    target: '[data-tour="save"]',
-    content: '💾 Сохранить – проект сохранится в ваш аккаунт.',
-    placement: 'bottom',
-    disableBeacon: true,
-  },
-  {
-    target: '[data-tour="download"]',
-    content: '⬇️ Скачать – экспортируйте рисунок (PNG) или мелодию (WAV).',
-    placement: 'bottom',
-    disableBeacon: true,
-  },
-  {
-    target: '[data-tour="delete"]',
-    content: '🗑️ Удалить проект – осторожно, действие необратимо.',
-    placement: 'bottom',
-    disableBeacon: true,
-  },
-  // ← новые шаги для ToolsPanel
-  {
-    target: '.import-photo-btn',
-    content: '🖼️ Импорт фото – загрузите изображение, контуры превратятся в ноты.',
-    placement: 'right',
-    disableBeacon: true,
-  },
-  {
-    target: '.brush-color-btn',
-    content: '🎹 Инструмент – выберите цвет кисти и музыкальный инструмент.',
-    placement: 'right',
-    disableBeacon: true,
-  },
-  {
-    target: '[data-tour="generate-btn"]',
-    content: '🎶 Главная кнопка! Превратит рисунок в музыку.',
-    placement: 'top',
-    disableBeacon: true,
-  },
-];
-
-// Стили для тура (под вашу тему)
-const tourStyles = {
-  options: {
-    beaconComponent: () => null, 
-    primaryColor: '#00ffd1',
-    backgroundColor: '#12121e',
-    textColor: '#f0f0f0',
-    arrowColor: '#12121e',
-    zIndex: 2000,
-  },
-  buttonNext: {
-    backgroundColor: '#00ffd1',
-    color: '#0B0B1F',
-    borderRadius: '40px',
-    fontWeight: 'bold',
-    padding: '8px 20px',
-  },
-  buttonBack: { color: '#aaa' },
-  buttonSkip: { color: '#aaa' },
-  tooltip: {
-    borderRadius: '16px',
-    padding: '20px',
-    fontSize: '14px',
-    lineHeight: 1.5,
-    boxShadow: '0 20px 40px rgba(0,0,0,0.6)',
-    border: '1px solid rgba(255,255,255,0.1)',
-  },
-  overlay: { backgroundColor: 'rgba(0,0,0,0.7)' },
-};
-
-const tourLocale = {
-  back: 'Назад',
-  close: 'Закрыть',
-  last: 'Завершить',
-  next: 'Далее',
-  skip: 'Пропустить',
-};
-
-
-
 
   return (
     <div className="canvas-content">
       <Joyride
-      key={runTour ? 'tour-active' : 'tour-idle'} 
-      steps={tourSteps}
-      run={runTour}
-      continuous={true}
-      showSkipButton={true}
-      showProgress={true}
-      callback={handleTourCallback}
-      styles={tourStyles}
-      locale={tourLocale}
-      spotlightClicks={true}     
-  disableOverlayClose={true}   
-    />
+        steps={tourSteps}
+        run={runTour}
+        continuous={true}
+        onEvent={handleTourEvent}
+        styles={tourStyles}
+        locale={tourLocale}
+        options={tourOptions}
+        scrollToFirstStep={false}
+        tooltipComponent={CustomTooltip}
+      />
       {isLoadingProject && (
         <div
           className="import-overlay"
@@ -305,7 +433,6 @@ const tourLocale = {
           <div className="divider-project" />
         </div>
         <div className="canvas-header-icons">
-          {/* [HINT] избранное — toggle-хинт, меняется сразу при клике */}
           <div
             className="icon favourite-btn"
             data-tour="favorite"
@@ -323,7 +450,12 @@ const tourLocale = {
               alt="Избранное"
             />
           </div>
-          <div className="icon save-btn" data-tour="save" onClick={handleSave} {...hintSave}>
+          <div
+            className="icon save-btn"
+            data-tour="save"
+            onClick={handleSave}
+            {...hintSave}
+          >
             <img src={SaveIcon} alt="Сохранить проект" />
           </div>
           <div
@@ -356,7 +488,12 @@ const tourLocale = {
           >
             <img src={TrashIcon} alt="Удалить проект" />
           </div>
-          <div className="icon question-btn" data-tour="question" onClick={startTour} {...hintQuestion}>
+          <div
+            className="icon question-btn"
+            data-tour="question"
+            onClick={startTour}
+            {...hintQuestion}
+          >
             <img src={QuestionIcon} alt="Обучение" />
           </div>
         </div>
@@ -494,7 +631,7 @@ const tourLocale = {
   );
 };
 
-// ─── Canvas — содержит всю логику, рендерит HintProvider → CanvasInner ────────
+// ─── Canvas — содержит всю логику, рендерит HintProvider - CanvasInner ────────
 const Canvas = () => {
   // --- Состояния ---
   const [isBrushSelected, setIsBrushSelected] = useState(true);
@@ -528,8 +665,8 @@ const Canvas = () => {
 
   const [modalOpen, setModalOpen] = useState(false);
   const [modalConfig, setModalConfig] = useState({});
-  const [bgColor, setBgColor] = useState("#0B0B1F");
-  const bgColorRef = useRef("#0B0B1F");
+  const [bgColor, setBgColor] = useState("#FFFFFF");
+  const bgColorRef = useRef("#FFFFFF");
   const brushColorRef = useRef("#00ffd1");
 
   useEffect(() => {
@@ -554,7 +691,7 @@ const Canvas = () => {
     clear,
     canUndo,
     canRedo,
-  } = useDrawing(8, "#0B0B1F");
+  } = useDrawing(8, "#FFFFFF");
 
   // --- Хук ресайза ---
   const {
@@ -619,7 +756,7 @@ const Canvas = () => {
       }
     }, 50);
     return () => clearInterval(interval);
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, []);
 
   const [isLoadingProject, setIsLoadingProject] = useState(false);
   const projectLoadedRef = useRef(false);
@@ -1116,9 +1253,6 @@ const Canvas = () => {
     return () => obs.disconnect();
   }, [syncLayout]);
 
-  // ── Всё рендерим через HintProvider → CanvasInner ───────────────────────
-  // КЛЮЧЕВОЕ ИСПРАВЛЕНИЕ: HintProvider оборачивает CanvasInner,
-  // поэтому все useHint внутри CanvasInner получают контекст корректно.
   return (
     <HintProvider>
       <CanvasInner

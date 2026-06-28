@@ -1,6 +1,3 @@
-// HintPanel.jsx
-// Вставь вместо пустого .hint-panel в Canvas.jsx
-
 import React, { useContext, useState, useEffect, useRef } from "react";
 import { HintContext } from "../context/HintContext"; // поправь путь
 
@@ -11,7 +8,7 @@ const HintPanel = () => {
   const timerRef = useRef(null);
 
   useEffect(() => {
-    // Плавная смена: fade out → смена текста → fade in
+    // Плавная смена: fade out - смена текста - fade in
     setVisible(false);
     clearTimeout(timerRef.current);
     timerRef.current = setTimeout(() => {

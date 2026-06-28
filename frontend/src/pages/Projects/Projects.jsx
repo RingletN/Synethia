@@ -1,4 +1,3 @@
-// Projects.jsx — с пагинацией и адаптивной сеткой
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import BgProjectsLine from "../../assets/backgrounds/bg-projects-line.png";
@@ -42,7 +41,8 @@ function useColCount(gridRef) {
 const Projects = () => {
   const navigate = useNavigate();
   const gridRef = useRef(null);
-  const cols = useColCount(gridRef);
+  //const cols = useColCount(gridRef);
+  const cols = 3;
   const [playingId, setPlayingId] = useState(null);
 
   const [projects, setProjects] = useState([]);
@@ -68,7 +68,7 @@ const Projects = () => {
   // committedFavorites — «снимок» id избранных на момент применения фильтра.
   // Список не перестраивается при ручном тыке на звёздочку — только при
   // смене страницы / поиска / повторном подтверждении фильтра.
-  const [committedFavorites, setCommittedFavorites] = useState(null); // null = не инициализировано
+  const [committedFavorites, setCommittedFavorites] = useState(null);
 
   const [page, setPage] = useState(1);
   const { user, loading: authLoading } = useAuth();
@@ -104,7 +104,7 @@ const Projects = () => {
     setCommittedFavorites(
       new Set(projects.filter((p) => p.is_favorite).map((p) => p.id)),
     );
-  }, [searchQuery, cols]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [searchQuery, cols]);
 
   // ── Открытие модалки — синхронизируем temp с реальными ───────────────────
   const openSort = () => {
@@ -196,8 +196,6 @@ const Projects = () => {
     );
 
   // ── Вспомогательная функция фильтрации по избранному ─────────────────────
-  // Использует committedFavorites-снимок, чтобы список не дёргался при
-  // ручном тыке на звёздочку.
   const applyFavFilter = (list, filter, committed) => {
     if (!committed || filter === "all") return list;
     if (filter === "only_favorites")
@@ -234,11 +232,7 @@ const Projects = () => {
 
   const filtered = applyFavFilter(sorted, favFilter, committed);
 
-  /*
-   * Пагинация: 2 ряда по cols карточек.
-   * Страница 1: первый слот — CreateCard, остальных (cols*2 - 1) проектов.
-   * Страница N (N>1): cols*2 проектов.
-   */
+  //пагинация
   const ROWS = 2;
   const perPageFirst = cols * ROWS - 1;
   const perPageOther = cols * ROWS;

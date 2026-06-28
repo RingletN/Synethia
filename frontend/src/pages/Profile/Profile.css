@@ -24,6 +24,7 @@
 .profile-data-block,
 .photo-container {
   background: rgba(var(--color-dark-rgb), 0.4);
+  /* background: rgba(236, 236, 236, 0.2); */
   border: none;
   border-radius: 40px;
   display: flex;
@@ -78,8 +79,12 @@
   font-family: "Montserrat", sans-serif;
   font-weight: bold;
   font-size: 40px;
-  color: #ececec;
+  color: var(--color-bright);
   margin: 0;
+}
+
+.profile-header-text h2 {
+  color: var(--color-bright) !important;
 }
 
 .action-icons {
@@ -100,6 +105,7 @@
   border-radius: 40px;
   overflow: hidden;
   background: rgba(255, 255, 255, 0.1);
+  /* background: rgba(236, 236, 236, 0.2); */
   display: flex;
   align-items: center;
   justify-content: center;
@@ -234,8 +240,8 @@
     max-width: none;
   }
   .photo-container {
-    width: 100%; /* контейнер фото растягивается внутри блока */
-    height: auto; /* высота автоматическая */
-    aspect-ratio: 1 / 1.2; /* можно задать желаемое соотношение сторон */
+    width: 100%;
+    height: auto;
+    aspect-ratio: 1 / 1.2;
   }
 }

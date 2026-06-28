@@ -36,7 +36,7 @@ function Login({ onSwitchToRegister, onForgotPassword }) {
 
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
-      setShowValidationError(true); // ← показываем модалку
+      setShowValidationError(true); // показываем модалку
       return;
     }
 

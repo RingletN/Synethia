@@ -1,5 +1,3 @@
-// HintContext.jsx
-
 import React, {
   createContext,
   useContext,
@@ -31,8 +29,7 @@ export const HintProvider = ({ children }) => {
     }
   }, []);
 
-  // forceHint — вызывается при клике, когда курсор остаётся на элементе.
-  // Принимает геттер () => string, чтобы всегда читать актуальное значение.
+  //  вызывается при клике, когда курсор остаётся на элементе
   const forceHint = useCallback((getter) => {
     forcedHintRef.current = getter;
     setHintRaw(getter());

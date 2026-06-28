@@ -13,15 +13,12 @@ use Illuminate\Support\Facades\Validator;
 
 class ProjectController extends Controller
 {
-    /**
-     * GET /projects
-     * Список проектов текущего пользователя (без тяжёлых данных — segments и events не грузим).
-     */
+
     public function index(Request $request)
     {
         $projects = Project::where('user_id', $request->user()->id)
             ->with([
-                //'canvas:id,project_id,bg_color,width,height',  // без segments
+                //'canvas:id,project_id,bg_color,width,height',  
                 'canvas',
                 'settings',
                 'melody', 
@@ -33,10 +30,6 @@ class ProjectController extends Controller
         return response()->json($projects);
     }
 
-    /**
-     * GET /projects/{id}
-     * Полные данные проекта — включая segments и events (для загрузки на холст).
-     */
     public function show(Request $request, int $id)
     {
         $project = Project::where('user_id', $request->user()->id)
@@ -46,38 +39,6 @@ class ProjectController extends Controller
         return response()->json($project);
     }
 
-    /**
-     * POST /projects
-     * Создать или обновить проект (если передан project_id — обновляем).
-     *
-     * Body (JSON):
-     * {
-     *   project_id?: int,          // если передан — обновляем существующий
-     *   title: string,
-     *   description?: string,
-     *
-     *   canvas: {
-     *     segments: array,          // DrawingEngine.getAllSegments()
-     *     bg_color: string,
-     *     width: int,
-     *     height: int,
-     *   },
-     *
-     *   settings: {
-     *     bpm: int,
-     *     duration: int,
-     *     scale: string,
-     *     reverb: float,
-     *     delay: float,
-     *     distortion: float,
-     *   },
-     *
-     *   melody?: {                  // необязательно — только если мелодия была сгенерирована
-     *     events: array,
-     *     total_duration: int,
-     *   }
-     * }
-     */
     public function store(Request $request)
     {
         $validator = Validator::make($request->all(), [
@@ -188,10 +149,6 @@ class ProjectController extends Controller
         }
     }
 
-    /**
-     * PATCH /projects/{id}/favorite
-     * Переключить флаг is_favorite.
-     */
     public function toggleFavorite(Request $request, int $id)
     {
         $project = Project::where('user_id', $request->user()->id)->findOrFail($id);
@@ -203,9 +160,6 @@ class ProjectController extends Controller
         ]);
     }
 
-    /**
-     * DELETE /projects/{id}
-     */
     public function destroy(Request $request, int $id)
     {
         $project = Project::where('user_id', $request->user()->id)->findOrFail($id);

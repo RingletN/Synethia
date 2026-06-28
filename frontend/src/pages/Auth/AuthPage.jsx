@@ -5,10 +5,6 @@ import ForgotPassword from "./ForgotPassword";
 import BgLoginLine from "../../assets/backgrounds/bg-login-line.png";
 import "./Register.css";
 
-/**
- * AuthPage — главная оболочка.
- * mode: 'login' | 'register' | 'forgot'
- */
 function AuthPage() {
   const [mode, setMode] = useState("login"); // 'login' | 'register' | 'forgot'
 

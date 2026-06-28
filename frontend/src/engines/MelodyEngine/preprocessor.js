@@ -1,6 +1,3 @@
-// engines/MelodyEngine/preprocessor.js
-// Фаза 1а: очистка сегментов, гауссово сглаживание, детекция переломов, определение тоники
-
 import {
   GAUSSIAN_SIGMA,
   INFLECTION_THRESHOLD,
@@ -68,9 +65,9 @@ export function detectTonic(processedSegs) {
       }
     }
   }
-  if (!leftmostPoint) return Math.round(freqToMidi(261.63)); // C4 fallback
+  if (!leftmostPoint) return Math.round(freqToMidi(261.63));
 
-  // Квантизуем к ближайшему целому полутону (точная нота, без дрейфа)
+  // Квантизуем к ближайшему целому полутону
   return Math.round(freqToMidi(yNormToFreq(leftmostPoint.y)));
 }
 

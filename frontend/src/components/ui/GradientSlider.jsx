@@ -4,8 +4,8 @@ const COLORS = {
   violet: "#4D4DFF",
   cyan: "#00F2FF",
   pink: "#FF00FF",
-  bright: "#ECECEC",
-  dark: "rgba(0, 0, 0, 0.45)",
+  bright: "#312E49",
+  dark: "rgba(49, 46, 73, 0.45)",
 };
 
 const STATIC_STYLE_ID = "gradient-slider-static";
@@ -59,18 +59,6 @@ function getThumbColor(pct) {
   return COLORS.pink;
 }
 
-/**
- * GradientSlider
- *
- * Props:
- *   min        {number}   — минимальное значение (default 40)
- *   max        {number}   — максимальное значение (default 180)
- *   step       {number}   — шаг (default 1)
- *   value      {number}   — текущее значение (controlled)
- *   onChange   {function} — (newValue: number) => void
- *   style      {object}   — дополнительные стили для обёртки
- *   className  {string}   — дополнительный класс для обёртки
- */
 export default function GradientSlider({
   min = 40,
   max = 180,

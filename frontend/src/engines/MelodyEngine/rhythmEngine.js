@@ -1,12 +1,3 @@
-// engines/MelodyEngine/rhythmEngine.js
-// Фаза 2: наложение ритмического паттерна + устранение коллизий
-//
-// ИЗМЕНЕНИЯ:
-//   - Убран старый контрапункт (чередование инструментов по чётным/нечётным долям)
-//     — теперь этим управляет roleAssigner через temporalRoleByTakt
-//   - В зоне перехода (overlap) оба инструмента звучат, но с fade (temporalFade)
-//   - Аккомпанирующий голос не заглушает мелодию благодаря отдельной дедупликации
-
 import { RHYTHM_PATTERNS } from "./constants.js";
 
 export function applyRhythmPattern(
@@ -81,7 +72,6 @@ export function applyRhythmPattern(
           }
         }
       } else {
-        // bassWalk
         const rootNote = notes.find((n) => !n.isWalk) ?? notes[0];
         const walkNote = notes.find((n) => n.isWalk) ?? null;
 
@@ -116,7 +106,7 @@ export function applyRhythmPattern(
         }
       }
     } else {
-      // chord / ornament (аккомпанемент)
+      // (аккомпанемент)
       const accompStyle = notes[0].accompStyle;
       const isOrnament = notes.some((n) => n.isOrnament);
       // temporalFade — множитель из зоны перехода (0.4 .. 1.0)
@@ -261,8 +251,6 @@ export function applyRhythmPattern(
   });
 
   // ─── Устранение секунд между двумя melody-инструментами ────────────────────
-  // ВАЖНО: не удаляем тихий аккомпанирующий голос целиком — он важен для красоты.
-  // Просто убираем явные диссонансы (секунды + тритон в одном регистре).
   const crossMelodyFiltered = [];
   const activeCrossMelody = [];
 

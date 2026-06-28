@@ -16,7 +16,7 @@ const IconBrushColor = ({ color = "#00ffd1", size = 60, className = "" }) => {
         cy="30"
         r="26"
         fill={color}
-        stroke="#ECECEC"
+        stroke="#312E49"
         strokeWidth="3"
       />
     </svg>

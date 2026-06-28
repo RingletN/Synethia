@@ -31,7 +31,7 @@ function App() {
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            background: "rgba(11, 11, 31, 0.4)",
+            // background: "rgba(11, 11, 31, 0.4)",
             zIndex: 9999,
           }}
         >

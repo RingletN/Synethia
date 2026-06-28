@@ -6,17 +6,17 @@ class DrawingEngine {
     // СОСТОЯНИЕ РИСОВАНИЯ
     this.isDrawing = false;
     this.isErasing = false;
-    this.segments = [];           // ВСЕ ЛИНИИ (сегменты)
-    this.currentSegment = null;   // текущая рисуемая линия
+    this.segments = []; // ВСЕ ЛИНИИ (сегменты)
+    this.currentSegment = null; // текущая рисуемая линия
 
     // НАСТРОЙКИ КИСТИ И ЛАСТИКА
     this.currentColor = "#00ffd1";
     this.lineWidth = 5;
     this.eraserWidth = 22;
 
-    this.onStrokeEnd = null;      // колбэк окончания штриха
+    this.onStrokeEnd = null; // колбэк окончания штриха
     this._resizeRafId = null;
-    this._eraserTrail = [];       // траектория ластика (нормализ. координаты)
+    this._eraserTrail = []; // траектория ластика (нормализ. координаты)
 
     // начальные размеры холста, если не заданы
     if (!mainCanvas.width || mainCanvas.width < 10) mainCanvas.width = 780;
@@ -40,14 +40,22 @@ class DrawingEngine {
     canvas.addEventListener("mouseup", () => this.stopDrawing());
     canvas.addEventListener("mouseout", () => this.stopDrawing());
 
-    canvas.addEventListener("touchstart", (e) => {
-      e.preventDefault();
-      this.startDrawing(e.touches[0]);
-    }, { passive: false });
-    canvas.addEventListener("touchmove", (e) => {
-      e.preventDefault();
-      this.draw(e.touches[0]);
-    }, { passive: false });
+    canvas.addEventListener(
+      "touchstart",
+      (e) => {
+        e.preventDefault();
+        this.startDrawing(e.touches[0]);
+      },
+      { passive: false },
+    );
+    canvas.addEventListener(
+      "touchmove",
+      (e) => {
+        e.preventDefault();
+        this.draw(e.touches[0]);
+      },
+      { passive: false },
+    );
     canvas.addEventListener("touchend", () => this.stopDrawing());
   }
 
@@ -68,13 +76,20 @@ class DrawingEngine {
 
     if (this.isErasing) {
       // РЕЖИМ ЛАСТИКА: запоминаем начало траектории (нормализованные координаты)
-      this._eraserTrail = [{ x: pos.x / this.mainCanvas.width, y: pos.y / this.mainCanvas.height }];
+      this._eraserTrail = [
+        { x: pos.x / this.mainCanvas.width, y: pos.y / this.mainCanvas.height },
+      ];
       this.currentSegment = null;
     } else {
       // РЕЖИМ РИСОВАНИЯ: создаём новый сегмент
       this._eraserTrail = [];
       this.currentSegment = {
-        points: [{ x: pos.x / this.mainCanvas.width, y: pos.y / this.mainCanvas.height }],
+        points: [
+          {
+            x: pos.x / this.mainCanvas.width,
+            y: pos.y / this.mainCanvas.height,
+          },
+        ],
         color: this.currentColor,
         lineWidth: this.lineWidth,
         isErase: false,
@@ -96,7 +111,10 @@ class DrawingEngine {
       this.ctx.stroke();
       this.ctx.globalCompositeOperation = "source-over";
 
-      this._eraserTrail.push({ x: pos.x / this.mainCanvas.width, y: pos.y / this.mainCanvas.height });
+      this._eraserTrail.push({
+        x: pos.x / this.mainCanvas.width,
+        y: pos.y / this.mainCanvas.height,
+      });
     } else {
       // РИСОВАНИЕ ЛИНИИ
       if (!this.currentSegment) return;
@@ -107,7 +125,10 @@ class DrawingEngine {
       this.ctx.lineTo(pos.x, pos.y);
       this.ctx.stroke();
 
-      this.currentSegment.points.push({ x: pos.x / this.mainCanvas.width, y: pos.y / this.mainCanvas.height });
+      this.currentSegment.points.push({
+        x: pos.x / this.mainCanvas.width,
+        y: pos.y / this.mainCanvas.height,
+      });
     }
 
     this.lastX = pos.x;
@@ -143,8 +164,8 @@ class DrawingEngine {
   _erasePoints(eraserTrail, eraserWidthPx) {
     const w = this.mainCanvas.width;
     const h = this.mainCanvas.height;
-    const rx = eraserWidthPx / 2 / w;   // радиус ластика в нормализованных координатах по X
-    const ry = eraserWidthPx / 2 / h;   // по Y
+    const rx = eraserWidthPx / 2 / w; // радиус ластика в нормализованных координатах по X
+    const ry = eraserWidthPx / 2 / h; // по Y
     let changed = false;
 
     this.segments = this.segments
@@ -156,7 +177,8 @@ class DrawingEngine {
             const ep = eraserTrail[i];
             const dx = (pt.x - ep.x) / rx;
             const dy = (pt.y - ep.y) / ry;
-            if (dx * dx + dy * dy <= 1) {   // формула эллипса
+            if (dx * dx + dy * dy <= 1) {
+              // формула эллипса
               changed = true;
               return false;
             }
@@ -299,7 +321,9 @@ class DrawingEngine {
 
   // ВОССТАНОВЛЕНИЕ СОСТОЯНИЯ
   loadState(state) {
-    this.segments = state?.segments ? JSON.parse(JSON.stringify(state.segments)) : [];
+    this.segments = state?.segments
+      ? JSON.parse(JSON.stringify(state.segments))
+      : [];
     this.redraw();
   }
 
